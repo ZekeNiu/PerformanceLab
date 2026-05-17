@@ -32,6 +32,8 @@ The dashboard should be highly configurable. Analysts may work with different te
 - HashRouter for GitHub Pages compatibility
 - Mock frontend data only
 - Deployed to GitHub Pages through `gh-pages`
+- Full Kimi export imported from `D:\Download\Kimi_Agent_仪表盘功能完善_2.zip`
+- Pre-import rollback tag: `backup-before-kimi-full-import`
 
 ## Important Files
 
@@ -45,7 +47,7 @@ The dashboard should be highly configurable. Analysts may work with different te
 
 ## Current Gaps
 
-- Several pages are placeholders or thin shells.
+- Full Kimi pages are now present, but they still need systematic runtime QA and cleanup.
 - Most data is hardcoded/mock data.
 - Card configurability is not yet modeled as reusable config.
 - Metric definitions, test batteries, athlete data, and display options need a stronger schema.

@@ -11,6 +11,8 @@ This file is the persistent task plan for Codex sessions. Read it before startin
 - Live URL: `https://zekeniu.github.io/PerformanceLab/`
 - Frontend stack: React 19, TypeScript, Vite, Tailwind CSS, ECharts, Framer Motion, react-router-dom HashRouter
 - Data layer: mock frontend data only; no backend/API yet
+- Current source now includes the Kimi full export imported from `D:\Download\Kimi_Agent_仪表盘功能完善_2.zip`.
+- Pre-import rollback tag: `backup-before-kimi-full-import`
 
 ## Git History Notes
 
@@ -47,7 +49,7 @@ Build a professional sports performance dashboard for performance analysts and h
 
 ## Near-Term Priorities
 
-- Replace placeholder pages with real feature surfaces.
+- Audit the imported Kimi full pages for runtime bugs and broken interactions.
 - Refactor dashboard cards toward metric-configurable components.
 - Centralize metric definitions and chart/card configuration.
 - Add a clean data model for athletes, teams, sessions, tests, metrics, and measurements.

@@ -26,3 +26,25 @@ Use this file as the session-by-session project journal.
 - Read `task_plan.md`, `findings.md`, `progress.md`, and `docs/AI_CONTEXT.md`.
 - Run `git status --short --branch`.
 - If changing code, run `npm run build` before finalizing.
+
+## 2026-05-17 Kimi Full Import
+
+- Received Kimi export zip: `D:\Download\Kimi_Agent_仪表盘功能完善_2.zip`.
+- Extracted it outside the Git repo to `D:\AI\PerformanceLab_1\incoming\kimi-20260517-130148`.
+- Verified the extracted Kimi app builds successfully before importing.
+- Tagged the pre-import repository state as `backup-before-kimi-full-import`.
+- Imported Kimi's full app source into the current Git repo while preserving GitHub Pages deployment workflow and project memory docs.
+- Restored full-size feature pages and modules:
+  - `src/pages/Comparison.tsx`
+  - `src/pages/Correlation.tsx`
+  - `src/pages/Admin.tsx`
+  - `src/pages/Settings.tsx`
+  - `src/pages/DataEntry.tsx`
+  - `src/components/data-entry/*`
+  - `src/lib/statistics.ts`
+  - `src/lib/correlation-data.ts`
+  - `src/data/mockData.ts`
+  - `src/types/simple-statistics.d.ts`
+- Added/installed `simple-statistics` from the Kimi package.
+- Re-applied GitHub Pages asset path fixes using `import.meta.env.BASE_URL`.
+- Verified `npm run build` passes after import.

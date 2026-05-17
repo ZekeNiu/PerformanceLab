@@ -4,7 +4,7 @@ export interface AlertCard {
   id: string
   name: string
   metric: string
-  change?: string
+  change: string
   severity: 'critical' | 'warning' | 'recovering'
 }
 
@@ -50,11 +50,11 @@ export interface PeriodicCategory {
 }
 
 export const alertCards: AlertCard[] = [
-  { id: '1', name: '张伟', metric: 'HRV ↓12%', severity: 'critical' },
-  { id: '2', name: '李娜', metric: 'ACWR 1.52', severity: 'warning' },
-  { id: '3', name: '王强', metric: 'HRV ↑8%', severity: 'recovering' },
-  { id: '4', name: '陈明', metric: '睡眠 ↓18%', severity: 'warning' },
-  { id: '5', name: '赵敏', metric: 'ACWR 0.72', severity: 'warning' },
+  { id: '1', name: '张伟', metric: 'HRV ↓12%', change: '-12%', severity: 'critical' },
+  { id: '2', name: '李娜', metric: 'ACWR 1.52', change: '+0.52', severity: 'warning' },
+  { id: '3', name: '王强', metric: 'HRV ↑8%', change: '+8%', severity: 'recovering' },
+  { id: '4', name: '陈明', metric: '睡眠 ↓18%', change: '-18%', severity: 'warning' },
+  { id: '5', name: '赵敏', metric: 'ACWR 0.72', change: '-0.28', severity: 'warning' },
 ]
 
 export const athletes = ['张伟', '李娜', '王强', '陈明', '赵敏', '刘洋', '周婷', '吴涛']
@@ -208,4 +208,180 @@ export const ratingColors: Record<string, string> = {
   B: '#00D4AA',
   C: '#F59E0B',
   D: '#EF4444',
+}
+
+// ═════════════════════════════════════════════════════════════════
+//  Comparison Data & Statistics
+// ═════════════════════════════════════════════════════════════════
+
+export interface ComparisonIndicator {
+  id: string
+  name: string
+  category: string
+  unit: string
+  targetScore: number
+  valueA: number
+  sdA: number
+  nA: number
+  valueB: number
+  sdB: number
+  nB: number
+  direction: 'higher' | 'lower'
+}
+
+export interface ComparisonLayer {
+  id: string
+  name: string
+  color: string
+  type: 'individual' | 'group'
+  values: Record<string, { mean: number; sd: number; n: number }>
+}
+
+export const DEMO_INDICATORS: ComparisonIndicator[] = [
+  // 力量测试
+  { id: 'cmj_height', name: 'CMJ 跳跃高度', category: '力量', unit: 'cm', targetScore: 50, valueA: 42.3, sdA: 2.1, nA: 5, valueB: 45.8, sdB: 1.9, nB: 5, direction: 'higher' },
+  { id: 'cmj_force', name: 'CMJ 峰值力', category: '力量', unit: 'N', targetScore: 2000, valueA: 1850, sdA: 87, nA: 5, valueB: 1920, sdB: 92, nB: 5, direction: 'higher' },
+  { id: 'squat_1rm', name: '深蹲 1RM', category: '力量', unit: 'kg', targetScore: 160, valueA: 140, sdA: 8.5, nA: 4, valueB: 152, sdB: 7.2, nB: 4, direction: 'higher' },
+  // 速度测试
+  { id: 'sprint_30m', name: '30m 冲刺', category: '速度', unit: 's', targetScore: 3.8, valueA: 4.23, sdA: 0.12, nA: 5, valueB: 4.18, sdB: 0.11, nB: 5, direction: 'lower' },
+  { id: 'standing_jump', name: '立定跳远', category: '速度', unit: 'cm', targetScore: 300, valueA: 268, sdA: 14.2, nA: 5, valueB: 275, sdB: 12.8, nB: 5, direction: 'higher' },
+  { id: 'agility_t', name: '灵敏测试 T-test', category: '速度', unit: 's', targetScore: 8.5, valueA: 9.45, sdA: 0.31, nA: 4, valueB: 9.28, sdB: 0.28, nB: 4, direction: 'lower' },
+  // 耐力测试
+  { id: 'yoyo_ir1', name: 'Yo-Yo IR1', category: '耐力', unit: 'm', targetScore: 2200, valueA: 1840, sdA: 156, nA: 5, valueB: 1960, sdB: 142, nB: 5, direction: 'higher' },
+  { id: 'lactate_threshold', name: '乳酸阈值跑速', category: '耐力', unit: 'km/h', targetScore: 16, valueA: 14.2, sdA: 0.8, nA: 4, valueB: 14.8, sdB: 0.7, nB: 4, direction: 'higher' },
+  // 身体形态
+  { id: 'body_fat', name: '体脂率', category: '身体形态', unit: '%', targetScore: 10, valueA: 12.4, sdA: 1.2, nA: 5, valueB: 11.8, sdB: 1.1, nB: 5, direction: 'lower' },
+  { id: 'muscle_mass', name: '肌肉量', category: '身体形态', unit: 'kg', targetScore: 62, valueA: 58.2, sdA: 3.4, nA: 5, valueB: 59.5, sdB: 3.1, nB: 5, direction: 'higher' },
+]
+
+export const LAYER_COLORS = ['#00D4AA', '#3B82F6', '#8B5CF6', '#F59E0B']
+
+export const DEMO_LAYERS: ComparisonLayer[] = [
+  {
+    id: 'peer_avg',
+    name: '同位置均值',
+    color: '#3B82F6',
+    type: 'group',
+    values: {
+      cmj_height: { mean: 40.1, sd: 3.2, n: 12 },
+      cmj_force: { mean: 1780, sd: 110, n: 12 },
+      squat_1rm: { mean: 135, sd: 12.5, n: 10 },
+      sprint_30m: { mean: 4.35, sd: 0.18, n: 12 },
+      standing_jump: { mean: 258, sd: 16.4, n: 12 },
+      agility_t: { mean: 9.62, sd: 0.38, n: 10 },
+      yoyo_ir1: { mean: 1720, sd: 190, n: 12 },
+      lactate_threshold: { mean: 13.8, sd: 0.9, n: 10 },
+      body_fat: { mean: 13.1, sd: 1.5, n: 12 },
+      muscle_mass: { mean: 56.8, sd: 4.2, n: 12 },
+    },
+  },
+  {
+    id: 'team_best',
+    name: '队内最佳',
+    color: '#8B5CF6',
+    type: 'individual',
+    values: {
+      cmj_height: { mean: 48.2, sd: 0, n: 1 },
+      cmj_force: { mean: 2100, sd: 0, n: 1 },
+      squat_1rm: { mean: 170, sd: 0, n: 1 },
+      sprint_30m: { mean: 4.05, sd: 0, n: 1 },
+      standing_jump: { mean: 290, sd: 0, n: 1 },
+      agility_t: { mean: 8.95, sd: 0, n: 1 },
+      yoyo_ir1: { mean: 2200, sd: 0, n: 1 },
+      lactate_threshold: { mean: 15.5, sd: 0, n: 1 },
+      body_fat: { mean: 9.8, sd: 0, n: 1 },
+      muscle_mass: { mean: 64.0, sd: 0, n: 1 },
+    },
+  },
+]
+
+// ── Statistical Utilities ──
+
+export function calcTE(sd1: number, sd2: number, n1: number, n2: number): number {
+  const pooledSD = Math.sqrt(((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2) / (n1 + n2 - 2))
+  return pooledSD * 0.35
+}
+
+export function calcMDC(te: number): number {
+  return te * 1.96 * Math.sqrt(2)
+}
+
+export function calcSWC(sd1: number, sd2: number, n1: number, n2: number): number {
+  const pooledSD = Math.sqrt(((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2) / (n1 + n2 - 2))
+  return pooledSD * 0.2
+}
+
+export function calcSNR(mean1: number, mean2: number, te: number): number {
+  return Math.abs(mean2 - mean1) / te
+}
+
+export function calcCohensD(mean1: number, mean2: number, sd1: number, sd2: number, n1: number, n2: number): number {
+  const pooledSD = Math.sqrt(((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2) / (n1 + n2 - 2))
+  return (mean2 - mean1) / pooledSD
+}
+
+export function cohensDLabel(d: number): { text: string; color: string } {
+  const absD = Math.abs(d)
+  if (absD < 0.2) return { text: '可忽略', color: 'var(--text-muted)' }
+  if (absD < 0.5) return { text: '小', color: '#F59E0B' }
+  if (absD < 0.8) return { text: '中', color: '#3B82F6' }
+  return { text: '大', color: '#10B981' }
+}
+
+export function calcPairedTTest(mean1: number, mean2: number, sd1: number, sd2: number, n: number): number {
+  const diff = mean2 - mean1
+  const sed = Math.sqrt((sd1 * sd1 + sd2 * sd2) / n)
+  const t = diff / sed
+  const df = n - 1
+  const p = 2 * (1 - studentTCDF(Math.abs(t), df))
+  return Math.max(0.001, Math.min(1, p))
+}
+
+function studentTCDF(t: number, df: number): number {
+  const x = df / (df + t * t)
+  return 1 - 0.5 * betaIncomplete(x, df / 2, 0.5)
+}
+
+function betaIncomplete(x: number, a: number, b: number): number {
+  if (x <= 0) return 0
+  if (x >= 1) return 1
+  return Math.pow(x, a) * Math.pow(1 - x, b) / (a * betaFunc(a, b))
+}
+
+function betaFunc(a: number, b: number): number {
+  return Math.exp(lgamma(a) + lgamma(b) - lgamma(a + b))
+}
+
+function lgamma(z: number): number {
+  const g = 7
+  const C = [
+    0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+    771.32342877765313, -176.61502916214059, 12.507343278686905,
+    -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
+  ]
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z)
+  z -= 1
+  let x = C[0]
+  for (let i = 1; i < g + 2; i++) x += C[i] / (z + i)
+  const t = z + g + 0.5
+  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x)
+}
+
+export function formatPValue(p: number): string {
+  if (p < 0.001) return '< .001'
+  return p.toFixed(3).replace(/^0/, '')
+}
+
+export function pValueColor(p: number): string {
+  if (p < 0.001) return '#10B981'
+  if (p < 0.01) return '#00D4AA'
+  if (p < 0.05) return '#F59E0B'
+  return '#5A6579'
+}
+
+export function significanceBadge(p: number): { text: string; color: string } {
+  if (p < 0.001) return { text: '***', color: '#10B981' }
+  if (p < 0.01) return { text: '**', color: '#00D4AA' }
+  if (p < 0.05) return { text: '*', color: '#F59E0B' }
+  return { text: 'n.s.', color: '#5A6579' }
 }

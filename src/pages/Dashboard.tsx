@@ -5,12 +5,22 @@ import ControlCenter from '@/components/dashboard/ControlCenter'
 import DailyMonitoring from '@/components/dashboard/DailyMonitoring'
 import PeriodicTesting from '@/components/dashboard/PeriodicTesting'
 
+type DashboardTab = 'daily' | 'periodic'
+type ComparisonMode = 'display' | 'longitudinal' | 'cross-sectional'
+
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'daily' | 'periodic'>('daily')
+  const [activeTab, setActiveTab] = useState<DashboardTab>('daily')
+  const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('display')
 
   const tabs = [
     { key: 'daily' as const, label: '日常监控' },
     { key: 'periodic' as const, label: '定期测试' },
+  ]
+
+  const modeButtons: { key: ComparisonMode; label: string }[] = [
+    { key: 'display', label: '数据展示' },
+    { key: 'longitudinal', label: '纵向比较' },
+    { key: 'cross-sectional', label: '横向比较' },
   ]
 
   return (
@@ -49,6 +59,23 @@ export default function Dashboard() {
             )}
           </button>
         ))}
+
+        {/* Comparison mode switcher — only show on periodic tab */}
+        <div className="ml-auto flex items-center gap-1 rounded-lg border p-0.5" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+          {modeButtons.map((btn) => (
+            <button
+              key={btn.key}
+              onClick={() => setComparisonMode(btn.key)}
+              className="rounded-md px-3 py-1 text-[12px] font-medium transition-colors"
+              style={{
+                backgroundColor: comparisonMode === btn.key ? 'var(--accent-cyan)' : 'transparent',
+                color: comparisonMode === btn.key ? '#0B0E14' : 'var(--text-secondary)',
+              }}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Section 4/5: Tab Content */}
@@ -66,13 +93,13 @@ export default function Dashboard() {
             </motion.div>
           ) : (
             <motion.div
-              key="periodic"
+              key={`periodic-${comparisonMode}`}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
             >
-              <PeriodicTesting />
+              <PeriodicTesting mode={comparisonMode} />
             </motion.div>
           )}
         </AnimatePresence>

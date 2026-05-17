@@ -18,3 +18,11 @@ Use this file for durable discoveries that should survive across conversations.
 - Local build: `npm run build`
 - Latest verified live URL: `https://zekeniu.github.io/PerformanceLab/?v=c7fee44`
 - Browser check: page renders with title `SportPulse — 运动表现仪表盘`; console had 0 errors and 0 warnings after asset path fixes.
+
+## Kimi Full Export Import
+
+- The zip `D:\Download\Kimi_Agent_仪表盘功能完善_2.zip` contains a much more complete app than the previously deployed placeholder version.
+- The zip includes `app/` plus `PROJECT_SUMMARY.md`, `plan.md`, and a nested `SportPulse-V7-Full.zip`.
+- The extracted Kimi app includes full implementations for comparison, correlation, data entry, admin, and settings areas.
+- The extracted Kimi app builds successfully on its own.
+- Kimi code reintroduced root-relative public asset paths. These must be converted to `import.meta.env.BASE_URL` for GitHub Pages.
