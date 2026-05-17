@@ -48,3 +48,4 @@ Use this file as the session-by-session project journal.
 - Added/installed `simple-statistics` from the Kimi package.
 - Re-applied GitHub Pages asset path fixes using `import.meta.env.BASE_URL`.
 - Verified `npm run build` passes after import.
+- Fixed `index.html` title markup and added a relative SVG favicon to avoid deployed console 404 noise.
