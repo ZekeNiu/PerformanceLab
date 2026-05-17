@@ -42,7 +42,7 @@ function InjuryBodyMap() {
         </div>
         <div className="relative" style={{ width: 280, height: 420 }}>
           <img
-            src={view === 'front' ? '/body-map-front.png' : '/body-map-back.png'}
+            src={`${import.meta.env.BASE_URL}${view === 'front' ? 'body-map-front.png' : 'body-map-back.png'}`}
             alt="body map"
             className="h-full w-full object-contain"
             style={{ opacity: 0.7 }}

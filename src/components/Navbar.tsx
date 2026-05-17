@@ -64,7 +64,7 @@ export default function Navbar() {
         style={{ borderColor: 'var(--border-subtle)' }}
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center">
-          <img src="/logo-icon.svg" alt="SportPulse" className="h-7 w-7" />
+          <img src={`${import.meta.env.BASE_URL}logo-icon.svg`} alt="SportPulse" className="h-7 w-7" />
         </div>
         <AnimatePresence>
           {!collapsed && (
