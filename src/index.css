@@ -1,0 +1,264 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #0B0E14;
+    --bg-secondary: #141821;
+    --bg-tertiary: #1C2130;
+    --bg-hover: #232A3B;
+    --border-subtle: #2A3348;
+    --border-active: #3D4D6B;
+    --text-primary: #E8ECF1;
+    --text-secondary: #8B95A5;
+    --text-muted: #5A6579;
+    --accent-cyan: #00D4AA;
+    --accent-blue: #3B82F6;
+    --accent-purple: #8B5CF6;
+    --accent-amber: #F59E0B;
+    --accent-red: #EF4444;
+    --accent-green: #10B981;
+
+    --background: 222 30% 5%;
+    --foreground: 213 25% 93%;
+    --card: 222 26% 10%;
+    --card-foreground: 213 25% 93%;
+    --popover: 222 26% 10%;
+    --popover-foreground: 213 25% 93%;
+    --primary: 166 100% 42%;
+    --primary-foreground: 222 30% 5%;
+    --secondary: 222 20% 15%;
+    --secondary-foreground: 213 25% 93%;
+    --muted: 222 20% 15%;
+    --muted-foreground: 218 12% 55%;
+    --accent: 222 20% 15%;
+    --accent-foreground: 213 25% 93%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 213 25% 93%;
+    --border: 220 20% 22%;
+    --input: 220 20% 22%;
+    --ring: 166 100% 42%;
+    --radius: 0.625rem;
+    --sidebar-background: 222 26% 10%;
+    --sidebar-foreground: 213 25% 93%;
+    --sidebar-primary: 166 100% 42%;
+    --sidebar-primary-foreground: 222 30% 5%;
+    --sidebar-accent: 222 20% 15%;
+    --sidebar-accent-foreground: 213 25% 93%;
+    --sidebar-border: 220 20% 22%;
+    --sidebar-ring: 166 100% 42%;
+  }
+
+  .light {
+    --bg-primary: #F5F6F8;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #EEF0F4;
+    --bg-hover: #E2E5EA;
+    --border-subtle: #D8DCE4;
+    --border-active: #B0B8C8;
+    --text-primary: #1A1E2E;
+    --text-secondary: #5A6579;
+    --text-muted: #9AA3B2;
+
+    --background: 220 14% 96%;
+    --foreground: 225 24% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 225 24% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 225 24% 14%;
+    --primary: 166 100% 42%;
+    --primary-foreground: 225 24% 14%;
+    --secondary: 220 12% 94%;
+    --secondary-foreground: 225 24% 14%;
+    --muted: 220 12% 94%;
+    --muted-foreground: 215 12% 45%;
+    --accent: 220 12% 94%;
+    --accent-foreground: 225 24% 14%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 86%;
+    --input: 220 13% 86%;
+    --ring: 166 100% 42%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 225 24% 14%;
+    --sidebar-primary: 166 100% 42%;
+    --sidebar-primary-foreground: 225 24% 14%;
+    --sidebar-accent: 220 12% 94%;
+    --sidebar-accent-foreground: 225 24% 14%;
+    --sidebar-border: 220 13% 86%;
+    --sidebar-ring: 166 100% 42%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  }
+
+  .text-data-lg {
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  .text-data-md {
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  .text-display {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .text-h1 {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  .text-h2 {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+  }
+
+  .text-h3 {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .text-body {
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  .text-small {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0.005em;
+  }
+
+  .text-xs {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+  }
+
+  .text-mono {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  .card-shadow {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  .card-shadow-elevated {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2), 0 12px 24px rgba(0,0,0,0.3);
+  }
+
+  .card-border {
+    border: 1px solid var(--border-subtle);
+  }
+
+  .bg-card {
+    background-color: var(--bg-secondary);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ease-out-expo {
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ease-out-quart {
+    transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .ease-in-out-smooth {
+    transition-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(0, 212, 170, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-hover) 50%, var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
