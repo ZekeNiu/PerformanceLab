@@ -28,7 +28,7 @@ export default function DashboardCard({
 
   return (
     <motion.div
-      className={`relative flex flex-col rounded-xl border ${className}`}
+      className={`relative flex min-w-0 flex-col rounded-xl border ${className}`}
       style={{
         backgroundColor: 'var(--bg-secondary)',
         borderColor: isHovered ? 'var(--border-active)' : 'var(--border-subtle)',
@@ -113,7 +113,7 @@ export default function DashboardCard({
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-4">
+      <div className="min-w-0 flex-1 overflow-x-auto p-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentConfig || 'default'}

@@ -283,8 +283,7 @@ function LongitudinalRadar({ aggregate }: { aggregate: AggregateMode }) {
 
 // ─── Longitudinal: Per-indicator Chart + Table (Left-Right Layout) ───
 function LongitudinalCategorySection({ category, aggregate }: { category: string; aggregate: AggregateMode }) {
-  const inds = DEMO_INDICATORS.filter((d) => d.category === category)
-  if (!inds.length) return null
+  const inds = useMemo(() => DEMO_INDICATORS.filter((d) => d.category === category), [category])
 
   // Chart: anchor scores comparison (left side)
   const chartOption = useMemo(() => {
@@ -306,6 +305,8 @@ function LongitudinalCategorySection({ category, aggregate }: { category: string
       animationEasing: 'cubicOut' as const,
     }
   }, [inds, aggregate])
+
+  if (!inds.length) return null
 
   // Table with SNR, MDC, SWC (right side)
   const tableRows = inds.map((ind) => {
@@ -514,8 +515,7 @@ function CrossSectionalRadar({ layers, aggregate }: { layers: ComparisonLayer[];
 
 // ─── Cross-Sectional: Per-indicator Chart + Table ───
 function CrossSectionalCategorySection({ category, layers, aggregate }: { category: string; layers: ComparisonLayer[]; aggregate: AggregateMode }) {
-  const inds = DEMO_INDICATORS.filter((d) => d.category === category)
-  if (!inds.length) return null
+  const inds = useMemo(() => DEMO_INDICATORS.filter((d) => d.category === category), [category])
 
   const chartOption = useMemo(() => {
     const names = inds.map((d) => d.name)
@@ -547,6 +547,8 @@ function CrossSectionalCategorySection({ category, layers, aggregate }: { catego
       animationEasing: 'cubicOut' as const,
     }
   }, [inds, layers, aggregate])
+
+  if (!inds.length) return null
 
   // Stats table: current vs each layer
   const tableRows = inds.map((ind) => {

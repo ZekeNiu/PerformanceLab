@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -32,8 +32,16 @@ const navItems: NavItem[] = [
 export default function Navbar() {
   const [collapsed, setCollapsed] = useState(false)
   const [isDark, setIsDark] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const checkWidth = () => setIsMobile(window.innerWidth < 768)
+    checkWidth()
+    window.addEventListener('resize', checkWidth)
+    return () => window.removeEventListener('resize', checkWidth)
+  }, [])
 
   const toggleTheme = useCallback(() => {
     setIsDark((prev) => {
@@ -46,6 +54,39 @@ export default function Navbar() {
       return next
     })
   }, [])
+
+  if (isMobile) {
+    return (
+      <motion.nav
+        className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t px-1"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          borderColor: 'var(--border-subtle)',
+        }}
+        initial={false}
+      >
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path
+          const Icon = item.icon
+          return (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 transition-colors"
+              style={{
+                color: isActive ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                backgroundColor: isActive ? 'var(--bg-hover)' : 'transparent',
+              }}
+              aria-label={item.label}
+            >
+              <Icon size={20} strokeWidth={1.5} className="shrink-0" />
+              <span className="max-w-full truncate text-[10px] font-medium">{item.label}</span>
+            </button>
+          )
+        })}
+      </motion.nav>
+    )
+  }
 
   return (
     <motion.aside

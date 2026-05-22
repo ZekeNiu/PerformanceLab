@@ -26,3 +26,10 @@ Use this file for durable discoveries that should survive across conversations.
 - The extracted Kimi app includes full implementations for comparison, correlation, data entry, admin, and settings areas.
 - The extracted Kimi app builds successfully on its own.
 - Kimi code reintroduced root-relative public asset paths. These must be converted to `import.meta.env.BASE_URL` for GitHub Pages.
+
+## 2026-05-22 Stabilization Pass
+
+- `src/components/Layout.tsx` and `src/components/Navbar.tsx` were the main cause of mobile horizontal overflow: fixed sidebar width was still applied to the content area below 768px.
+- `src/components/dashboard/PeriodicTesting.tsx` had two hook-order risks where `useMemo` ran after an early return in category section components.
+- `src/pages/Settings.tsx` trusted `localStorage` JSON for `sportpulse-chart-colors`; invalid cached values could crash the Settings route before render.
+- `src/components/data-entry/UploadZone.tsx` still uses mock parsed rows; this pass only fixes callback dependency stability, not real Excel/CSV parsing.

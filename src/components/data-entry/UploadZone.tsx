@@ -34,7 +34,7 @@ export default function UploadZone({ onFileParsed }: UploadZoneProps) {
     setUploadState('idle')
   }, [])
 
-  const generateMockParsedRows = (_fname: string): ParsedRow[] => {
+  const generateMockParsedRows = useCallback((): ParsedRow[] => {
     // Generate mock rows that include various validation issues
     return [
       { id: `row-${Date.now()}-1`, rowNum: 2, athleteName: '张伟', athleteUUID: 'ATH-2024-001', date: '2024-06-15', action: 'CMJ', indicator: '跳跃高度', repeats: [42.3, 43.1, 41.8] },
@@ -48,9 +48,9 @@ export default function UploadZone({ onFileParsed }: UploadZoneProps) {
       { id: `row-${Date.now()}-9`, rowNum: 10, athleteName: '赵雷', athleteUUID: 'ATH-2024-006', date: '2024-06-15', action: 'CMJ', indicator: '离心利用率', repeats: [65.2, 66.1, 64.8] },
       { id: `row-${Date.now()}-10`, rowNum: 11, athleteName: '张伟', athleteUUID: 'ATH-2024-001', date: '2024-06-15', action: 'CMJ', indicator: '峰值力', repeats: [2200, 2250, 2180] },
     ]
-  }
+  }, [])
 
-  const processFile = (file: File) => {
+  const processFile = useCallback((file: File) => {
     if (!file.name.match(/\.(xlsx|xls|csv)$/i)) return
     setFileName(file.name)
     setUploadState('uploading')
@@ -58,22 +58,22 @@ export default function UploadZone({ onFileParsed }: UploadZoneProps) {
     // Simulate parsing delay
     setTimeout(() => {
       setUploadState('uploaded')
-      const rows = generateMockParsedRows(file.name)
+      const rows = generateMockParsedRows()
       onFileParsed(rows)
     }, 1500)
-  }
+  }, [generateMockParsedRows, onFileParsed])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setUploadState('idle')
     const file = e.dataTransfer.files[0]
     if (file) processFile(file)
-  }, [])
+  }, [processFile])
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) processFile(file)
-  }
+  }, [processFile])
 
   const borderColor = () => {
     switch (uploadState) {

@@ -49,3 +49,21 @@ Use this file as the session-by-session project journal.
 - Re-applied GitHub Pages asset path fixes using `import.meta.env.BASE_URL`.
 - Verified `npm run build` passes after import.
 - Fixed `index.html` title markup and added a relative SVG favicon to avoid deployed console 404 noise.
+
+## 2026-05-22 Stabilization And Mobile Pass
+
+- Added roadmap guidance: longitudinal and cross-sectional comparison should become optional comparison layers on metric display surfaces; correlation should remain a dedicated exploratory workflow while sharing the same metric/measurement source.
+- Fixed Settings route crash risk by safely parsing `sportpulse-chart-colors` from `localStorage` and clearing invalid cached JSON.
+- Changed Settings notification rule rendering from an inline component definition to a render helper to avoid React Compiler component-in-render diagnostics.
+- Fixed `PeriodicTesting` hook-order risks by moving category filtering into `useMemo` before early returns in longitudinal and cross-sectional category sections.
+- Fixed `UploadZone` callback dependency stability by memoizing mock row generation, file processing, drop handling, and file input handling.
+- Implemented minimum mobile layout containment:
+  - Mobile bottom navigation below 768px.
+  - Content margin is `0` on mobile, `64px` on tablet, `240px` on desktop.
+  - Main layout, cards, dashboard content, and tables now constrain width and use local horizontal scrolling where needed.
+  - Dashboard comparison mode switcher only appears on the periodic tab.
+- Verification:
+  - `npm run build` passes. Vite still warns about the existing >500 kB JS bundle.
+  - Mobile smoke check via Playwright runtime at 390px for `#/`, `#/comparison`, `#/correlation`, `#/data-entry`, `#/admin`, `#/settings`: each route rendered content, console errors were empty, and page-level scroll width stayed at 390px.
+  - Settings survived invalid `sportpulse-chart-colors` cache after reload.
+  - `npm run lint` still fails due to existing issues outside this pass: shadcn/ui fast-refresh exports, `src/components/ui/sidebar.tsx` `Math.random`, `src/lib/statistics.ts` `prefer-const`, `Comparison.tsx` `prefer-const`, and `Correlation.tsx` `any`/hook dependency issues.

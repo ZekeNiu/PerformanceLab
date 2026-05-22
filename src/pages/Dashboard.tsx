@@ -33,7 +33,7 @@ export default function Dashboard() {
 
       {/* Section 3: Tab Bar */}
       <div
-        className="sticky top-0 z-30 flex h-11 items-center gap-0 border-b px-4"
+        className="sticky top-0 z-30 flex min-h-11 flex-wrap items-center gap-0 border-b px-3 py-1 md:h-11 md:px-4 md:py-0"
         style={{
           backgroundColor: 'var(--bg-primary)',
           borderColor: 'var(--border-subtle)',
@@ -61,25 +61,27 @@ export default function Dashboard() {
         ))}
 
         {/* Comparison mode switcher — only show on periodic tab */}
-        <div className="ml-auto flex items-center gap-1 rounded-lg border p-0.5" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
-          {modeButtons.map((btn) => (
-            <button
-              key={btn.key}
-              onClick={() => setComparisonMode(btn.key)}
-              className="rounded-md px-3 py-1 text-[12px] font-medium transition-colors"
-              style={{
-                backgroundColor: comparisonMode === btn.key ? 'var(--accent-cyan)' : 'transparent',
-                color: comparisonMode === btn.key ? '#0B0E14' : 'var(--text-secondary)',
-              }}
-            >
-              {btn.label}
-            </button>
-          ))}
-        </div>
+        {activeTab === 'periodic' && (
+          <div className="ml-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border p-0.5" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+            {modeButtons.map((btn) => (
+              <button
+                key={btn.key}
+                onClick={() => setComparisonMode(btn.key)}
+                className="shrink-0 rounded-md px-3 py-1 text-[12px] font-medium transition-colors"
+                style={{
+                  backgroundColor: comparisonMode === btn.key ? 'var(--accent-cyan)' : 'transparent',
+                  color: comparisonMode === btn.key ? '#0B0E14' : 'var(--text-secondary)',
+                }}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Section 4/5: Tab Content */}
-      <div className="flex-1 p-6">
+      <div className="min-w-0 flex-1 p-3 md:p-6">
         <AnimatePresence mode="wait">
           {activeTab === 'daily' ? (
             <motion.div

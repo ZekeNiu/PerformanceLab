@@ -8,14 +8,21 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [contentOffset, setContentOffset] = useState(() => {
+    if (typeof window === 'undefined') return 240
+    if (window.innerWidth < 768) return 0
+    if (window.innerWidth < 1280) return 64
+    return 240
+  })
 
   useEffect(() => {
     const checkWidth = () => {
-      if (window.innerWidth < 1280 && window.innerWidth >= 768) {
-        setSidebarCollapsed(true)
-      } else if (window.innerWidth >= 1440) {
-        setSidebarCollapsed(false)
+      if (window.innerWidth < 768) {
+        setContentOffset(0)
+      } else if (window.innerWidth < 1280) {
+        setContentOffset(64)
+      } else {
+        setContentOffset(240)
       }
     }
     checkWidth()
@@ -24,13 +31,13 @@ export default function Layout({ children }: LayoutProps) {
   }, [])
 
   return (
-    <div className="flex min-h-[100dvh]">
+    <div className="flex min-h-[100dvh] w-full overflow-x-hidden">
       <Navbar />
       <div
-        className="flex flex-1 flex-col transition-all duration-300"
-        style={{ marginLeft: sidebarCollapsed ? 64 : 240 }}
+        className="flex min-w-0 flex-1 flex-col pb-16 transition-all duration-300 md:pb-0"
+        style={{ marginLeft: contentOffset }}
       >
-        <main className="flex flex-1 flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
           {children}
         </main>
         <Footer />

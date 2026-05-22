@@ -81,3 +81,13 @@ Options when the project is ready:
 ## Current Recommended Next Step
 
 Start with the data model and card configuration layer. This unlocks the user's core requirement: every chart/card should eventually be able to display a compatible metric selected by the analyst.
+
+## Analysis Workflow Direction
+
+For longitudinal and cross-sectional comparison, the preferred direction is to treat them as overlays on the same metric display surface, not as fully separate data islands. A card should have a base metric and optional comparison layers:
+
+- Longitudinal layer: compare the same athlete/team/metric across baseline and target periods.
+- Cross-sectional layer: compare the same metric/time window across athletes, positions, or groups.
+- Correlation layer: stay as a dedicated exploratory workflow, but reuse the same metric definitions and measurement source.
+
+This keeps the analyst's mental model stable: select a metric, then add context. It also supports future card configurability because display mode and comparison mode become serializable chart configuration instead of separate page-specific implementations.

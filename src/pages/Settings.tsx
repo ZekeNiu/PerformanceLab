@@ -105,6 +105,21 @@ const JOINT_COLORS = [
   '#D97706', '#DC2626', '#2563EB', '#059669',
 ]
 
+function readStoredChartColors() {
+  const stored = localStorage.getItem('sportpulse-chart-colors')
+  if (!stored) return CHART_SCHEMES[0].colors
+
+  try {
+    const parsed = JSON.parse(stored)
+    return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string')
+      ? parsed
+      : CHART_SCHEMES[0].colors
+  } catch {
+    localStorage.removeItem('sportpulse-chart-colors')
+    return CHART_SCHEMES[0].colors
+  }
+}
+
 /* ─────────────────────── Zustand-like local store ─────────────────────── */
 
 function useThemeStore() {
@@ -114,8 +129,7 @@ function useThemeStore() {
   })
 
   const [chartColors, setChartColors] = useState(() => {
-    const stored = localStorage.getItem('sportpulse-chart-colors')
-    return stored ? JSON.parse(stored) : CHART_SCHEMES[0].colors
+    return readStoredChartColors()
   })
 
   const [accentColor, setAccentColor] = useState(() => {
@@ -895,7 +909,7 @@ function NotificationSection() {
   const cautionRules = rules.filter((r) => r.id.includes('caution') || r.id === 'injury-caution')
   const recoveryRules = rules.filter((r) => r.id === 'recovery')
 
-  const RuleGroup = ({ title, items }: { title: string; items: NotificationRule[] }) => (
+  const renderRuleGroup = ({ title, items }: { title: string; items: NotificationRule[] }) => (
     <div className="mb-4">
       <div className="mb-2 text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>{title}</div>
       {items.map((rule) => (
@@ -945,9 +959,9 @@ function NotificationSection() {
 
       {enabled && (
         <>
-          <RuleGroup title="严重异常条件 (需同时满足)" items={severeRules} />
-          <RuleGroup title="注意条件" items={cautionRules} />
-          <RuleGroup title="恢复条件" items={recoveryRules} />
+          {renderRuleGroup({ title: '严重异常条件 (需同时满足)', items: severeRules })}
+          {renderRuleGroup({ title: '注意条件', items: cautionRules })}
+          {renderRuleGroup({ title: '恢复条件', items: recoveryRules })}
 
           {/* Max Display */}
           <div className="mt-4 flex items-center gap-4">

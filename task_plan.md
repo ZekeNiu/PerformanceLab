@@ -54,3 +54,14 @@ Build a professional sports performance dashboard for performance analysts and h
 - Centralize metric definitions and chart/card configuration.
 - Add a clean data model for athletes, teams, sessions, tests, metrics, and measurements.
 - Add regression checks for Pages asset paths and core navigation.
+
+## 2026-05-22 Active Task
+
+- Completed: Settings defensive `localStorage` parsing for chart colors.
+- Completed: PeriodicTesting hook-order fix for longitudinal and cross-sectional category sections.
+- Completed: UploadZone callback dependency fix.
+- Completed: Mobile minimum viable layout with bottom navigation and page-level overflow containment.
+- Completed: Roadmap note for treating longitudinal/cross-sectional analysis as comparison layers on metric display surfaces.
+- Verified: `npm run build` passes.
+- Verified: 390px mobile smoke check renders six core routes without page-level horizontal overflow.
+- Known remaining lint debt: existing shadcn/ui fast-refresh exports, sidebar purity, statistics prefer-const, Comparison prefer-const, and Correlation any/dependency issues.
