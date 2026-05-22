@@ -142,7 +142,7 @@ function calcPairedTTest(mean1: number, mean2: number, sd1: number, sd2: number,
 // Approximate Student's T CDF
 function studentTCDF(t: number, df: number): number {
   const x = df / (df + t * t)
-  let result = 1 - 0.5 * betaIncomplete(x, df / 2, 0.5)
+  const result = 1 - 0.5 * betaIncomplete(x, df / 2, 0.5)
   return result
 }
 

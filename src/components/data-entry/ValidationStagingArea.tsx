@@ -14,6 +14,7 @@ import type { ParsedRow } from './UploadZone'
 import type { ValidationStatus } from '@/data/mockData'
 import { mockAthletes } from '@/data/mockData'
 import { Input } from '@/components/ui/input'
+import { getMetricDefinition, resolveMetricDefinition } from '@/lib/metric-registry'
 
 interface ValidationItem {
   id: string
@@ -23,6 +24,8 @@ interface ValidationItem {
   date: string
   action: string
   indicator: string
+  metricId?: string
+  unit?: string
   repeats: (number | null)[]
   status: ValidationStatus
   statusType: string
@@ -83,6 +86,7 @@ export default function ValidationStagingArea({
       let statusType = '正常'
       let errorMessage = ''
       let isResolved = true
+      const metric = row.metricId ? getMetricDefinition(row.metricId) : resolveMetricDefinition(row.indicator)
 
       // Check 1: Unknown athlete
       const knownAthlete = mockAthletes.find(
@@ -95,6 +99,13 @@ export default function ValidationStagingArea({
         isResolved = false
       }
 
+      if (!metric) {
+        status = 'error'
+        statusType = '未知指标'
+        errorMessage = `指标 "${row.indicator}" 不在统一指标 registry 中`
+        isResolved = false
+      }
+
       // Check 2: Too few repeats
       const filledRepeats = row.repeats.filter((r) => r != null && !isNaN(r))
       if (filledRepeats.length < 3) {
@@ -102,6 +113,13 @@ export default function ValidationStagingArea({
         statusType = filledRepeats.length === 0 ? '格式错误' : '数据不足'
         errorMessage = `仅 ${filledRepeats.length} 次有效数据，至少需要3次`
         if (filledRepeats.length === 0) isResolved = false
+      }
+
+      if (metric?.id === 'cmj_height' && filledRepeats.some((r) => r != null && r > 100)) {
+        status = 'warning'
+        statusType = '异常值'
+        errorMessage = 'CMJ 跳跃高度超过 100cm，请确认数据是否正确'
+        isResolved = true
       }
 
       // Check 3: Outlier detection (mock: values > 100 for height in cm)
@@ -205,6 +223,8 @@ export default function ValidationStagingArea({
         date: i.date,
         action: i.action,
         indicator: i.indicator,
+        metricId: i.metricId,
+        unit: i.unit,
         repeats: i.repeats,
       }))
     onCommit(validRows)

@@ -48,9 +48,10 @@ The dashboard should be highly configurable. Analysts may work with different te
 ## Current Gaps
 
 - Full Kimi pages are now present, but they still need systematic runtime QA and cleanup.
-- Most data is hardcoded/mock data.
+- Most data is still hardcoded/mock data.
 - Card configurability is not yet modeled as reusable config.
-- Metric definitions, test batteries, athlete data, and display options need a stronger schema.
+- First-stage domain model and metric registry now exist in `src/lib/domain-model.ts` and `src/lib/metric-registry.ts`, but `Comparison.tsx`, dashboard periodic testing, and `mockData.ts` still need migration onto that source.
+- Excel/CSV import now performs real parsing through `src/lib/import-parser.ts`, but committed rows are still frontend-only and not persisted to a backend or durable local store.
 - Build succeeds, but bundle size is large.
 - Dependency audit warnings exist and should be reviewed later.
 

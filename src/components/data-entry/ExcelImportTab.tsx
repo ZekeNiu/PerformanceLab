@@ -9,11 +9,13 @@ import type { ImportHistoryEntry } from '@/data/mockData'
 export default function ExcelImportTab() {
   const [parsedRows, setParsedRows] = useState<ParsedRow[] | null>(null)
   const [importHistory, setImportHistory] = useState<ImportHistoryEntry[]>([])
+  const [currentFilename, setCurrentFilename] = useState('imported_data.xlsx')
 
-  const handleFileParsed = useCallback((rows: ParsedRow[]) => {
+  const handleFileParsed = useCallback((rows: ParsedRow[], filename: string) => {
     setParsedRows(rows)
+    setCurrentFilename(filename)
     toast.info(`已解析 ${rows.length} 行数据，请进行校验`, {
-      description: '请在暂存校验区核对数据',
+      description: '请在暂存校验区核对数据。',
     })
   }, [])
 
@@ -22,7 +24,7 @@ export default function ExcelImportTab() {
     const newEntry: ImportHistoryEntry = {
       id: `ih-${Date.now()}`,
       time: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
-      filename: 'imported_data.xlsx',
+      filename: currentFilename,
       totalRows: validRows.length,
       successCount: validRows.length,
       failCount: 0,
@@ -31,9 +33,9 @@ export default function ExcelImportTab() {
     }
     setImportHistory((prev) => [newEntry, ...prev])
     toast.success('数据导入成功', {
-      description: `已成功导入 ${validRows.length} 条数据`,
+      description: `已成功导入 ${validRows.length} 条数据。`,
     })
-  }, [])
+  }, [currentFilename])
 
   const handleCancel = useCallback(() => {
     setParsedRows(null)
@@ -42,10 +44,8 @@ export default function ExcelImportTab() {
 
   return (
     <div className="space-y-5">
-      {/* Upload Zone */}
       <UploadZone onFileParsed={handleFileParsed} />
 
-      {/* Validation Staging Area */}
       <AnimatePresence>
         {parsedRows && parsedRows.length > 0 && (
           <motion.div
@@ -63,7 +63,6 @@ export default function ExcelImportTab() {
         )}
       </AnimatePresence>
 
-      {/* Import History */}
       <ImportHistory newEntries={importHistory} />
     </div>
   )

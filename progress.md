@@ -67,3 +67,27 @@ Use this file as the session-by-session project journal.
   - Mobile smoke check via Playwright runtime at 390px for `#/`, `#/comparison`, `#/correlation`, `#/data-entry`, `#/admin`, `#/settings`: each route rendered content, console errors were empty, and page-level scroll width stayed at 390px.
   - Settings survived invalid `sportpulse-chart-colors` cache after reload.
   - `npm run lint` still fails due to existing issues outside this pass: shadcn/ui fast-refresh exports, `src/components/ui/sidebar.tsx` `Math.random`, `src/lib/statistics.ts` `prefer-const`, `Comparison.tsx` `prefer-const`, and `Correlation.tsx` `any`/hook dependency issues.
+
+## 2026-05-22 Registry, Import, And Lint Pass
+
+- Restored `docs/NEXT_CHAT_PROMPT.md` to readable Chinese and included the latest continuation context.
+- Fixed the remaining lint errors:
+  - Disabled the generated shadcn-style fast-refresh export rule in ESLint config.
+  - Replaced `Math.random` in `SidebarMenuSkeleton` with a stable width.
+  - Fixed `prefer-const` issues in statistics and comparison code.
+  - Added type boundaries in `Correlation.tsx` and fixed its hook dependency.
+  - Removed stale lint warning path in `Admin.tsx` without changing the current modal initialization behavior.
+- Added first-stage domain model and metric registry:
+  - `src/lib/domain-model.ts`
+  - `src/lib/metric-registry.ts`
+- Refactored `src/lib/correlation-data.ts` to derive correlation indicator names/categories from the metric registry instead of maintaining a separate indicator list.
+- Replaced mock Excel parsing with real CSV/XLSX parsing:
+  - Added `src/lib/import-parser.ts`.
+  - Updated `UploadZone` to parse uploaded files asynchronously and show parse errors.
+  - Updated `ExcelImportTab` to preserve the uploaded filename in import history.
+  - Added registry-based unknown metric validation in `ValidationStagingArea`.
+  - Changed `xlsx` to a dynamic import so it loads only during file parsing instead of inflating the initial app bundle.
+- Verification:
+  - `npm run lint` passes with 0 warnings.
+  - `npm run build` passes. Vite still warns about the main JS bundle being larger than 500 kB.
+  - Playwright smoke on local preview: uploaded a real CSV file through `#/data-entry`; the app showed parsed filename, rendered the staging validation table, accepted 2 preview rows, kept mobile page width at 390px, and logged no console errors. `#/correlation` also rendered with no console errors.

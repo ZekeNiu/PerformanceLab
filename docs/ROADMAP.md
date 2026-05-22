@@ -91,3 +91,10 @@ For longitudinal and cross-sectional comparison, the preferred direction is to t
 - Correlation layer: stay as a dedicated exploratory workflow, but reuse the same metric definitions and measurement source.
 
 This keeps the analyst's mental model stable: select a metric, then add context. It also supports future card configurability because display mode and comparison mode become serializable chart configuration instead of separate page-specific implementations.
+
+Implementation sequence:
+
+- Use `MetricDefinition` as the single source for metric name, unit, category, aliases, direction, and supported contexts.
+- Store raw imported data as `Measurement` rows linked to athlete, session, and metric ids.
+- Keep longitudinal and cross-sectional comparison as chart/card layer config, not as separate metric definitions.
+- Let correlation analysis consume the same metric registry and measurement store, but keep a dedicated page because variable selection, model diagnostics, collinearity checks, and residual plots are a different exploratory workflow from routine dashboard review.

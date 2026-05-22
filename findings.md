@@ -33,3 +33,10 @@ Use this file for durable discoveries that should survive across conversations.
 - `src/components/dashboard/PeriodicTesting.tsx` had two hook-order risks where `useMemo` ran after an early return in category section components.
 - `src/pages/Settings.tsx` trusted `localStorage` JSON for `sportpulse-chart-colors`; invalid cached values could crash the Settings route before render.
 - `src/components/data-entry/UploadZone.tsx` still uses mock parsed rows; this pass only fixes callback dependency stability, not real Excel/CSV parsing.
+
+## 2026-05-22 Registry And Import Findings
+
+- A full same-turn migration of dashboard, comparison, correlation, and data-entry metrics would be too risky because each page currently mixes metric definitions with page-specific demo statistics. The safer path is staged migration: registry first, import/correlation consumers next, comparison/dashboard after that.
+- `xlsx` should stay dynamically imported from the upload parser. A static import adds roughly a 429 kB generated chunk and would otherwise inflate the initial app route bundle.
+- Real import parsing now expects a tabular first sheet with headers equivalent to: `姓名`, `测试日期`, `测试动作`, `测试指标`, and at least one repeat/value column such as `重复1`.
+- Import validation should remain a staging workflow: parse -> normalize metric -> validate athlete/metric/repeats -> preview -> commit. This is the right place to add rollback/import history persistence later.

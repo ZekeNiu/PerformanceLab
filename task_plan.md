@@ -65,3 +65,14 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verified: `npm run build` passes.
 - Verified: 390px mobile smoke check renders six core routes without page-level horizontal overflow.
 - Known remaining lint debt: existing shadcn/ui fast-refresh exports, sidebar purity, statistics prefer-const, Comparison prefer-const, and Correlation any/dependency issues.
+
+## 2026-05-22 Follow-up Task
+
+- Completed: `docs/NEXT_CHAT_PROMPT.md` restored to readable Chinese and included in the next commit.
+- Completed: `npm run lint` now passes with no warnings.
+- Completed: Added first-stage domain model and unified metric registry.
+- Completed: Correlation indicator metadata now comes from the registry.
+- Completed: Excel/CSV upload now performs real parsing with `xlsx` loaded dynamically.
+- Completed: Data import keeps filename, previews parsed rows, validates unknown athletes/repeat counts, and flags metrics not found in the registry.
+- Verified: real CSV upload smoke test reached the staging validation table with 2 parsed rows and no console errors.
+- Remaining architecture work: migrate `Comparison.tsx`, dashboard periodic testing, and `mockData.ts` fully onto the registry and a shared measurement store instead of local demo arrays.

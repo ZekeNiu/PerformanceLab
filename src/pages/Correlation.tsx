@@ -45,6 +45,22 @@ interface CollinearityWarning {
   r: number;
 }
 
+type ChartValueParam = {
+  value: number[];
+};
+
+type AxisExtent = {
+  min: number;
+  max: number;
+};
+
+type ChartObject = Record<string, unknown>;
+
+type ChartOptionWithSeries = ChartObject & {
+  series: ChartObject[];
+  legend?: ChartObject;
+};
+
 /* ─── Chart colors from design system ─── */
 const CHART_COLORS = [
   '#00D4AA', '#3B82F6', '#F59E0B', '#EF4444',
@@ -90,7 +106,7 @@ export default function Correlation() {
     if (xVariables.length === 0) {
       setXVariables(['cmj_height']);
     }
-  }, []);
+  }, [xVariables.length]);
 
   /* ── Close dropdown on outside click ── */
   useEffect(() => {
@@ -254,7 +270,7 @@ export default function Correlation() {
       const xVals = xDataArrays[xId];
       const data = xVals.map((xv, i) => [xv, yValues[i]]);
 
-      const option: any = {
+      const option: ChartOptionWithSeries = {
         backgroundColor: 'transparent',
         grid: { top: 40, right: 30, bottom: 50, left: 60 },
         tooltip: {
@@ -262,7 +278,7 @@ export default function Correlation() {
           backgroundColor: DARK.bg,
           borderColor: DARK.grid,
           textStyle: { color: DARK.text, fontSize: 12 },
-          formatter: (params: any) => {
+          formatter: (params: ChartValueParam) => {
             return `${getIndicatorName(xId)}: ${params.value[0].toFixed(2)}<br/>${getIndicatorName(yVariable)}: ${params.value[1].toFixed(2)}`;
           },
         },
@@ -378,10 +394,10 @@ export default function Correlation() {
     const n = allVars.length;
     const gridSize = Math.max(140, 600 / n);
 
-    const grid: any[] = [];
-    const xAxes: any[] = [];
-    const yAxes: any[] = [];
-    const series: any[] = [];
+    const grid: ChartObject[] = [];
+    const xAxes: ChartObject[] = [];
+    const yAxes: ChartObject[] = [];
+    const series: ChartObject[] = [];
 
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
@@ -394,15 +410,15 @@ export default function Correlation() {
           gridIndex: axisIndex,
           type: 'value',
           show: false,
-          min: (value: any) => value.min,
-          max: (value: any) => value.max,
+          min: (value: AxisExtent) => value.min,
+          max: (value: AxisExtent) => value.max,
         });
         yAxes.push({
           gridIndex: axisIndex,
           type: 'value',
           show: false,
-          min: (value: any) => value.min,
-          max: (value: any) => value.max,
+          min: (value: AxisExtent) => value.min,
+          max: (value: AxisExtent) => value.max,
         });
 
         const varX = allVars[j];
@@ -473,7 +489,7 @@ export default function Correlation() {
         backgroundColor: DARK.bg,
         borderColor: DARK.grid,
         textStyle: { color: DARK.text, fontSize: 12 },
-        formatter: (params: any) => {
+        formatter: (params: ChartValueParam) => {
           return `预测: ${params.value[0].toFixed(2)}<br/>残差: ${params.value[1].toFixed(2)}`;
         },
       },
@@ -690,7 +706,7 @@ export default function Correlation() {
         backgroundColor: DARK.bg,
         borderColor: DARK.grid,
         textStyle: { color: DARK.text, fontSize: 12 },
-        formatter: (params: any) => {
+        formatter: (params: ChartValueParam) => {
           const r = params.value[2];
           return `${names[params.value[1]]} × ${names[params.value[0]]}<br/>r = ${r.toFixed(3)}`;
         },
@@ -726,8 +742,8 @@ export default function Correlation() {
         data,
         label: {
           show: true,
-          formatter: (params: any) => params.value[2].toFixed(2),
-          color: (params: any) => Math.abs(params.value[2]) > 0.5 ? '#fff' : '#E8ECF1',
+          formatter: (params: ChartValueParam) => params.value[2].toFixed(2),
+          color: (params: ChartValueParam) => Math.abs(params.value[2]) > 0.5 ? '#fff' : '#E8ECF1',
           fontSize: 10,
           fontFamily: 'JetBrains Mono, monospace',
         },

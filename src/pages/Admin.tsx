@@ -1066,7 +1066,6 @@ function AthleteModal({ open, onClose, onSave, initialData }: {
     height: 0, weight: 0, birthDate: '', name: '',
   })
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useState(() => {
     if (open) {
       if (initialData) setForm({ ...initialData })
@@ -1682,7 +1681,6 @@ function SessionModal({ open, onClose, onSave, initialData }: {
     name: '', date: '', location: '', temperature: '', humidity: '', warmupMethod: '', notes: '', athleteCount: 0,
   })
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useState(() => {
     if (open) {
       if (initialData) setForm({ ...initialData })
@@ -1819,4 +1817,3 @@ function SessionModal({ open, onClose, onSave, initialData }: {
     </Dialog>
   )
 }
-
