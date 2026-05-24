@@ -79,6 +79,14 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed: Updated `docs/NEXT_CHAT_PROMPT.md`, `progress.md`, and `findings.md` to match the new document structure.
 - Verification: docs-only change; no build required.
 
+## 2026-05-24 Continuation Workflow Review Task
+
+- Completed: Reviewed the new-conversation workflow across `docs/NEXT_CHAT_PROMPT.md`, `docs/DEEP_REVIEW_2026-05-24.md`, `docs/AI_CONTEXT.md`, `docs/ROADMAP.md`, `README.md`, `task_plan.md`, `findings.md`, and `progress.md`.
+- Completed: Clarified that same-workspace Codex conversations can start with a short instruction to read `docs/NEXT_CHAT_PROMPT.md`; full prompt copying is only needed when the new conversation cannot access local files.
+- Completed: Kept intentional startup-step duplication between `NEXT_CHAT_PROMPT.md` and `DEEP_REVIEW_2026-05-24.md` because they serve different roles: bootstrap prompt vs authoritative execution brief.
+- Completed: Updated `AI_CONTEXT.md` and `ROADMAP.md` to align with the newer “comparison data group” wording and default execution-brief workflow.
+- Verification: docs-only change; no build required.
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.

@@ -122,3 +122,13 @@ Use this file as the session-by-session project journal.
   - Added a required “新增发现与决策记录” format so future sessions can preserve new problems and decisions.
 - Updated `docs/NEXT_CHAT_PROMPT.md` to match the new wording and default-task workflow.
 - Verification: docs-only change; no build run because no code changed.
+
+## 2026-05-24 Continuation Workflow Review
+
+- Reviewed `docs/NEXT_CHAT_PROMPT.md`, `docs/DEEP_REVIEW_2026-05-24.md`, `docs/AI_CONTEXT.md`, `docs/ROADMAP.md`, `README.md`, `task_plan.md`, `findings.md`, and `progress.md` for new-conversation efficiency and duplication.
+- Determined that some duplicated startup instructions are acceptable because `NEXT_CHAT_PROMPT.md` is the bootstrap entry point and `DEEP_REVIEW_2026-05-24.md` must remain self-contained.
+- Found two useful improvements:
+  - `NEXT_CHAT_PROMPT.md` should explain that same-workspace Codex conversations can use a short “read this file” instruction instead of copying the entire prompt.
+  - `AI_CONTEXT.md` and `ROADMAP.md` should align with the newer “comparison data group” wording to avoid older “comparison layer” ambiguity.
+- Updated `NEXT_CHAT_PROMPT.md`, `AI_CONTEXT.md`, and `ROADMAP.md` accordingly.
+- Verification: docs-only change; no build run because no code changed.

@@ -1,6 +1,14 @@
 # Prompt For A New Codex Conversation
 
-Copy this into a new conversation when continuing work on PerformanceLab:
+Use this file as the new-conversation entry point for continuing PerformanceLab.
+
+If the new Codex conversation has access to this same local workspace, the shortest useful message is:
+
+```text
+请读取并遵循 D:\AI\PerformanceLab_1\app\docs\NEXT_CHAT_PROMPT.md，继续开发 PerformanceLab。
+```
+
+If the new conversation cannot access local files directly, copy the full prompt below into the conversation:
 
 ```text
 请继续开发我的 PerformanceLab 项目。项目路径是：
@@ -38,7 +46,7 @@ git status --short --branch
 - docs/DEEP_REVIEW_2026-05-24.md 是后续架构工作的执行简报，包含当前产品判断、对比数据组边界、待办状态、完成判据和新问题记录规则；如果用户没有指定任务，默认从其中第一个未完成的 P0/P1 任务开始。
 
 本次我想做的任务是：
-【在这里写具体任务。】
+【在这里写具体任务。如果没有具体任务，请按 docs/DEEP_REVIEW_2026-05-24.md 的默认下一步继续。】
 ```
 
 ## Git Sync Commands

@@ -59,3 +59,10 @@ Use this file for durable discoveries that should survive across conversations.
 - Benchmark, target ranges, SWC, MDC, confidence intervals, and threshold lines should be modeled as statistical annotations/reference lines, not as comparison data groups.
 - A continuation document must include status, completion criteria, and update rules. Otherwise a future Codex session still needs the user to decide what to do next.
 - The default next architecture task should be a unified mock `Measurement[]` store and selector layer, because every other migration depends on a shared measurement source.
+
+## 2026-05-24 Continuation Workflow Findings
+
+- In a new Codex conversation on the same machine/workspace, the user does not need to paste the full `docs/NEXT_CHAT_PROMPT.md`; it is enough to ask Codex to read and follow `D:\AI\PerformanceLab_1\app\docs\NEXT_CHAT_PROMPT.md`.
+- If the new conversation cannot access local files, then the full prompt block in `docs/NEXT_CHAT_PROMPT.md` should be copied.
+- Some duplication between `NEXT_CHAT_PROMPT.md` and `DEEP_REVIEW_2026-05-24.md` is intentional and useful: the former is a bootstrap prompt, the latter is the authoritative execution brief.
+- The dangerous duplication is not repeated startup steps, but inconsistent wording across docs. `AI_CONTEXT.md` and `ROADMAP.md` should stay aligned with the “comparison data group” model.
