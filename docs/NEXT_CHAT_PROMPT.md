@@ -21,7 +21,7 @@ D:\AI\PerformanceLab_1\app
 4. docs/AI_CONTEXT.md
 5. docs/ROADMAP.md
 6. README.md
-7. docs/DEEP_REVIEW_2026-05-24.md
+7. docs/EXECUTION_BRIEF.md
 
 然后运行：
 git status --short --branch
@@ -37,16 +37,21 @@ git status --short --branch
 - 如果完成了可提交的工作，请提交并推送到 main；GitHub Actions 会自动部署到 Pages。
 
 当前重要状态：
-- 横向/纵向比较的推荐方向是作为同一指标展示卡片/图表上的“可选对比数据组”：主数据 + 最多 3 组额外对比数据，同屏最多 4 组；不要长期维持完全割裂的页面数据源。
-- 目标、阈值、benchmark、SWC、MDC、置信区间等属于统计注释或参考线，不计入最多 3 组额外对比数据。
-- 相关性分析建议保留独立探索工作流，但必须复用统一指标 registry 和同一测量数据源。
-- 已新增统一领域模型和指标 registry 的第一阶段文件：src/lib/domain-model.ts、src/lib/metric-registry.ts。
-- Excel/CSV 导入已从纯 mock 改为真实解析，入口在 src/lib/import-parser.ts 和 src/components/data-entry/UploadZone.tsx。
-- npm run lint 已修到通过；如果再次失败，请优先确认是否是新增改动造成。
-- docs/DEEP_REVIEW_2026-05-24.md 是后续架构工作的执行简报，包含当前产品判断、对比数据组边界、待办状态、完成判据、默认下一步和文档更新边界；如果用户没有指定任务，默认从其中第一个未完成的 P0/P1 任务开始。
+- docs/EXECUTION_BRIEF.md 是后续架构工作的权威执行简报；如果用户没有指定任务，默认从其中第一个未完成的 P0/P1 任务开始。
+- 当前默认下一步是 PL-003：迁移 Dashboard periodic testing 到 registry + measurement selector。
+- PL-001 已完成：src/lib/measurement-store.ts 提供第一版共享 mock Measurement[] store 和 selector。
+- PL-002 已完成：src/lib/metric-surface-config.ts 和 docs/METRIC_SURFACE_CONFIG.md 定义第一版可序列化指标展示面配置模型。
+- 横向/纵向比较的推荐方向是同一指标展示面上的“主数据 + 最多 3 组额外对比数据”，同屏最多 4 组；目标、阈值、benchmark、SWC、MDC、置信区间等是统计注释或参考线，不占对比数据组名额。
+- 相关性分析建议保留独立探索工作流，但必须复用统一 metric registry 和 measurement store。
+- Excel/CSV 导入已从纯 mock 改为真实解析，入口在 src/lib/import-parser.ts 和 src/components/data-entry/UploadZone.tsx；npm run lint 当前已修到通过。
+- npm run build 当前通过，但仍有既有 Vite >500 kB chunk 警告。
+
+文档维护规则：
+- docs/EXECUTION_BRIEF.md 是权威状态源；每次其默认下一步、PL 状态或关键产品/架构约束变化时，同步更新本 prompt 的“当前重要状态”。
+- 普通工作日志写入 progress.md；长期发现写入 findings.md；不要把普通日志写进 docs/EXECUTION_BRIEF.md 或本 prompt。
 
 本次我想做的任务是：
-【在这里写具体任务。如果没有具体任务，请按 docs/DEEP_REVIEW_2026-05-24.md 的默认下一步继续。】
+【在这里写具体任务。如果没有具体任务，请按 docs/EXECUTION_BRIEF.md 的默认下一步继续。】
 ```
 
 ## Git Sync Commands

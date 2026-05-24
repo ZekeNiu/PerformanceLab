@@ -121,7 +121,7 @@ Use this file as the session-by-session project journal.
   - Added status definitions, a PL-numbered execution roadmap, completion criteria, and a default next task.
   - Added a required “新增发现与决策记录” format so future sessions can preserve new problems and decisions.
 - Updated `docs/NEXT_CHAT_PROMPT.md` to match the new wording and default-task workflow.
-- Verification: docs-only change; no build run because no code changed.
+- Verification: `npm run build` passes. Existing Vite >500 kB chunk warning remains.
 
 ## 2026-05-24 Continuation Workflow Review
 
@@ -189,3 +189,14 @@ Use this file as the session-by-session project journal.
 - Verification:
   - `npm run build` passes. Existing Vite >500 kB chunk warning remains.
   - `npm run lint` passes.
+
+## 2026-05-24 Continuation Entry Naming Review
+
+- Reviewed whether the living execution brief should keep the dated filename `docs/DEEP_REVIEW_2026-05-24.md`.
+- Decision: the dated name is no longer appropriate because the document now functions as a maintained current-state execution brief, not a one-time review snapshot.
+- Renamed the authoritative file to `docs/EXECUTION_BRIEF.md`.
+- Kept `docs/DEEP_REVIEW_2026-05-24.md` as a short legacy redirect so older prompts and historical references still lead to the current file.
+- Updated active references in `docs/NEXT_CHAT_PROMPT.md`, `docs/AI_CONTEXT.md`, and `docs/ROADMAP.md`.
+- Refreshed the `docs/NEXT_CHAT_PROMPT.md` “当前重要状态” section so it includes PL-001 Done, PL-002 Done, PL-003 as the default next task, and the comparison-data-group product boundary.
+- Added a maintenance rule: update that summary only when `docs/EXECUTION_BRIEF.md` default next task, PL status, or key product/architecture constraints change.
+- Verification: docs-only change; no build run because no code changed.

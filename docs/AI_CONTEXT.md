@@ -52,7 +52,7 @@ The dashboard should be highly configurable. Analysts may work with different te
 - Card configurability is not yet modeled as reusable config.
 - First-stage domain model, metric registry, mock measurement selector layer, and metric surface config model now exist in `src/lib/domain-model.ts`, `src/lib/metric-registry.ts`, `src/lib/measurement-store.ts`, and `src/lib/metric-surface-config.ts`, but `Comparison.tsx`, dashboard periodic testing, and `mockData.ts` still need migration onto that source.
 - Excel/CSV import now performs real parsing through `src/lib/import-parser.ts`, but committed rows are still frontend-only and not persisted to a backend or durable local store.
-- `docs/DEEP_REVIEW_2026-05-24.md` is the current execution brief for architecture work. It defines the comparison data group model, roadmap status, completion criteria, default next task, and when the brief itself should be updated.
+- `docs/EXECUTION_BRIEF.md` is the current execution brief for architecture work. It defines the comparison data group model, roadmap status, completion criteria, default next task, and when the brief itself should be updated.
 - Build succeeds, but bundle size is large.
 - Dependency audit warnings exist and should be reviewed later.
 
@@ -65,15 +65,15 @@ At the start of a new AI session:
 3. Read `progress.md`.
 4. Read this file.
 5. Read `docs/ROADMAP.md`.
-6. Read `docs/DEEP_REVIEW_2026-05-24.md`.
+6. Read `docs/EXECUTION_BRIEF.md`.
 7. Run `git status --short --branch`.
-8. If the user did not specify a task, follow the first unfinished P0/P1 item in `docs/DEEP_REVIEW_2026-05-24.md`.
+8. If the user did not specify a task, follow the first unfinished P0/P1 item in `docs/EXECUTION_BRIEF.md`.
 9. Confirm the requested task maps to the roadmap before editing.
 
 When work is completed:
 
 1. Run `npm run build`.
-2. Update `progress.md` and any relevant docs. Update `docs/DEEP_REVIEW_2026-05-24.md` only when a PL-numbered roadmap item changes status, the default next task changes, completion criteria change, or a decision changes future execution.
+2. Update `progress.md` and any relevant docs. Update `docs/EXECUTION_BRIEF.md` only when a PL-numbered roadmap item changes status, the default next task changes, completion criteria change, or a decision changes future execution. When those execution-brief changes affect startup context, also update the “当前重要状态” block in `docs/NEXT_CHAT_PROMPT.md`.
 3. Commit with a concise message.
 4. Push to `main`.
 5. Check GitHub Actions if deployment behavior changed.

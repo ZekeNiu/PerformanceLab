@@ -99,4 +99,4 @@ Implementation sequence:
 - Store raw imported data as `Measurement` rows linked to athlete, session, and metric ids.
 - Keep longitudinal and cross-sectional comparison as chart/card comparison data group config, not as separate metric definitions.
 - Let correlation analysis consume the same metric registry and measurement store, but keep a dedicated page because variable selection, model diagnostics, collinearity checks, and residual plots are a different exploratory workflow from routine dashboard review.
-- Use `docs/DEEP_REVIEW_2026-05-24.md` as the current execution brief for detailed task status, completion criteria, and new-decision logging.
+- Use `docs/EXECUTION_BRIEF.md` as the current execution brief for detailed task status, completion criteria, and default next task selection.

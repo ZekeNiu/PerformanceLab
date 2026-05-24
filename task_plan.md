@@ -88,7 +88,7 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed: Added PL-numbered roadmap items with priority, status, completion criteria, and main files.
 - Completed: Added future-session update rules and a “new findings and decisions” recording template.
 - Completed: Updated `docs/NEXT_CHAT_PROMPT.md`, `progress.md`, and `findings.md` to match the new document structure.
-- Verification: docs-only change; no build required.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
 
 ## 2026-05-24 Continuation Workflow Review Task
 
@@ -111,6 +111,14 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed: Decided to keep `docs/DEEP_REVIEW_2026-05-24.md` as a lean execution brief rather than an append-only log.
 - Completed: Removed routine decision/fix-history sections from the execution brief and added explicit update boundaries.
 - Completed: Clarified that the required session log is `progress.md`; durable discoveries go to `findings.md`; high-level task status goes to `task_plan.md`.
+- Verification: docs-only change; no build required.
+
+## 2026-05-24 Continuation Entry Naming Task
+
+- Completed: Renamed the living architecture continuation document from dated `docs/DEEP_REVIEW_2026-05-24.md` to stable `docs/EXECUTION_BRIEF.md`.
+- Completed: Kept the old dated path as a short redirect so older prompts and historical references do not hard-fail.
+- Completed: Updated active startup references in `docs/NEXT_CHAT_PROMPT.md`, `docs/AI_CONTEXT.md`, and `docs/ROADMAP.md`.
+- Completed: Refreshed `docs/NEXT_CHAT_PROMPT.md` “当前重要状态” so it mirrors the current PL-001/PL-002/PL-003 state and added its maintenance boundary.
 - Verification: docs-only change; no build required.
 
 ## 2026-05-22 Active Task

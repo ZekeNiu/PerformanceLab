@@ -45,7 +45,7 @@ Use this file for durable discoveries that should survive across conversations.
 
 - `rg.exe` from the bundled Codex WindowsApps resources returned `Access is denied`; PowerShell `Get-ChildItem` + `Select-String` was used as the search fallback.
 - PowerShell without explicit `-Encoding utf8` displayed Chinese files as mojibake, but the files themselves are valid UTF-8.
-- The deep review is recorded in `docs/DEEP_REVIEW_2026-05-24.md`. It should be read before future architecture work.
+- The original deep review was renamed to `docs/EXECUTION_BRIEF.md` because it became a living execution brief rather than a dated one-time review. It should be read before future architecture work.
 - Longitudinal and cross-sectional comparison should be implemented as optional layers on metric display surfaces, not as permanently separate page-specific data islands.
 - `src/pages/Comparison.tsx` and `src/components/dashboard/PeriodicTesting.tsx` currently duplicate comparison demo data, layer config, chart config, and statistics. Prefer migrating the dashboard surface first, then reuse it from `/comparison` or downgrade `/comparison` to an experimental page.
 - Canonical metrics still coexist with independent dashboard and data-entry mock metric definitions. `mockActionCategories` uses local ids like `m-1`, which do not map directly to `MetricDefinition.id`.
@@ -64,7 +64,7 @@ Use this file for durable discoveries that should survive across conversations.
 
 - In a new Codex conversation on the same machine/workspace, the user does not need to paste the full `docs/NEXT_CHAT_PROMPT.md`; it is enough to ask Codex to read and follow `D:\AI\PerformanceLab_1\app\docs\NEXT_CHAT_PROMPT.md`.
 - If the new conversation cannot access local files, then the full prompt block in `docs/NEXT_CHAT_PROMPT.md` should be copied.
-- Some duplication between `NEXT_CHAT_PROMPT.md` and `DEEP_REVIEW_2026-05-24.md` is intentional and useful: the former is a bootstrap prompt, the latter is the authoritative execution brief.
+- Some duplication between `NEXT_CHAT_PROMPT.md` and `EXECUTION_BRIEF.md` is intentional and useful: the former is a bootstrap prompt, the latter is the authoritative execution brief.
 - The dangerous duplication is not repeated startup steps, but inconsistent wording across docs. `AI_CONTEXT.md` and `ROADMAP.md` should stay aligned with the “comparison data group” model.
 
 ## 2026-05-24 Measurement Store Findings
@@ -78,8 +78,14 @@ Use this file for durable discoveries that should survive across conversations.
 ## 2026-05-24 Documentation Boundary Findings
 
 - The required “log” mentioned in `docs/NEXT_CHAT_PROMPT.md` is `progress.md`: it records session activity, verification, errors, and completed work.
-- `docs/DEEP_REVIEW_2026-05-24.md` should not accumulate routine discoveries or completed fix history. It should be updated only when future execution would change: roadmap status, default next task, completion criteria, priorities, or key product/architecture constraints.
+- `docs/EXECUTION_BRIEF.md` should not accumulate routine discoveries or completed fix history. It should be updated only when future execution would change: roadmap status, default next task, completion criteria, priorities, or key product/architecture constraints.
 - Durable discoveries that matter beyond one session but do not directly change the execution roadmap belong in `findings.md`.
+
+## 2026-05-24 Continuation Entry Findings
+
+- A dated filename is useful for historical review snapshots, but it is misleading for a living execution brief that must be read and updated every new architecture session.
+- `docs/EXECUTION_BRIEF.md` should be the stable authoritative path for the current execution brief. The old dated path can remain only as a short redirect so older prompts do not fail.
+- `docs/NEXT_CHAT_PROMPT.md` benefits from a compact “当前重要状态” section because it supports the fallback case where a new conversation cannot read local files. That section must stay brief and mirror only execution-critical state from `docs/EXECUTION_BRIEF.md`.
 
 ## 2026-05-24 Metric Surface Config Findings
 
