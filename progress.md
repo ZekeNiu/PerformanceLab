@@ -132,3 +132,16 @@ Use this file as the session-by-session project journal.
   - `AI_CONTEXT.md` and `ROADMAP.md` should align with the newer “comparison data group” wording to avoid older “comparison layer” ambiguity.
 - Updated `NEXT_CHAT_PROMPT.md`, `AI_CONTEXT.md`, and `ROADMAP.md` accordingly.
 - Verification: docs-only change; no build run because no code changed.
+
+## 2026-05-24 PL-001 Measurement Store
+
+- Implemented `src/lib/measurement-store.ts` as the first shared mock measurement source.
+- Added normalized mock domain teams, athletes, and sessions mapped from the existing data-entry mock data.
+- Added deterministic mock `Measurement[]` rows for periodic testing metrics, daily monitoring metrics, and performance/correlation demo metrics.
+- Added selector utilities for filtering by metric, athlete, team, position, session, time range, and source.
+- Added summary and series helpers with `mean`, `best`, `latest`, `min`, `max`, and `median` aggregation.
+- Kept the current UI unchanged; this is the data/selector foundation for PL-002 and PL-003.
+- Updated `docs/DEEP_REVIEW_2026-05-24.md` so `PL-001` is `Done` and the default next task is `PL-002`.
+- Verification:
+  - `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+  - `npm run lint` passes.

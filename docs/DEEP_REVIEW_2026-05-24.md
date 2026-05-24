@@ -114,7 +114,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 
 | ID | 优先级 | 状态 | 任务 | 完成判据 | 主要文件 |
 | --- | --- | --- | --- | --- | --- |
-| PL-001 | P0 | Todo | 建立 mock measurement store 和 selector | 有统一 `Measurement[]` mock 数据；能按 metric、athlete、team/group、session/time range、aggregation 查询；不改 UI 或只做最小接入 | `src/lib/domain-model.ts`, `src/lib/measurement-store.ts` 或 `src/lib/mock-measurements.ts` |
+| PL-001 | P0 | Done | 建立 mock measurement store 和 selector | 已新增统一 `Measurement[]` mock 数据；能按 metric、athlete、team/group、session/time range、aggregation 查询；本轮未改 UI | `src/lib/measurement-store.ts` |
 | PL-002 | P0 | Todo | 定义指标展示面配置模型 | 有 `MetricSurfaceConfig`、`ComparisonDataGroupConfig`、时间选择、主体选择、聚合方式、统计注释开关；文档和类型能表达“最多 3 组额外对比数据” | `src/lib/domain-model.ts` 或新配置文件 |
 | PL-003 | P0 | Todo | 迁移 Dashboard periodic testing 到 registry + measurement selector | `PeriodicTesting` 不再依赖本地 `DEMO_INDICATORS` 作为指标真相；display/longitudinal/cross-sectional 使用同一指标配置和数据 selector | `src/components/dashboard/PeriodicTesting.tsx`, `src/components/dashboard/data.ts` |
 | PL-004 | P1 | Todo | 收敛 `/comparison` 页面 | 不再维护第二套指标/统计/图表真相；复用展示面组件或明确降级为 legacy/experimental | `src/pages/Comparison.tsx`, `src/App.tsx`, `src/components/Navbar.tsx` |
@@ -124,7 +124,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 | PL-008 | P2 | Todo | 移动端比较视图 QA | 390px、768px、1440px 下 Dashboard 比较视图和 Comparison 页面无页面级横向溢出，关键文本不重叠 | Dashboard, Comparison, Playwright smoke |
 | PL-009 | P2 | Todo | 路由级性能优化 | ECharts-heavy 页面按路由 lazy load；build 仍可通过；bundle 警告有明确处理或记录 | `src/App.tsx`, Vite build output |
 
-如果用户没有指定任务，下一轮建议从 `PL-001` 开始。原因：没有统一 measurement store，后续比较、展示、导入、相关性都会继续分裂。
+如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始。当前默认下一步是 `PL-002`，因为 `PL-001` 已建立 measurement store，后续需要先定义可序列化的指标展示面配置模型，再迁移 Dashboard periodic testing。
 
 ## 已完成修复记录
 
@@ -133,6 +133,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 | 2026-05-24 | Done | 上传第二个文件时，`ValidationStagingArea` 通过 parse-specific `key` 重新挂载，避免沿用旧校验状态 | `npm run lint`, `npm run build` |
 | 2026-05-24 | Done | CSV 模板示例运动员从不存在的 `李明` 改为 `李娜 / ATH-2024-002` | `npm run lint`, `npm run build` |
 | 2026-05-24 | Done | 删除重复 `body_fat` metric definition，保留其作为 `body_fat_pct` alias | `npm run lint`, `npm run build` |
+| 2026-05-24 | Done | 完成 `PL-001`：新增 mock measurement store、领域 athlete/session/team 映射、稳定 mock `Measurement[]` 和 selector/summary/series 查询 API | `npm run build`, `npm run lint` |
 
 ## 高优先级问题详情
 
@@ -221,17 +222,17 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 
 若用户没有指定其他任务，下一次应执行：
 
-`PL-001`: 建立 mock measurement store 和 selector。
+`PL-002`: 定义指标展示面配置模型。
 
 开始前应先确认：
 
 - 是否已有未提交改动。
 - 是否存在近期文档更新改变了优先级。
-- `Measurement` 当前字段是否足够表达 dashboard periodic demo、manual entry、Excel import 和 correlation demo 的最低数据需求。
+- `PL-001` 的 selector API 是否足够支撑 `MetricSurfaceConfig`、`ComparisonDataGroupConfig` 和统计注释配置。
 
 完成后必须：
 
-- 更新本文档中 `PL-001` 状态。
+- 更新本文档中 `PL-002` 状态。
 - 更新 `progress.md` 记录具体改动和验证。
 - 如果发现数据模型不足，追加到“新增发现与决策记录”，并同步 `findings.md`。
 - 如果改动代码，运行 `npm run build`。

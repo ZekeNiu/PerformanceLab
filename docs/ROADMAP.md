@@ -80,7 +80,7 @@ Options when the project is ready:
 
 ## Current Recommended Next Step
 
-Start with a shared mock `Measurement[]` store and selector layer, then add the card/chart configuration layer. This unlocks the user's core requirement: every chart/card should eventually be able to display a compatible metric selected by the analyst and optionally compare it with other data groups.
+The shared mock `Measurement[]` store and selector layer now exists in `src/lib/measurement-store.ts`. Next, add the metric display surface and comparison data group configuration model. This unlocks the user's core requirement: every chart/card should eventually be able to display a compatible metric selected by the analyst and optionally compare it with other data groups.
 
 ## Analysis Workflow Direction
 

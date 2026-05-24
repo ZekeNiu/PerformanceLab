@@ -66,3 +66,10 @@ Use this file for durable discoveries that should survive across conversations.
 - If the new conversation cannot access local files, then the full prompt block in `docs/NEXT_CHAT_PROMPT.md` should be copied.
 - Some duplication between `NEXT_CHAT_PROMPT.md` and `DEEP_REVIEW_2026-05-24.md` is intentional and useful: the former is a bootstrap prompt, the latter is the authoritative execution brief.
 - The dangerous duplication is not repeated startup steps, but inconsistent wording across docs. `AI_CONTEXT.md` and `ROADMAP.md` should stay aligned with the “comparison data group” model.
+
+## 2026-05-24 Measurement Store Findings
+
+- `src/lib/measurement-store.ts` is now the first shared mock `Measurement[]` source for future dashboard, comparison, import, and correlation migration work.
+- The store intentionally maps existing `mockAthletes` and `mockTestSessions` into the domain-model `Athlete`, `Team`, and `TestSession` shapes instead of replacing the current UI mock data in one step.
+- Selector coverage now exists for metric, athlete, team, position, session, time range, source, and aggregation. UI pages still need to be migrated onto these selectors in later PL tasks.
+- Mock measurement generation is deterministic and should not add new refresh-to-refresh value drift.

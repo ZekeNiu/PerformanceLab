@@ -66,7 +66,8 @@ Build a professional sports performance dashboard for performance analysts and h
   - `body_fat` now resolves as an alias of canonical `body_fat_pct` instead of a duplicate metric definition.
 - Verification: `npm run lint` passes.
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
-- Next recommended architecture work: create a mock `Measurement[]` store and selector layer, then migrate `PeriodicTesting` comparison modes to registry-derived metric surfaces.
+- Completed: Created the first shared mock `Measurement[]` store and selector layer in `src/lib/measurement-store.ts`.
+- Next recommended architecture work: define the metric display surface configuration model (`PL-002`), then migrate `PeriodicTesting` comparison modes to registry-derived metric surfaces.
 
 ## 2026-05-24 Deep Review Restructure Task
 
