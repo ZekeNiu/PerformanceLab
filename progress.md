@@ -328,3 +328,5 @@ Use this file as the session-by-session project journal.
 - Commit plan: create a local commit for PL-005 with message `Unify data entry metrics`.
 - Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
 - Commit: created and amended one local commit with message `Unify data entry metrics` before push so the progress log stays in the same change.
+- Push: pushed commit `08dde05` to `origin/main`.
+- Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as well.
