@@ -80,7 +80,7 @@ Options when the project is ready:
 
 ## Current Recommended Next Step
 
-The shared mock `Measurement[]` store and selector layer now exists in `src/lib/measurement-store.ts`, and the first metric display surface configuration model now exists in `src/lib/metric-surface-config.ts`. Next, migrate Dashboard periodic testing to use registry-derived metrics, metric surface configuration, and measurement selectors instead of local demo indicator truth.
+Dashboard periodic testing now uses registry-derived metrics, metric surface configuration, and measurement selectors through `src/lib/metric-surface-measurements.ts` and `src/components/dashboard/PeriodicTesting.tsx`. Next, consolidate `/comparison` so it no longer maintains a second metric/stat/chart truth.
 
 ## Analysis Workflow Direction
 

@@ -1,169 +1,485 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
-import { motion } from 'framer-motion'
-import { GitCompare, Calendar, Plus, X, Users } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Calendar, GitCompare, Plus, Users, X } from 'lucide-react'
+import type { MetricDefinition } from '@/lib/domain-model'
+import { METRIC_DEFINITIONS } from '@/lib/metric-registry'
+import { mockMeasurementStore } from '@/lib/measurement-store'
+import { selectMetricDataGroupSummary } from '@/lib/metric-surface-measurements'
+import type {
+  ComparisonDataGroupConfig,
+  MetricDataGroupConfig,
+  MetricSurfaceConfig,
+} from '@/lib/metric-surface-config'
 import DashboardCard from './DashboardCard'
 import {
-  radarData,
+  LAYER_COLORS,
+  calcCohensD,
+  calcMDC,
+  calcPairedTTest,
+  calcSNR,
+  calcSWC,
+  calcTE,
+  cohensDLabel,
   periodicCategories,
   ratingColors,
-  DEMO_INDICATORS,
-  DEMO_LAYERS,
-  LAYER_COLORS,
-  athletes,
-  calcTE,
-  calcMDC,
-  calcSWC,
-  calcSNR,
-  calcCohensD,
-  cohensDLabel,
-  calcPairedTTest,
   significanceBadge,
 } from './data'
-import type { ComparisonLayer } from './data'
+import type { ComparisonIndicator, ComparisonLayer, PeriodicCategory, PeriodicIndicator } from './data'
 
 type DisplayMode = 'display' | 'longitudinal' | 'cross-sectional'
 type AggregateMode = 'mean' | 'best'
+type DateMode = 'single' | 'range' | 'unlimited'
 
 interface Props {
   mode?: DisplayMode
 }
 
-// ═══════════════════════════════════════════
-//  Anchor score: normalize to 0-100% scale
-// ═══════════════════════════════════════════
-function anchorScore(value: number, target: number, direction: 'higher' | 'lower'): number {
-  if (direction === 'higher') {
-    return Math.min(100, Math.round((value / target) * 100))
-  }
-  // lower-is-better: invert
-  const ratio = target / value
-  return Math.min(100, Math.round(ratio * 100))
+interface RadarCategoryScore {
+  category: string
+  score: number
 }
 
-// ─── Radar Chart (Display Mode) ───
-function RadarChartDisplay() {
-  const option = useMemo(() => {
-    return {
-      radar: {
-        indicator: radarData.map((d) => ({
-          name: d.category,
-          max: 100,
-          nameStyle: { color: '#E8ECF1', fontSize: 13, fontWeight: 600 },
-        })),
-        shape: 'polygon' as const,
-        splitNumber: 5,
-        axisNameGap: 12,
-        splitLine: { lineStyle: { color: 'rgba(42,51,72,0.6)', width: 1 } },
-        splitArea: {
+interface PeriodicSurfaceData {
+  surfaceConfigs: MetricSurfaceConfig[]
+  indicators: ComparisonIndicator[]
+  categories: string[]
+  displayCategories: PeriodicCategory[]
+  radarScores: RadarCategoryScore[]
+  defaultCrossLayers: ComparisonLayer[]
+  athleteLayerOptions: ComparisonLayer[]
+  referenceLayerOptions: ComparisonLayer[]
+}
+
+const sortedSessions = [...mockMeasurementStore.sessions].sort((a, b) => a.date.localeCompare(b.date))
+const primaryAthlete = mockMeasurementStore.athletes[0]
+const primaryPosition = primaryAthlete?.position
+const primaryTeamId = primaryAthlete?.teamId ?? mockMeasurementStore.teams[0]?.id
+const baselineSession = sortedSessions[0]
+const comparisonSession = sortedSessions.at(-1) ?? baselineSession
+
+function anchorScore(value: number, target: number, direction: 'higher' | 'lower'): number {
+  if (!Number.isFinite(value) || !Number.isFinite(target) || target === 0 || value === 0) return 0
+  if (direction === 'higher') return Math.min(100, Math.max(0, Math.round((value / target) * 100)))
+  return Math.min(100, Math.max(0, Math.round((target / value) * 100)))
+}
+
+function metricDirectionForScore(metric: MetricDefinition): 'higher' | 'lower' {
+  return metric.direction === 'lower' ? 'lower' : 'higher'
+}
+
+function formatMetricNumber(value: number | null | undefined, precision = 1) {
+  if (value == null || Number.isNaN(value)) return 0
+  return Number(value.toFixed(precision))
+}
+
+function estimateTargetScore(metric: MetricDefinition, values: number[]) {
+  if (!values.length) return 1
+  const best = metric.direction === 'lower' ? Math.min(...values) : Math.max(...values)
+  if (metric.direction === 'lower') return Math.max(0.01, best * 0.96)
+  if (metric.direction === 'range') return values.reduce((total, value) => total + value, 0) / values.length
+  return best * 1.04
+}
+
+function ratingFromScore(score: number) {
+  if (score >= 82) return 'A'
+  if (score >= 68) return 'B'
+  if (score >= 52) return 'C'
+  return 'D'
+}
+
+function confidenceInterval(mean: number | null, sd: number | null, n: number): [number, number] {
+  if (mean == null || sd == null || n < 2) return [formatMetricNumber(mean), formatMetricNumber(mean)]
+  const margin = 1.96 * (sd / Math.sqrt(n))
+  return [formatMetricNumber(mean - margin), formatMetricNumber(mean + margin)]
+}
+
+function metricValues(metricId: string) {
+  return mockMeasurementStore.measurements
+    .filter((measurement) => measurement.metricId === metricId)
+    .map((measurement) => measurement.value)
+}
+
+function buildDataGroup(
+  id: string,
+  label: string,
+  subject: MetricDataGroupConfig['subject'],
+  options: Partial<MetricDataGroupConfig> = {},
+): MetricDataGroupConfig {
+  return {
+    id,
+    label,
+    subject,
+    time: { kind: 'all' },
+    aggregation: 'mean',
+    sources: ['manual'],
+    ...options,
+  }
+}
+
+const primaryAthleteGroup = buildDataGroup(
+  'primary-athlete-all',
+  primaryAthlete?.name ?? 'Primary athlete',
+  { kind: 'athlete', athleteIds: primaryAthlete ? [primaryAthlete.id] : [] },
+)
+
+const baselineGroup = buildDataGroup(
+  'primary-athlete-baseline',
+  '基准期',
+  primaryAthleteGroup.subject,
+  baselineSession ? { time: { kind: 'session', sessionIds: [baselineSession.id] } } : {},
+)
+
+const comparisonGroup = buildDataGroup(
+  'primary-athlete-current',
+  '对比期',
+  primaryAthleteGroup.subject,
+  comparisonSession ? { time: { kind: 'session', sessionIds: [comparisonSession.id] } } : {},
+)
+
+const teamDisplayGroup = buildDataGroup(
+  'team-periodic-display',
+  '全队展示',
+  primaryTeamId
+    ? { kind: 'team', teamIds: [primaryTeamId] }
+    : {
+        kind: 'custom-group',
+        id: 'all-athletes',
+        label: 'All athletes',
+        athleteIds: mockMeasurementStore.athletes.map((athlete) => athlete.id),
+      },
+)
+
+const positionReferenceGroup = buildDataGroup(
+  'position-reference',
+  '同位置均值',
+  {
+    kind: 'reference-group',
+    selector: {
+      scope: 'team',
+      label: '同位置均值',
+      teamIds: primaryTeamId ? [primaryTeamId] : undefined,
+      positions: primaryPosition ? [primaryPosition] : undefined,
+      statistic: 'mean',
+      status: 'active',
+    },
+  },
+)
+
+const teamBestGroup = buildDataGroup(
+  'team-best',
+  '队内最佳',
+  primaryTeamId ? { kind: 'team', teamIds: [primaryTeamId] } : teamDisplayGroup.subject,
+  { aggregation: 'best' },
+)
+
+function buildSurfaceConfig(
+  metric: MetricDefinition,
+  mode: DisplayMode,
+  primaryDataGroup: MetricDataGroupConfig,
+  comparisonDataGroups: ComparisonDataGroupConfig[] = [],
+): MetricSurfaceConfig {
+  return {
+    id: `dashboard-periodic-${mode}-${metric.id}`,
+    name: metric.name,
+    metricId: metric.id,
+    mode,
+    context: 'dashboard',
+    visualization: mode === 'display' ? 'bar-chart' : 'radar-chart',
+    primaryDataGroup,
+    comparisonDataGroups: comparisonDataGroups.slice(0, 3) as unknown as MetricSurfaceConfig['comparisonDataGroups'],
+    annotations: {
+      enabled: true,
+      types: ['target', 'swc', 'mdc', 'confidence-interval'],
+      confidenceLevel: 0.95,
+      showSampleSize: true,
+      showMethod: true,
+    },
+    display: {
+      showUnit: true,
+      showDirection: true,
+      showLegend: mode !== 'display',
+      showDataLabels: true,
+      valuePrecision: metric.unit === 's' ? 2 : 1,
+    },
+  }
+}
+
+function buildComparisonLayer(
+  id: string,
+  name: string,
+  color: string,
+  type: ComparisonLayer['type'],
+  group: MetricDataGroupConfig,
+  metrics: MetricDefinition[],
+): ComparisonLayer {
+  return {
+    id,
+    name,
+    color,
+    type,
+    values: Object.fromEntries(
+      metrics.map((metric) => {
+        const summary = selectMetricDataGroupSummary(metric.id, group)
+        return [metric.id, { mean: summary.value ?? summary.mean ?? 0, sd: summary.sd ?? 0, n: summary.n }]
+      }),
+    ),
+  }
+}
+
+function buildPeriodicSurfaceData(): PeriodicSurfaceData {
+  const periodicMetrics = METRIC_DEFINITIONS.filter((metric) =>
+    metric.supportedContexts.includes('periodic') && metricValues(metric.id).length > 0,
+  )
+
+  const surfaceConfigs = periodicMetrics.map((metric) =>
+    buildSurfaceConfig(metric, 'longitudinal', baselineGroup, [
+      { ...comparisonGroup, id: `${comparisonGroup.id}-${metric.id}`, kind: 'longitudinal' },
+      { ...positionReferenceGroup, id: `${positionReferenceGroup.id}-${metric.id}`, kind: 'cross-sectional' },
+      { ...teamBestGroup, id: `${teamBestGroup.id}-${metric.id}`, kind: 'cross-sectional' },
+    ]),
+  )
+
+  const indicators = periodicMetrics.flatMap((metric) => {
+    const config = surfaceConfigs.find((surface) => surface.metricId === metric.id)
+    const baseline = config ? selectMetricDataGroupSummary(metric.id, config.primaryDataGroup) : null
+    const currentGroup = config?.comparisonDataGroups?.[0]
+    const current = currentGroup ? selectMetricDataGroupSummary(metric.id, currentGroup) : null
+    const values = metricValues(metric.id)
+    if (!baseline || !current || baseline.value == null || current.value == null) return []
+
+    return [{
+      id: metric.id,
+      name: metric.name,
+      category: metric.categoryName,
+      unit: metric.unit,
+      targetScore: estimateTargetScore(metric, values),
+      valueA: baseline.value,
+      sdA: baseline.sd ?? 0,
+      nA: baseline.n,
+      valueB: current.value,
+      sdB: current.sd ?? 0,
+      nB: current.n,
+      direction: metricDirectionForScore(metric),
+    }]
+  })
+
+  const displayCategories = Object.values(
+    periodicMetrics.reduce<Record<string, PeriodicCategory>>((groups, metric) => {
+      const values = metricValues(metric.id)
+      const summary = selectMetricDataGroupSummary(metric.id, teamDisplayGroup)
+      if (summary.value == null && summary.mean == null) return groups
+
+      const value = summary.value ?? summary.mean
+      const mean = summary.mean ?? value ?? 0
+      const sd = summary.sd ?? 0
+      const score = anchorScore(value ?? 0, estimateTargetScore(metric, values), metricDirectionForScore(metric))
+      const indicator: PeriodicIndicator = {
+        name: metric.name,
+        unit: metric.unit,
+        mean: formatMetricNumber(mean, metric.unit === 's' ? 2 : 1),
+        best: formatMetricNumber(summary.best, metric.unit === 's' ? 2 : 1),
+        sd: formatMetricNumber(sd, metric.unit === 's' ? 2 : 1),
+        cv: mean ? formatMetricNumber(Math.abs((sd / mean) * 100), 1) : 0,
+        ci: confidenceInterval(mean, sd, summary.n),
+        rating: ratingFromScore(score),
+        score,
+      }
+
+      if (!groups[metric.categoryName]) groups[metric.categoryName] = { name: metric.categoryName, indicators: [] }
+      groups[metric.categoryName].indicators.push(indicator)
+      return groups
+    }, {}),
+  )
+
+  const categories = Object.keys(
+    indicators.reduce<Record<string, true>>((groups, indicator) => {
+      groups[indicator.category] = true
+      return groups
+    }, {}),
+  )
+
+  const radarScores = displayCategories.map((category) => ({
+    category: category.name,
+    score: Math.round(category.indicators.reduce((total, indicator) => total + indicator.score, 0) / category.indicators.length),
+  }))
+
+  const referenceLayerOptions = [
+    buildComparisonLayer('position-reference', positionReferenceGroup.label, '#3B82F6', 'group', positionReferenceGroup, periodicMetrics),
+    buildComparisonLayer('team-best', teamBestGroup.label, '#8B5CF6', 'group', teamBestGroup, periodicMetrics),
+  ]
+
+  const athleteLayerOptions = mockMeasurementStore.athletes
+    .filter((athlete) => athlete.id !== primaryAthlete?.id)
+    .slice(0, 6)
+    .map((athlete, index) =>
+      buildComparisonLayer(
+        `athlete-${athlete.id}`,
+        athlete.name,
+        LAYER_COLORS[index % LAYER_COLORS.length],
+        'individual',
+        buildDataGroup(`athlete-${athlete.id}`, athlete.name, { kind: 'athlete', athleteIds: [athlete.id] }),
+        periodicMetrics,
+      ),
+    )
+
+  return {
+    surfaceConfigs,
+    indicators,
+    categories,
+    displayCategories: displayCategories.length ? displayCategories : periodicCategories,
+    radarScores: radarScores.length ? radarScores : periodicCategories.map((category) => ({
+      category: category.name,
+      score: Math.round(category.indicators.reduce((total, indicator) => total + indicator.score, 0) / category.indicators.length),
+    })),
+    defaultCrossLayers: referenceLayerOptions.slice(0, 1),
+    athleteLayerOptions,
+    referenceLayerOptions,
+  }
+}
+
+const periodicSurfaceData = buildPeriodicSurfaceData()
+
+function RadarChartDisplay({ data }: { data: RadarCategoryScore[] }) {
+  const option = useMemo(() => ({
+    radar: {
+      indicator: data.map((item) => ({
+        name: item.category,
+        max: 100,
+        nameStyle: { color: '#E8ECF1', fontSize: 13, fontWeight: 600 },
+      })),
+      shape: 'polygon' as const,
+      splitNumber: 5,
+      axisNameGap: 12,
+      splitLine: { lineStyle: { color: 'rgba(42,51,72,0.6)', width: 1 } },
+      splitArea: {
+        show: true,
+        areaStyle: { color: ['rgba(20,24,33,0.5)', 'rgba(20,24,33,0.3)'] },
+      },
+      axisLine: { lineStyle: { color: 'rgba(42,51,72,0.8)' } },
+    },
+    series: [{
+      name: '综合能力',
+      type: 'radar',
+      data: [{
+        value: data.map((item) => item.score),
+        name: '当前得分',
+        symbol: 'circle',
+        symbolSize: 8,
+        lineStyle: { color: '#00D4AA', width: 2 },
+        itemStyle: { color: '#00D4AA', borderColor: '#fff', borderWidth: 2 },
+        areaStyle: { color: 'rgba(0,212,170,0.2)' },
+        label: {
           show: true,
-          areaStyle: { color: ['rgba(20,24,33,0.5)', 'rgba(20,24,33,0.3)'] },
+          formatter: (params: { value: number }) => params.value.toString(),
+          color: '#E8ECF1',
+          fontSize: 11,
+          fontFamily: 'JetBrains Mono',
+          distance: 8,
         },
-        axisLine: { lineStyle: { color: 'rgba(42,51,72,0.8)' } },
-      },
-      series: [{
-        name: '综合能力',
-        type: 'radar',
-        data: [{
-          value: radarData.map((d) => d.score),
-          name: '当前得分',
-          symbol: 'circle',
-          symbolSize: 8,
-          lineStyle: { color: '#00D4AA', width: 2 },
-          itemStyle: { color: '#00D4AA', borderColor: '#fff', borderWidth: 2 },
-          areaStyle: { color: 'rgba(0,212,170,0.2)' },
-          label: {
-            show: true,
-            formatter: (p: { value: number }) => p.value.toString(),
-            color: '#E8ECF1',
-            fontSize: 11,
-            fontFamily: 'JetBrains Mono',
-            distance: 8,
-          },
-        }],
-        animationDuration: 800,
-        animationEasing: 'cubicOut' as const,
-        animationDelay: (idx: number) => idx * 100,
       }],
-      tooltip: {
-        trigger: 'item' as const,
-        backgroundColor: '#1C2130',
-        borderColor: '#2A3348',
-        textStyle: { color: '#E8ECF1', fontSize: 12 },
-        formatter: (params: { name: string; value: number[] }) => {
-          let html = `<div style="font-weight:600;margin-bottom:6px">${params.name}</div>`
-          radarData.forEach((d, i) => {
-            html += `<div style="display:flex;justify-content:space-between;gap:16px">
-              <span>${d.category}</span>
-              <span style="font-family:JetBrains Mono;font-weight:500;color:#00D4AA">${params.value[i]}分</span>
-            </div>`
-          })
-          return html
-        },
-      },
-    }
-  }, [])
+      animationDuration: 800,
+      animationEasing: 'cubicOut' as const,
+      animationDelay: (idx: number) => idx * 100,
+    }],
+    tooltip: {
+      trigger: 'item' as const,
+      backgroundColor: '#1C2130',
+      borderColor: '#2A3348',
+      textStyle: { color: '#E8ECF1', fontSize: 12 },
+    },
+  }), [data])
 
   return (
     <DashboardCard
       title="综合能力评估"
-      configOptions={[{ label: '全部类别', value: 'all' }, { label: '力量+速度+耐力', value: 'strength-speed-endurance' }, { label: '自定义...', value: 'custom' }]}
-      currentConfig="all"
+      configOptions={[{ label: 'Registry + measurement store', value: 'registry' }]}
+      currentConfig="registry"
     >
       <ReactECharts option={option} style={{ height: 380 }} />
     </DashboardCard>
   )
 }
 
-// ─── Category Card (Display Mode) ───
-function CategoryCard({ category }: { category: (typeof periodicCategories)[0] }) {
-  const avgScore = Math.round(category.indicators.reduce((s, ind) => s + ind.score, 0) / category.indicators.length)
+function CategoryCard({ category }: { category: PeriodicCategory }) {
+  const avgScore = Math.round(category.indicators.reduce((sum, indicator) => sum + indicator.score, 0) / category.indicators.length)
   const option = useMemo(() => ({
     grid: { top: 8, right: 80, bottom: 16, left: 140 },
-    xAxis: { type: 'value' as const, max: 100, axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(42,51,72,0.3)' } }, axisLabel: { color: '#5A6579', fontSize: 10 } },
-    yAxis: { type: 'category' as const, data: category.indicators.map((ind) => ind.name).reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#8B95A5', fontSize: 11, width: 130, overflow: 'truncate' as const } },
+    xAxis: {
+      type: 'value' as const,
+      max: 100,
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: 'rgba(42,51,72,0.3)' } },
+      axisLabel: { color: '#5A6579', fontSize: 10 },
+    },
+    yAxis: {
+      type: 'category' as const,
+      data: category.indicators.map((indicator) => indicator.name).reverse(),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: '#8B95A5', fontSize: 11, width: 130, overflow: 'truncate' as const },
+    },
     tooltip: { trigger: 'axis' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 11 } },
     series: [{
       type: 'bar',
-      data: category.indicators.map((ind) => ({
-        value: ind.score,
-        itemStyle: { color: ind.score >= 80 ? '#10B981' : ind.score >= 60 ? '#00D4AA' : ind.score >= 40 ? '#F59E0B' : '#EF4444', borderRadius: [0, 4, 4, 0] },
+      data: category.indicators.map((indicator) => ({
+        value: indicator.score,
+        itemStyle: {
+          color: indicator.score >= 80 ? '#10B981' : indicator.score >= 60 ? '#00D4AA' : indicator.score >= 40 ? '#F59E0B' : '#EF4444',
+          borderRadius: [0, 4, 4, 0],
+        },
       })).reverse(),
       barWidth: 16,
-      label: { show: true, position: 'right' as const, formatter: (p: { value: number }) => `${p.value}`, color: '#E8ECF1', fontSize: 12, fontFamily: 'JetBrains Mono', fontWeight: 500 },
+      label: {
+        show: true,
+        position: 'right' as const,
+        formatter: (params: { value: number }) => `${params.value}`,
+        color: '#E8ECF1',
+        fontSize: 12,
+        fontFamily: 'JetBrains Mono',
+        fontWeight: 500,
+      },
     }],
     animationDuration: 800,
     animationEasing: 'cubicOut' as const,
   }), [category])
 
   return (
-    <DashboardCard title={`${category.name}测试`} footer={<span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>基于 {category.indicators.length} 项指标</span>}>
+    <DashboardCard title={`${category.name}测试`} footer={<span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>基于 {category.indicators.length} 项 registry 指标</span>}>
       <div className="mb-3 flex items-center gap-2">
-        <span className="rounded-full px-2.5 py-0.5 text-[11px] font-medium" style={{ backgroundColor: 'rgba(0,212,170,0.15)', color: '#00D4AA' }}>均值: {avgScore}/100</span>
+        <span className="rounded-full px-2.5 py-0.5 text-[11px] font-medium" style={{ backgroundColor: 'rgba(0,212,170,0.15)', color: '#00D4AA' }}>
+          均值 {avgScore}/100
+        </span>
       </div>
       <ReactECharts option={option} style={{ height: category.indicators.length * 40 + 40 }} />
       <div className="mt-4 overflow-x-auto">
         <table className="w-full text-[11px]">
           <thead>
             <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
-              <th className="py-1.5 pr-2 text-left font-medium">指标</th><th className="py-1.5 pr-2 text-left font-medium">单位</th>
-              <th className="py-1.5 pr-2 text-right font-medium">均值</th><th className="py-1.5 pr-2 text-right font-medium">最佳</th>
-              <th className="py-1.5 pr-2 text-right font-medium">SD</th><th className="py-1.5 pr-2 text-right font-medium">CV%</th>
-              <th className="py-1.5 pr-2 text-right font-medium">CI</th><th className="py-1.5 text-center font-medium">评级</th>
+              <th className="py-1.5 pr-2 text-left font-medium">指标</th>
+              <th className="py-1.5 pr-2 text-left font-medium">单位</th>
+              <th className="py-1.5 pr-2 text-right font-medium">均值</th>
+              <th className="py-1.5 pr-2 text-right font-medium">最佳</th>
+              <th className="py-1.5 pr-2 text-right font-medium">SD</th>
+              <th className="py-1.5 pr-2 text-right font-medium">CV%</th>
+              <th className="py-1.5 pr-2 text-right font-medium">CI</th>
+              <th className="py-1.5 text-center font-medium">评级</th>
             </tr>
           </thead>
           <tbody>
-            {category.indicators.map((ind) => (
-              <tr key={ind.name} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
-                <td className="py-1.5 pr-2" style={{ color: 'var(--text-primary)' }}>{ind.name}</td>
-                <td className="py-1.5 pr-2 font-mono" style={{ color: 'var(--text-secondary)' }}>{ind.unit}</td>
-                <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-primary)' }}>{typeof ind.mean === 'number' && ind.mean % 1 !== 0 ? ind.mean.toFixed(1) : ind.mean}</td>
-                <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-primary)' }}>{typeof ind.best === 'number' && ind.best % 1 !== 0 ? ind.best.toFixed(1) : ind.best}</td>
-                <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{ind.sd.toFixed(1)}</td>
-                <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{ind.cv}%</td>
-                <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>[{ind.ci[0]}, {ind.ci[1]}]</td>
+            {category.indicators.map((indicator) => (
+              <tr key={indicator.name} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}>
+                <td className="py-1.5 pr-2" style={{ color: 'var(--text-primary)' }}>{indicator.name}</td>
+                <td className="py-1.5 pr-2 font-mono" style={{ color: 'var(--text-secondary)' }}>{indicator.unit}</td>
+                <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-primary)' }}>{indicator.mean}</td>
+                <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-primary)' }}>{indicator.best}</td>
+                <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{indicator.sd}</td>
+                <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{indicator.cv}%</td>
+                <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>[{indicator.ci[0]}, {indicator.ci[1]}]</td>
                 <td className="py-1.5 text-center">
-                  <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${ratingColors[ind.rating]}20`, color: ratingColors[ind.rating] }}>{ind.rating}</span>
+                  <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${ratingColors[indicator.rating]}20`, color: ratingColors[indicator.rating] }}>
+                    {indicator.rating}
+                  </span>
                 </td>
               </tr>
             ))}
@@ -174,86 +490,203 @@ function CategoryCard({ category }: { category: (typeof periodicCategories)[0] }
   )
 }
 
-// ═══════════════════════════════════════════
-//  Longitudinal Comparison Components
-// ═══════════════════════════════════════════
+function AggregateSwitch({ aggregate, setAggregate }: { aggregate: AggregateMode; setAggregate: (value: AggregateMode) => void }) {
+  return (
+    <div className="flex items-center gap-1 rounded-lg border p-0.5" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+      {[{ key: 'mean' as const, label: '均值' }, { key: 'best' as const, label: '最佳值' }].map((option) => (
+        <button
+          key={option.key}
+          onClick={() => setAggregate(option.key)}
+          className="rounded-md px-3 py-1.5 text-[12px] transition-colors"
+          style={{ backgroundColor: aggregate === option.key ? 'var(--accent-cyan)' : 'transparent', color: aggregate === option.key ? '#0B0E14' : 'var(--text-secondary)' }}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 function LongitudinalControlBar({
-  dateMode, setDateMode, aggregate, setAggregate,
+  dateMode,
+  setDateMode,
+  aggregate,
+  setAggregate,
 }: {
-  dateMode: 'single' | 'range' | 'unlimited'
-  setDateMode: (m: 'single' | 'range' | 'unlimited') => void
+  dateMode: DateMode
+  setDateMode: (value: DateMode) => void
   aggregate: AggregateMode
-  setAggregate: (a: AggregateMode) => void
+  setAggregate: (value: AggregateMode) => void
 }) {
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [dateStart, setDateStart] = useState('2024-01-01')
-  const [dateEnd, setDateEnd] = useState('2024-03-31')
-
+  const [dateStart, setDateStart] = useState(baselineSession?.date ?? '2024-01-01')
+  const [dateEnd, setDateEnd] = useState(comparisonSession?.date ?? '2024-03-31')
   const dateLabel = dateMode === 'unlimited' ? '不限时间' : dateMode === 'single' ? dateStart : `${dateStart} ~ ${dateEnd}`
 
   return (
-    <div className="flex h-[52px] items-center gap-3 border-b px-4" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
+    <div className="flex min-h-[52px] flex-wrap items-center gap-3 border-b px-4 py-2" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
       <div className="relative">
         <button onClick={() => setShowDatePicker(!showDatePicker)} className="flex h-9 items-center gap-2 rounded-lg border px-4 text-[13px] transition-colors" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
           <Calendar size={16} style={{ color: 'var(--text-muted)' }} />
           <span>基准期</span>
           <span style={{ color: 'var(--text-secondary)' }}>{dateLabel}</span>
         </button>
-        {showDatePicker && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
-            <motion.div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-lg border p-4" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <p className="mb-3 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>选择日期方式</p>
-              <div className="mb-3 flex gap-2">
-                {[{ v: 'single' as const, l: '指定日期' }, { v: 'range' as const, l: '日期范围' }, { v: 'unlimited' as const, l: '不限' }].map((o) => (
-                  <button key={o.v} className="rounded-md px-3 py-1.5 text-[12px] transition-colors" style={{ backgroundColor: dateMode === o.v ? 'var(--accent-cyan)' : 'var(--bg-secondary)', color: dateMode === o.v ? '#0B0E14' : 'var(--text-primary)' }} onClick={() => setDateMode(o.v)}>{o.l}</button>
-                ))}
-              </div>
-              {dateMode !== 'unlimited' && (
-                <div className="mb-3 space-y-2">
-                  <input type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} className="w-full rounded-md border px-2 py-1.5 text-[12px]" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} />
-                  {dateMode === 'range' && <input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} className="w-full rounded-md border px-2 py-1.5 text-[12px]" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} />}
+        <AnimatePresence>
+          {showDatePicker && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
+              <motion.div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-lg border p-4" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                <p className="mb-3 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>选择日期方式</p>
+                <div className="mb-3 flex gap-2">
+                  {[{ value: 'single' as const, label: '指定日期' }, { value: 'range' as const, label: '日期范围' }, { value: 'unlimited' as const, label: '不限' }].map((option) => (
+                    <button key={option.value} className="rounded-md px-3 py-1.5 text-[12px] transition-colors" style={{ backgroundColor: dateMode === option.value ? 'var(--accent-cyan)' : 'var(--bg-secondary)', color: dateMode === option.value ? '#0B0E14' : 'var(--text-primary)' }} onClick={() => setDateMode(option.value)}>
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </motion.div>
-          </>
-        )}
+                {dateMode !== 'unlimited' && (
+                  <div className="mb-3 space-y-2">
+                    <input type="date" value={dateStart} onChange={(event) => setDateStart(event.target.value)} className="w-full rounded-md border px-2 py-1.5 text-[12px]" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} />
+                    {dateMode === 'range' && (
+                      <input type="date" value={dateEnd} onChange={(event) => setDateEnd(event.target.value)} className="w-full rounded-md border px-2 py-1.5 text-[12px]" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} />
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
-
-      <div className="flex items-center gap-1 rounded-lg border p-0.5" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
-        {[{ k: 'mean' as const, l: '均值' }, { k: 'best' as const, l: '最佳值' }].map((o) => (
-          <button key={o.k} onClick={() => setAggregate(o.k)} className="rounded-md px-3 py-1.5 text-[12px] transition-colors" style={{ backgroundColor: aggregate === o.k ? 'var(--accent-cyan)' : 'transparent', color: aggregate === o.k ? '#0B0E14' : 'var(--text-secondary)' }}>{o.l}</button>
-        ))}
-      </div>
-
+      <AggregateSwitch aggregate={aggregate} setAggregate={setAggregate} />
       <div className="flex items-center gap-2 text-[12px]" style={{ color: 'var(--text-muted)' }}>
         <GitCompare size={14} />
-        <span>对比: 基准期 vs 对比期</span>
+        <span>{baselineGroup.label} vs {comparisonGroup.label}</span>
       </div>
     </div>
   )
 }
 
-// ─── Longitudinal Radar ───
-function LongitudinalRadar({ aggregate }: { aggregate: AggregateMode }) {
+function CrossSectionalControlBar({
+  layers,
+  setLayers,
+  aggregate,
+  setAggregate,
+  athleteLayerOptions,
+  referenceLayerOptions,
+}: {
+  layers: ComparisonLayer[]
+  setLayers: (value: ComparisonLayer[]) => void
+  aggregate: AggregateMode
+  setAggregate: (value: AggregateMode) => void
+  athleteLayerOptions: ComparisonLayer[]
+  referenceLayerOptions: ComparisonLayer[]
+}) {
+  const [showAddLayer, setShowAddLayer] = useState(false)
+
+  const addLayer = (preset: ComparisonLayer) => {
+    if (layers.length >= 3 || layers.some((layer) => layer.id === preset.id)) return
+    setLayers([...layers, preset])
+    setShowAddLayer(false)
+  }
+
+  const removeLayer = (id: string) => {
+    setLayers(layers.filter((layer) => layer.id !== id))
+  }
+
+  return (
+    <div className="flex min-h-[52px] flex-wrap items-center gap-3 border-b px-4 py-2" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
+      <AggregateSwitch aggregate={aggregate} setAggregate={setAggregate} />
+      <div className="flex flex-wrap items-center gap-2">
+        {layers.map((layer) => (
+          <span key={layer.id} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ backgroundColor: `${layer.color}20`, color: layer.color }}>
+            {layer.name}
+            <button onClick={() => removeLayer(layer.id)} className="ml-1" aria-label={`移除 ${layer.name}`}>
+              <X size={10} />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="relative">
+        <button onClick={() => setShowAddLayer(!showAddLayer)} className="flex h-9 items-center gap-1 rounded-lg border px-3 text-[12px] transition-colors" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
+          <Plus size={14} />
+          添加对比数据
+        </button>
+        <AnimatePresence>
+          {showAddLayer && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowAddLayer(false)} />
+              <motion.div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border p-3" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                <p className="mb-2 text-[12px] font-semibold" style={{ color: 'var(--accent-cyan)' }}>运动员</p>
+                {athleteLayerOptions.slice(0, 4).map((layer) => (
+                  <button key={layer.id} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--bg-hover)]" style={{ color: layers.some((item) => item.id === layer.id) ? 'var(--text-muted)' : 'var(--text-primary)' }} onClick={() => addLayer(layer)} disabled={layers.some((item) => item.id === layer.id)}>
+                    <Users size={12} style={{ color: layer.color }} />
+                    {layer.name}
+                  </button>
+                ))}
+                <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <p className="mb-2 text-[12px] font-semibold" style={{ color: 'var(--accent-purple)' }}>参考群体</p>
+                  {referenceLayerOptions.map((layer) => (
+                    <button key={layer.id} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--bg-hover)]" style={{ color: layers.some((item) => item.id === layer.id) ? 'var(--text-muted)' : 'var(--text-primary)' }} onClick={() => addLayer(layer)} disabled={layers.some((item) => item.id === layer.id)}>
+                      <Users size={12} style={{ color: layer.color }} />
+                      {layer.name}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  )
+}
+
+function buildCategoryScores(indicators: ComparisonIndicator[], categories: string[], aggregate: AggregateMode, layer?: ComparisonLayer) {
+  return categories.map((category) => {
+    const categoryIndicators = indicators.filter((indicator) => indicator.category === category)
+    if (!categoryIndicators.length) return 0
+    const scoreTotal = categoryIndicators.reduce((total, indicator) => {
+      const layerValue = layer?.values[indicator.id]
+      const value = layerValue
+        ? aggregate === 'mean' ? layerValue.mean : layerValue.mean + layerValue.sd
+        : aggregate === 'mean' ? indicator.valueB : indicator.valueB + indicator.sdB
+      return total + anchorScore(value, indicator.targetScore, indicator.direction)
+    }, 0)
+    return Math.round(scoreTotal / categoryIndicators.length)
+  })
+}
+
+function ComparisonRadar({
+  title,
+  baseLabel,
+  indicators,
+  categories,
+  aggregate,
+  layers = [],
+}: {
+  title: string
+  baseLabel: string
+  indicators: ComparisonIndicator[]
+  categories: string[]
+  aggregate: AggregateMode
+  layers?: ComparisonLayer[]
+}) {
   const option = useMemo(() => {
-    // Group indicators by category, compute category avg anchor scores
-    const cats = ['力量', '速度', '耐力', '身体形态']
-    const catScoresA = cats.map((cat) => {
-      const inds = DEMO_INDICATORS.filter((d) => d.category === cat)
-      if (!inds.length) return 0
-      return Math.round(inds.reduce((s, d) => s + anchorScore(aggregate === 'mean' ? d.valueA : d.valueA + d.sdA, d.targetScore, d.direction), 0) / inds.length)
+    const baseScores = categories.map((category) => {
+      const categoryIndicators = indicators.filter((indicator) => indicator.category === category)
+      if (!categoryIndicators.length) return 0
+      return Math.round(categoryIndicators.reduce((total, indicator) => {
+        const value = aggregate === 'mean' ? indicator.valueA : indicator.valueA + indicator.sdA
+        return total + anchorScore(value, indicator.targetScore, indicator.direction)
+      }, 0) / categoryIndicators.length)
     })
-    const catScoresB = cats.map((cat) => {
-      const inds = DEMO_INDICATORS.filter((d) => d.category === cat)
-      if (!inds.length) return 0
-      return Math.round(inds.reduce((s, d) => s + anchorScore(aggregate === 'mean' ? d.valueB : d.valueB + d.sdB, d.targetScore, d.direction), 0) / inds.length)
-    })
+    const compareScores = layers.length
+      ? layers.map((layer) => buildCategoryScores(indicators, categories, aggregate, layer))
+      : [buildCategoryScores(indicators, categories, aggregate)]
 
     return {
       radar: {
-        indicator: cats.map((c) => ({ name: c, max: 100, nameStyle: { color: '#E8ECF1', fontSize: 13, fontWeight: 600 } })),
+        indicator: categories.map((category) => ({ name: category, max: 100, nameStyle: { color: '#E8ECF1', fontSize: 13, fontWeight: 600 } })),
         shape: 'polygon' as const,
         splitNumber: 5,
         axisNameGap: 12,
@@ -261,83 +694,95 @@ function LongitudinalRadar({ aggregate }: { aggregate: AggregateMode }) {
         splitArea: { show: true, areaStyle: { color: ['rgba(20,24,33,0.5)', 'rgba(20,24,33,0.3)'] } },
         axisLine: { lineStyle: { color: 'rgba(42,51,72,0.8)' } },
       },
-      legend: { data: ['基准期', '对比期'], bottom: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
+      legend: {
+        data: [baseLabel, ...(layers.length ? layers.map((layer) => layer.name) : ['对比期'])],
+        bottom: 0,
+        textStyle: { color: '#8B95A5', fontSize: 11 },
+      },
       series: [{
         type: 'radar',
         data: [
-          { value: catScoresA, name: '基准期', lineStyle: { color: '#5A6579', width: 2, type: 'dashed' }, itemStyle: { color: '#5A6579' }, areaStyle: { color: 'rgba(90,101,121,0.1)' }, symbol: 'circle', symbolSize: 6 },
-          { value: catScoresB, name: '对比期', lineStyle: { color: '#00D4AA', width: 2 }, itemStyle: { color: '#00D4AA', borderColor: '#fff', borderWidth: 2 }, areaStyle: { color: 'rgba(0,212,170,0.2)' }, symbol: 'circle', symbolSize: 8 },
+          {
+            value: baseScores,
+            name: baseLabel,
+            lineStyle: { color: layers.length ? '#00D4AA' : '#5A6579', width: 2, type: layers.length ? 'solid' : 'dashed' },
+            itemStyle: { color: layers.length ? '#00D4AA' : '#5A6579' },
+            areaStyle: { color: layers.length ? 'rgba(0,212,170,0.15)' : 'rgba(90,101,121,0.1)' },
+            symbol: 'circle',
+            symbolSize: 7,
+          },
+          ...compareScores.map((scores, index) => {
+            const layer = layers[index]
+            const color = layer?.color ?? '#00D4AA'
+            return {
+              value: scores,
+              name: layer?.name ?? '对比期',
+              lineStyle: { color, width: 2, type: index === 0 ? 'solid' as const : 'dashed' as const },
+              itemStyle: { color },
+              areaStyle: { color: index === 0 && !layers.length ? 'rgba(0,212,170,0.2)' : 'transparent' },
+              symbol: 'diamond',
+              symbolSize: 6,
+            }
+          }),
         ],
         animationDuration: 800,
       }],
       tooltip: { trigger: 'item' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 12 } },
     }
-  }, [aggregate])
+  }, [aggregate, baseLabel, categories, indicators, layers])
 
   return (
-    <DashboardCard title="维度能力对比 (目标基准锚定)" configOptions={[{ label: '锚定模式', value: 'anchor' }]} currentConfig="anchor">
+    <DashboardCard title={title} configOptions={[{ label: 'MetricSurfaceConfig', value: 'surface' }]} currentConfig="surface">
       <ReactECharts option={option} style={{ height: 360 }} />
     </DashboardCard>
   )
 }
 
-// ─── Longitudinal: Per-indicator Chart + Table (Left-Right Layout) ───
-function LongitudinalCategorySection({ category, aggregate }: { category: string; aggregate: AggregateMode }) {
-  const inds = useMemo(() => DEMO_INDICATORS.filter((d) => d.category === category), [category])
+function LongitudinalCategorySection({ category, aggregate, indicators }: { category: string; aggregate: AggregateMode; indicators: ComparisonIndicator[] }) {
+  const categoryIndicators = useMemo(() => indicators.filter((indicator) => indicator.category === category), [category, indicators])
+  const tableRows = useMemo(() => categoryIndicators.map((indicator) => {
+    const vA = aggregate === 'mean' ? indicator.valueA : indicator.valueA + indicator.sdA
+    const vB = aggregate === 'mean' ? indicator.valueB : indicator.valueB + indicator.sdB
+    const te = calcTE(indicator.sdA, indicator.sdB, indicator.nA, indicator.nB)
+    const mdc = calcMDC(te)
+    const swc = calcSWC(indicator.sdA, indicator.sdB, indicator.nA, indicator.nB)
+    const snr = calcSNR(vA, vB, te)
+    const cohensD = calcCohensD(vA, vB, indicator.sdA, indicator.sdB, indicator.nA, indicator.nB)
+    const pValue = calcPairedTTest(vA, vB, indicator.sdA, indicator.sdB, Math.min(indicator.nA, indicator.nB))
+    const diff = vB - vA
+    const pctChange = vA ? (diff / vA) * 100 : 0
+    const isGood = indicator.direction === 'higher' ? diff > 0 : diff < 0
+    const sig = significanceBadge(pValue)
+    return { ...indicator, vA, vB, te, mdc, swc, snr, cohensD, pValue, diff, pctChange, isGood, sig }
+  }), [aggregate, categoryIndicators])
 
-  // Chart: anchor scores comparison (left side)
   const chartOption = useMemo(() => {
-    const names = inds.map((d) => d.name)
-    const valA = inds.map((d) => anchorScore(aggregate === 'mean' ? d.valueA : d.valueA + d.sdA, d.targetScore, d.direction))
-    const valB = inds.map((d) => anchorScore(aggregate === 'mean' ? d.valueB : d.valueB + d.sdB, d.targetScore, d.direction))
-
+    const names = categoryIndicators.map((indicator) => indicator.name)
+    const baseValues = categoryIndicators.map((indicator) => anchorScore(aggregate === 'mean' ? indicator.valueA : indicator.valueA + indicator.sdA, indicator.targetScore, indicator.direction))
+    const compareValues = categoryIndicators.map((indicator) => anchorScore(aggregate === 'mean' ? indicator.valueB : indicator.valueB + indicator.sdB, indicator.targetScore, indicator.direction))
     return {
       grid: { top: 30, right: 30, bottom: 24, left: 140 },
-      legend: { data: ['基准期', '对比期'], top: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
+      legend: { data: [baselineGroup.label, comparisonGroup.label], top: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
       xAxis: { type: 'value' as const, max: 100, axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(42,51,72,0.3)' } }, axisLabel: { color: '#5A6579', fontSize: 10, formatter: '{value}%' } },
       yAxis: { type: 'category' as const, data: names.reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#8B95A5', fontSize: 11, width: 130, overflow: 'truncate' as const } },
       tooltip: { trigger: 'axis' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 11 } },
       series: [
-        { name: '基准期', type: 'bar', data: valA.reverse().map((v) => ({ value: v, itemStyle: { color: '#5A6579', borderRadius: [0, 4, 4, 0] } })), barWidth: 12, barGap: '20%' },
-        { name: '对比期', type: 'bar', data: valB.reverse().map((v) => ({ value: v, itemStyle: { color: '#00D4AA', borderRadius: [0, 4, 4, 0] } })), barWidth: 12 },
+        { name: baselineGroup.label, type: 'bar', data: baseValues.reverse().map((value) => ({ value, itemStyle: { color: '#5A6579', borderRadius: [0, 4, 4, 0] } })), barWidth: 12, barGap: '20%' },
+        { name: comparisonGroup.label, type: 'bar', data: compareValues.reverse().map((value) => ({ value, itemStyle: { color: '#00D4AA', borderRadius: [0, 4, 4, 0] } })), barWidth: 12 },
       ],
       animationDuration: 800,
       animationEasing: 'cubicOut' as const,
     }
-  }, [inds, aggregate])
+  }, [aggregate, categoryIndicators])
 
-  if (!inds.length) return null
-
-  // Table with SNR, MDC, SWC (right side)
-  const tableRows = inds.map((ind) => {
-    const vA = aggregate === 'mean' ? ind.valueA : ind.valueA + ind.sdA
-    const vB = aggregate === 'mean' ? ind.valueB : ind.valueB + ind.sdB
-    const te = calcTE(ind.sdA, ind.sdB, ind.nA, ind.nB)
-    const mdc = calcMDC(te)
-    const swc = calcSWC(ind.sdA, ind.sdB, ind.nA, ind.nB)
-    const snr = calcSNR(vA, vB, te)
-    const cohensD = calcCohensD(vA, vB, ind.sdA, ind.sdB, ind.nA, ind.nB)
-    const pValue = calcPairedTTest(vA, vB, ind.sdA, ind.sdB, Math.min(ind.nA, ind.nB))
-    const diff = vB - vA
-    const pctChange = ((diff / vA) * 100)
-    const isGood = ind.direction === 'higher' ? diff > 0 : diff < 0
-    const sig = significanceBadge(pValue)
-
-    return {
-      ...ind,
-      vA, vB, te, mdc, swc, snr, cohensD, pValue, diff, pctChange, isGood, sig,
-    }
-  })
+  if (!categoryIndicators.length) return null
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-      {/* Left: Chart */}
-      <DashboardCard title={`${category} — 锚定得分对比`}>
-        <ReactECharts option={chartOption} style={{ height: inds.length * 50 + 60 }} />
+      <DashboardCard title={`${category} - 锚定得分对比`}>
+        <ReactECharts option={chartOption} style={{ height: categoryIndicators.length * 50 + 60 }} />
       </DashboardCard>
-
-      {/* Right: Statistics Table */}
-      <DashboardCard title={`${category} — 统计参数`}>
+      <DashboardCard title={`${category} - 统计参数`}>
         <div className="overflow-x-auto">
           <table className="w-full text-[11px]">
             <thead>
@@ -356,7 +801,7 @@ function LongitudinalCategorySection({ category, aggregate }: { category: string
             </thead>
             <tbody>
               {tableRows.map((row) => (
-                <tr key={row.id} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                <tr key={row.id} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}>
                   <td className="py-1.5 pr-2" style={{ color: 'var(--text-primary)' }}>{row.name}</td>
                   <td className="py-1.5 pr-2 text-right font-mono" style={{ color: '#5A6579' }}>{row.vA.toFixed(1)}</td>
                   <td className="py-1.5 pr-2 text-right font-mono" style={{ color: '#00D4AA' }}>{row.vB.toFixed(1)}</td>
@@ -379,216 +824,75 @@ function LongitudinalCategorySection({ category, aggregate }: { category: string
   )
 }
 
-// ═══════════════════════════════════════════
-//  Cross-Sectional Comparison Components
-// ═══════════════════════════════════════════
-
-function CrossSectionalControlBar({
-  layers, setLayers, aggregate, setAggregate,
-}: {
-  layers: ComparisonLayer[]
-  setLayers: (l: ComparisonLayer[]) => void
-  aggregate: AggregateMode
-  setAggregate: (a: AggregateMode) => void
-}) {
-  const [showAddLayer, setShowAddLayer] = useState(false)
-
-  const addLayer = (preset: ComparisonLayer) => {
-    if (layers.length >= 3) return
-    if (layers.find((l) => l.id === preset.id)) return
-    setLayers([...layers, preset])
-    setShowAddLayer(false)
-  }
-
-  const removeLayer = (id: string) => {
-    setLayers(layers.filter((l) => l.id !== id))
-  }
-
-  return (
-    <div className="flex h-[52px] items-center gap-3 border-b px-4" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
-      <div className="flex items-center gap-1 rounded-lg border p-0.5" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
-        {[{ k: 'mean' as const, l: '均值' }, { k: 'best' as const, l: '最佳值' }].map((o) => (
-          <button key={o.k} onClick={() => setAggregate(o.k)} className="rounded-md px-3 py-1.5 text-[12px] transition-colors" style={{ backgroundColor: aggregate === o.k ? 'var(--accent-cyan)' : 'transparent', color: aggregate === o.k ? '#0B0E14' : 'var(--text-secondary)' }}>{o.l}</button>
-        ))}
-      </div>
-
-      {/* Active layers */}
-      <div className="flex items-center gap-2">
-        {layers.map((layer) => (
-          <span key={layer.id} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ backgroundColor: `${layer.color}20`, color: layer.color }}>
-            {layer.name}
-            <button onClick={() => removeLayer(layer.id)} className="ml-1"><X size={10} /></button>
-          </span>
-        ))}
-      </div>
-
-      {/* Add Layer */}
-      <div className="relative">
-        <button onClick={() => setShowAddLayer(!showAddLayer)} className="flex h-9 items-center gap-1 rounded-lg border px-3 text-[12px] transition-colors" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
-          <Plus size={14} />添加对比层
-        </button>
-        {showAddLayer && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowAddLayer(false)} />
-            <motion.div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border p-3" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-              <p className="mb-2 text-[12px] font-semibold" style={{ color: 'var(--accent-cyan)' }}>运动员</p>
-              {athletes.slice(0, 4).map((name, i) => (
-                <button key={name} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-primary)' }} onClick={() => addLayer({ id: `ath_${name}`, name, color: LAYER_COLORS[layers.length % LAYER_COLORS.length], type: 'individual', values: Object.fromEntries(DEMO_INDICATORS.map((ind) => [ind.id, { mean: ind.valueB + (Math.random() - 0.5) * ind.sdB * 2, sd: ind.sdB, n: ind.nB }])) })}>
-                  <Users size={12} style={{ color: LAYER_COLORS[i % LAYER_COLORS.length] }} />{name}
-                </button>
-              ))}
-              <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
-                <p className="mb-2 text-[12px] font-semibold" style={{ color: 'var(--accent-purple)' }}>参照群组</p>
-                {DEMO_LAYERS.map((layer) => (
-                  <button key={layer.id} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--bg-hover)]" style={{ color: layers.find((l) => l.id === layer.id) ? 'var(--text-muted)' : 'var(--text-primary)' }} onClick={() => addLayer(layer)} disabled={!!layers.find((l) => l.id === layer.id)}>
-                    <Users size={12} style={{ color: layer.color }} />{layer.name}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ─── Cross-Sectional Radar ───
-function CrossSectionalRadar({ layers, aggregate }: { layers: ComparisonLayer[]; aggregate: AggregateMode }) {
-  const option = useMemo(() => {
-    const cats = ['力量', '速度', '耐力', '身体形态']
-    const baseScores = cats.map((cat) => {
-      const inds = DEMO_INDICATORS.filter((d) => d.category === cat)
-      if (!inds.length) return 0
-      return Math.round(inds.reduce((s, d) => s + anchorScore(aggregate === 'mean' ? d.valueA : d.valueA + d.sdA, d.targetScore, d.direction), 0) / inds.length)
-    })
-
-    const layerScores = layers.map((layer) =>
-      cats.map((cat) => {
-        const inds = DEMO_INDICATORS.filter((d) => d.category === cat)
-        if (!inds.length) return 0
-        return Math.round(inds.reduce((s, d) => {
-          const lv = layer.values[d.id]
-          if (!lv) return s + anchorScore(aggregate === 'mean' ? d.valueA : d.valueA + d.sdA, d.targetScore, d.direction)
-          return s + anchorScore(aggregate === 'mean' ? lv.mean : lv.mean + lv.sd, d.targetScore, d.direction)
-        }, 0) / inds.length)
-      })
-    )
-
-    return {
-      radar: {
-        indicator: cats.map((c) => ({ name: c, max: 100, nameStyle: { color: '#E8ECF1', fontSize: 13, fontWeight: 600 } })),
-        shape: 'polygon' as const,
-        splitNumber: 5,
-        axisNameGap: 12,
-        splitLine: { lineStyle: { color: 'rgba(42,51,72,0.6)', width: 1 } },
-        splitArea: { show: true, areaStyle: { color: ['rgba(20,24,33,0.5)', 'rgba(20,24,33,0.3)'] } },
-        axisLine: { lineStyle: { color: 'rgba(42,51,72,0.8)' } },
-      },
-      legend: { data: ['当前运动员', ...layers.map((l) => l.name)], bottom: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
-      series: [{
-        type: 'radar',
-        data: [
-          { value: baseScores, name: '当前运动员', lineStyle: { color: '#00D4AA', width: 2.5 }, itemStyle: { color: '#00D4AA', borderColor: '#fff', borderWidth: 2 }, areaStyle: { color: 'rgba(0,212,170,0.15)' }, symbol: 'circle', symbolSize: 8 },
-          ...layers.map((layer, i) => ({
-            value: layerScores[i],
-            name: layer.name,
-            lineStyle: { color: layer.color, width: 2, type: i === 0 ? 'solid' as const : 'dashed' as const },
-            itemStyle: { color: layer.color },
-            areaStyle: { color: 'transparent' },
-            symbol: 'diamond',
-            symbolSize: 6,
-          })),
-        ],
-        animationDuration: 800,
-      }],
-      tooltip: { trigger: 'item' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 12 } },
-    }
-  }, [layers, aggregate])
-
-  return (
-    <DashboardCard title="横向能力对比 (目标基准锚定)" configOptions={[{ label: '多对象叠加', value: 'multi' }]} currentConfig="multi">
-      <ReactECharts option={option} style={{ height: 360 }} />
-    </DashboardCard>
-  )
-}
-
-// ─── Cross-Sectional: Per-indicator Chart + Table ───
-function CrossSectionalCategorySection({ category, layers, aggregate }: { category: string; layers: ComparisonLayer[]; aggregate: AggregateMode }) {
-  const inds = useMemo(() => DEMO_INDICATORS.filter((d) => d.category === category), [category])
-
+function CrossSectionalCategorySection({ category, aggregate, indicators, layers }: { category: string; aggregate: AggregateMode; indicators: ComparisonIndicator[]; layers: ComparisonLayer[] }) {
+  const categoryIndicators = useMemo(() => indicators.filter((indicator) => indicator.category === category), [category, indicators])
   const chartOption = useMemo(() => {
-    const names = inds.map((d) => d.name)
-    const baseVal = inds.map((d) => anchorScore(aggregate === 'mean' ? d.valueA : d.valueA + d.sdA, d.targetScore, d.direction))
-
-    const layerSeries = layers.map((layer, idx) => ({
+    const names = categoryIndicators.map((indicator) => indicator.name)
+    const baseValues = categoryIndicators.map((indicator) => anchorScore(aggregate === 'mean' ? indicator.valueA : indicator.valueA + indicator.sdA, indicator.targetScore, indicator.direction))
+    const layerSeries = layers.map((layer, index) => ({
       name: layer.name,
       type: 'bar' as const,
-      data: inds.map((d) => {
-        const lv = layer.values[d.id]
-        const v = lv ? (aggregate === 'mean' ? lv.mean : lv.mean + lv.sd) : d.valueB
-        return { value: anchorScore(v, d.targetScore, d.direction), itemStyle: { color: layer.color, borderRadius: [0, 4, 4, 0] } }
+      data: categoryIndicators.map((indicator) => {
+        const layerValue = layer.values[indicator.id]
+        const value = layerValue ? (aggregate === 'mean' ? layerValue.mean : layerValue.mean + layerValue.sd) : indicator.valueB
+        return { value: anchorScore(value, indicator.targetScore, indicator.direction), itemStyle: { color: layer.color, borderRadius: [0, 4, 4, 0] } }
       }).reverse(),
       barWidth: 12,
-      barGap: idx === 0 ? '20%' : '0%',
+      barGap: index === 0 ? '20%' : '0%',
     }))
 
     return {
       grid: { top: 30, right: 30, bottom: 24, left: 140 },
-      legend: { data: ['当前运动员', ...layers.map((l) => l.name)], top: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
+      legend: { data: [primaryAthleteGroup.label, ...layers.map((layer) => layer.name)], top: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
       xAxis: { type: 'value' as const, max: 100, axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(42,51,72,0.3)' } }, axisLabel: { color: '#5A6579', fontSize: 10, formatter: '{value}%' } },
       yAxis: { type: 'category' as const, data: names.reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#8B95A5', fontSize: 11, width: 130, overflow: 'truncate' as const } },
       tooltip: { trigger: 'axis' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 11 } },
       series: [
-        { name: '当前运动员', type: 'bar', data: baseVal.reverse().map((v) => ({ value: v, itemStyle: { color: '#00D4AA', borderRadius: [0, 4, 4, 0] } })), barWidth: 12, barGap: '20%' },
+        { name: primaryAthleteGroup.label, type: 'bar', data: baseValues.reverse().map((value) => ({ value, itemStyle: { color: '#00D4AA', borderRadius: [0, 4, 4, 0] } })), barWidth: 12, barGap: '20%' },
         ...layerSeries,
       ],
       animationDuration: 800,
       animationEasing: 'cubicOut' as const,
     }
-  }, [inds, layers, aggregate])
+  }, [aggregate, categoryIndicators, layers])
 
-  if (!inds.length) return null
-
-  // Stats table: current vs each layer
-  const tableRows = inds.map((ind) => {
-    const vBase = aggregate === 'mean' ? ind.valueA : ind.valueA + ind.sdA
-
+  const tableRows = useMemo(() => categoryIndicators.map((indicator) => {
+    const vBase = aggregate === 'mean' ? indicator.valueA : indicator.valueA + indicator.sdA
     const layerStats = layers.map((layer) => {
-      const lv = layer.values[ind.id]
-      const vL = lv ? (aggregate === 'mean' ? lv.mean : lv.mean + lv.sd) : ind.valueB
-      const te = calcTE(ind.sdA, lv?.sd ?? ind.sdB, ind.nA, lv?.n ?? ind.nB)
+      const layerValue = layer.values[indicator.id]
+      const vLayer = layerValue ? (aggregate === 'mean' ? layerValue.mean : layerValue.mean + layerValue.sd) : indicator.valueB
+      const sdLayer = layerValue?.sd ?? indicator.sdB
+      const nLayer = layerValue?.n ?? indicator.nB
+      const te = calcTE(indicator.sdA, sdLayer, indicator.nA, nLayer)
       const mdc = calcMDC(te)
-      const swc = calcSWC(ind.sdA, lv?.sd ?? ind.sdB, ind.nA, lv?.n ?? ind.nB)
-      const snr = calcSNR(vBase, vL, te)
-      const cohensD = calcCohensD(vBase, vL, ind.sdA, lv?.sd ?? ind.sdB, ind.nA, lv?.n ?? ind.nB)
-      const pValue = calcPairedTTest(vBase, vL, ind.sdA, lv?.sd ?? ind.sdB, Math.min(ind.nA, lv?.n ?? ind.nB))
-      const diff = vL - vBase
-      const pct = ((diff / vBase) * 100)
+      const swc = calcSWC(indicator.sdA, sdLayer, indicator.nA, nLayer)
+      const snr = calcSNR(vBase, vLayer, te)
+      const cohensD = calcCohensD(vBase, vLayer, indicator.sdA, sdLayer, indicator.nA, nLayer)
+      const pValue = calcPairedTTest(vBase, vLayer, indicator.sdA, sdLayer, Math.min(indicator.nA, nLayer))
+      const diff = vLayer - vBase
+      const pct = vBase ? (diff / vBase) * 100 : 0
       const sig = significanceBadge(pValue)
-      return { layerName: layer.name, layerColor: layer.color, vL, diff, pct, te, mdc, swc, snr, cohensD, pValue, sig }
+      return { layerName: layer.name, layerColor: layer.color, vLayer, diff, pct, te, mdc, swc, snr, cohensD, pValue, sig }
     })
+    return { ...indicator, vBase, layerStats }
+  }), [aggregate, categoryIndicators, layers])
 
-    return { ...ind, vBase, layerStats }
-  })
+  if (!categoryIndicators.length) return null
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-      {/* Left: Chart */}
-      <DashboardCard title={`${category} — 锚定得分对比`}>
-        <ReactECharts option={chartOption} style={{ height: inds.length * 50 + 60 }} />
+      <DashboardCard title={`${category} - 锚定得分对比`}>
+        <ReactECharts option={chartOption} style={{ height: categoryIndicators.length * 50 + 60 }} />
       </DashboardCard>
-
-      {/* Right: Statistics Table */}
-      <DashboardCard title={`${category} — 统计参数`}>
+      <DashboardCard title={`${category} - 统计参数`}>
         <div className="overflow-x-auto">
           <table className="w-full text-[11px]">
             <thead>
               <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
                 <th className="py-1.5 pr-2 text-left font-medium">指标</th>
-                <th className="py-1.5 pr-2 text-right font-medium">基准</th>
-                {layers.map((l) => (
-                  <th key={l.id} className="py-1.5 pr-2 text-right font-medium" style={{ color: l.color }}>{l.name}</th>
+                <th className="py-1.5 pr-2 text-right font-medium">当前</th>
+                {layers.map((layer) => (
+                  <th key={layer.id} className="py-1.5 pr-2 text-right font-medium" style={{ color: layer.color }}>{layer.name}</th>
                 ))}
                 <th className="py-1.5 pr-2 text-right font-medium">变化</th>
                 <th className="py-1.5 pr-2 text-right font-medium">MDC</th>
@@ -598,28 +902,31 @@ function CrossSectionalCategorySection({ category, layers, aggregate }: { catego
               </tr>
             </thead>
             <tbody>
-              {tableRows.map((row) => (
-                <tr key={row.id} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
-                  <td className="py-1.5 pr-2" style={{ color: 'var(--text-primary)' }}>{row.name}</td>
-                  <td className="py-1.5 pr-2 text-right font-mono" style={{ color: '#00D4AA' }}>{row.vBase.toFixed(1)}</td>
-                  {row.layerStats.map((ls) => (
-                    <td key={ls.layerName} className="py-1.5 pr-2 text-right font-mono" style={{ color: ls.layerColor }}>{ls.vL.toFixed(1)}</td>
-                  ))}
-                  {row.layerStats.length > 0 && (
-                    <>
-                      <td className="py-1.5 pr-2 text-right font-mono" style={{ color: row.layerStats[0].pct > 0 ? (row.direction === 'higher' ? '#10B981' : '#EF4444') : (row.direction === 'higher' ? '#EF4444' : '#10B981') }}>
-                        {row.layerStats[0].pct > 0 ? '+' : ''}{row.layerStats[0].pct.toFixed(1)}%
-                      </td>
-                      <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{row.layerStats[0].mdc.toFixed(2)}</td>
-                      <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{row.layerStats[0].swc.toFixed(2)}</td>
-                      <td className="py-1.5 pr-2 text-right font-mono" style={{ color: row.layerStats[0].snr > 1 ? '#00D4AA' : 'var(--text-secondary)' }}>{row.layerStats[0].snr.toFixed(2)}</td>
-                      <td className="py-1.5 text-center">
-                        <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${row.layerStats[0].sig.color}20`, color: row.layerStats[0].sig.color }}>{row.layerStats[0].sig.text}</span>
-                      </td>
-                    </>
-                  )}
-                </tr>
-              ))}
+              {tableRows.map((row) => {
+                const firstLayer = row.layerStats[0]
+                return (
+                  <tr key={row.id} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}>
+                    <td className="py-1.5 pr-2" style={{ color: 'var(--text-primary)' }}>{row.name}</td>
+                    <td className="py-1.5 pr-2 text-right font-mono" style={{ color: '#00D4AA' }}>{row.vBase.toFixed(1)}</td>
+                    {row.layerStats.map((layerStat) => (
+                      <td key={layerStat.layerName} className="py-1.5 pr-2 text-right font-mono" style={{ color: layerStat.layerColor }}>{layerStat.vLayer.toFixed(1)}</td>
+                    ))}
+                    {firstLayer && (
+                      <>
+                        <td className="py-1.5 pr-2 text-right font-mono" style={{ color: firstLayer.pct > 0 ? (row.direction === 'higher' ? '#10B981' : '#EF4444') : (row.direction === 'higher' ? '#EF4444' : '#10B981') }}>
+                          {firstLayer.pct > 0 ? '+' : ''}{firstLayer.pct.toFixed(1)}%
+                        </td>
+                        <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{firstLayer.mdc.toFixed(2)}</td>
+                        <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{firstLayer.swc.toFixed(2)}</td>
+                        <td className="py-1.5 pr-2 text-right font-mono" style={{ color: firstLayer.snr > 1 ? '#00D4AA' : 'var(--text-secondary)' }}>{firstLayer.snr.toFixed(2)}</td>
+                        <td className="py-1.5 text-center">
+                          <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${firstLayer.sig.color}20`, color: firstLayer.sig.color }}>{firstLayer.sig.text}</span>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -628,30 +935,24 @@ function CrossSectionalCategorySection({ category, layers, aggregate }: { catego
   )
 }
 
-// ═══════════════════════════════════════════
-//  Main Periodic Testing Component
-// ═══════════════════════════════════════════
 export default function PeriodicTesting({ mode = 'display' }: Props) {
-  // Longitudinal state
-  const [longDateMode, setLongDateMode] = useState<'single' | 'range' | 'unlimited'>('range')
+  const [longDateMode, setLongDateMode] = useState<DateMode>('range')
   const [longAggregate, setLongAggregate] = useState<AggregateMode>('mean')
-
-  // Cross-sectional state
-  const [layers, setLayers] = useState<ComparisonLayer[]>([DEMO_LAYERS[0]])
+  const [layers, setLayers] = useState<ComparisonLayer[]>(periodicSurfaceData.defaultCrossLayers)
   const [crossAggregate, setCrossAggregate] = useState<AggregateMode>('mean')
 
-  // Unique categories from DEMO_INDICATORS
-  const comparisonCategories = useMemo(() => {
-    const cats = new Set(DEMO_INDICATORS.map((d) => d.category))
-    return Array.from(cats)
-  }, [])
+  const surfaceConfigCount = periodicSurfaceData.surfaceConfigs.length
 
   if (mode === 'display') {
     return (
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">
-        <div className="col-span-1 xl:col-span-4"><RadarChartDisplay /></div>
-        {periodicCategories.map((cat) => (
-          <div key={cat.name} className="col-span-1 xl:col-span-2"><CategoryCard category={cat} /></div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-4" data-surface-config-count={surfaceConfigCount}>
+        <div className="col-span-1 xl:col-span-4">
+          <RadarChartDisplay data={periodicSurfaceData.radarScores} />
+        </div>
+        {periodicSurfaceData.displayCategories.map((category) => (
+          <div key={category.name} className="col-span-1 xl:col-span-2">
+            <CategoryCard category={category} />
+          </div>
         ))}
       </div>
     )
@@ -659,26 +960,45 @@ export default function PeriodicTesting({ mode = 'display' }: Props) {
 
   if (mode === 'longitudinal') {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6" data-surface-config-count={surfaceConfigCount}>
         <LongitudinalControlBar dateMode={longDateMode} setDateMode={setLongDateMode} aggregate={longAggregate} setAggregate={setLongAggregate} />
         <div className="grid grid-cols-1 gap-6">
-          <LongitudinalRadar aggregate={longAggregate} />
-          {comparisonCategories.map((cat) => (
-            <LongitudinalCategorySection key={cat} category={cat} aggregate={longAggregate} />
+          <ComparisonRadar
+            title="纵向能力对比（目标锚定）"
+            baseLabel={baselineGroup.label}
+            indicators={periodicSurfaceData.indicators}
+            categories={periodicSurfaceData.categories}
+            aggregate={longAggregate}
+          />
+          {periodicSurfaceData.categories.map((category) => (
+            <LongitudinalCategorySection key={category} category={category} aggregate={longAggregate} indicators={periodicSurfaceData.indicators} />
           ))}
         </div>
       </div>
     )
   }
 
-  // cross-sectional
   return (
-    <div className="flex flex-col gap-6">
-      <CrossSectionalControlBar layers={layers} setLayers={setLayers} aggregate={crossAggregate} setAggregate={setCrossAggregate} />
+    <div className="flex flex-col gap-6" data-surface-config-count={surfaceConfigCount}>
+      <CrossSectionalControlBar
+        layers={layers}
+        setLayers={setLayers}
+        aggregate={crossAggregate}
+        setAggregate={setCrossAggregate}
+        athleteLayerOptions={periodicSurfaceData.athleteLayerOptions}
+        referenceLayerOptions={periodicSurfaceData.referenceLayerOptions}
+      />
       <div className="grid grid-cols-1 gap-6">
-        <CrossSectionalRadar layers={layers} aggregate={crossAggregate} />
-        {comparisonCategories.map((cat) => (
-          <CrossSectionalCategorySection key={cat} category={cat} layers={layers} aggregate={crossAggregate} />
+        <ComparisonRadar
+          title="横向能力对比（目标锚定）"
+          baseLabel={primaryAthleteGroup.label}
+          indicators={periodicSurfaceData.indicators}
+          categories={periodicSurfaceData.categories}
+          aggregate={crossAggregate}
+          layers={layers}
+        />
+        {periodicSurfaceData.categories.map((category) => (
+          <CrossSectionalCategorySection key={category} category={category} aggregate={crossAggregate} indicators={periodicSurfaceData.indicators} layers={layers} />
         ))}
       </div>
     </div>

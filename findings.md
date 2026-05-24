@@ -95,3 +95,11 @@ Use this file for durable discoveries that should survive across conversations.
 - `ComparisonDataGroupConfig` intentionally represents extra data groups only. Targets, thresholds, benchmarks, SWC, MDC, confidence intervals, and normal ranges belong to `StatisticalAnnotationConfig` and do not count toward the three-group comparison limit.
 - `ReferenceGroupSelector` is modeled ahead of UI support so PL-003 can migrate Dashboard without inventing another local shape for same-gender, age-band, specialty, position, team, custom group, and percentile references.
 - PL-002 did not add an adapter from `MetricSurfaceConfig` to `measurement-store` queries. That should be considered during PL-003 when `PeriodicTesting` is migrated.
+
+## 2026-05-24 Dashboard Periodic Migration Findings
+
+- `src/lib/metric-surface-measurements.ts` now provides the first adapter from metric surface data-group config to measurement-store queries. It supports athlete, team, position, custom group, basic reference-group, date/session time selection, sources, summary, and series selection.
+- `src/components/dashboard/PeriodicTesting.tsx` no longer uses `DEMO_INDICATORS` as metric truth. Dashboard periodic display, longitudinal comparison, and cross-sectional comparison now derive metric identity and units from `METRIC_DEFINITIONS` and values from the shared mock `Measurement[]` store.
+- Cross-sectional athlete comparison layers in `PeriodicTesting` are now deterministic measurement summaries instead of `Math.random()` generated values.
+- The dashboard periodic migration still uses lightweight target-score estimation from mock measurement distributions because no canonical benchmark/target store exists yet. Treat those target anchors as demo display scaffolding until benchmark modeling is added.
+- Browser smoke at 390px confirmed no page-level width overflow in Dashboard periodic cross-sectional mode, but the existing top dashboard filter/header area remains visually cramped on mobile and should stay in the PL-008 mobile QA scope.

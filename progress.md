@@ -210,3 +210,39 @@ Use this file as the session-by-session project journal.
 - Updated `docs/AI_CONTEXT.md` so future sessions update `progress.md` first before distilling findings or changing execution state docs.
 - Updated `findings.md` and `task_plan.md` with the clarified boundary.
 - Verification: `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+
+## 2026-05-24 PL-003 Dashboard Periodic Testing Migration
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: `PL-003`, migrate Dashboard periodic testing to registry-derived metrics, metric surface configuration, and measurement selectors.
+- Read `task_plan.md`, `findings.md`, `progress.md`, `docs/AI_CONTEXT.md`, `docs/ROADMAP.md`, `README.md`, and `docs/EXECUTION_BRIEF.md`.
+- Confirmed initial git status: `main...origin/main` with no local changes.
+- Inspected `src/components/dashboard/PeriodicTesting.tsx`, `src/components/dashboard/data.ts`, `src/lib/measurement-store.ts`, `src/lib/metric-registry.ts`, and `src/lib/metric-surface-config.ts`.
+- Working decision: keep the current Dashboard visual structure for this pass, but replace `PeriodicTesting`'s local demo indicator truth with registry/store-derived metric surface data and a small adapter from `MetricSurfaceConfig` to measurement selector queries.
+- Added `src/lib/metric-surface-measurements.ts` as the first adapter from `MetricDataGroupConfig`/`TimeSelection`/`SubjectSelector` to `measurement-store` selector queries and summaries.
+- Replaced `src/components/dashboard/PeriodicTesting.tsx` with a clean implementation because the old file contained mojibake-heavy decorative comments and local `DEMO_INDICATORS`/random layer generation.
+- `PeriodicTesting` now derives periodic metrics from `METRIC_DEFINITIONS`, builds dashboard `MetricSurfaceConfig` objects, summarizes display/longitudinal/cross-sectional values through `selectMetricDataGroupSummary`, and keeps comparison data groups to the same max-three product rule.
+- Display mode now builds category cards and radar scores from registry metrics and the shared mock `Measurement[]` store.
+- Longitudinal mode now compares the primary athlete's baseline session against the latest session through measurement selectors.
+- Cross-sectional mode now builds stable athlete/reference comparison layers from measurement selectors; the old `Math.random()` athlete layer generation is removed from `PeriodicTesting`.
+- First `npm run build` failed on the `UpToThree<ComparisonDataGroupConfig>` tuple cast after slicing comparison groups; fixed by making the runtime max-three cast explicit.
+- Verification: `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+- Verification: `npm run lint` passes.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright setup notes:
+  - `npx --package playwright node <temp script>` and `npx -p playwright -c "node <temp script>"` both failed because the temporary package was not visible to Node `require()`.
+  - `npx playwright test` with a temp config failed because the temp config could not resolve `@playwright/test`.
+  - Installed local `playwright` with `npm install --no-save playwright` to run the smoke script; this did not change tracked package metadata.
+- Browser smoke verification on local `npm run preview` at `http://127.0.0.1:4173/`:
+  - Desktop dashboard periodic display mode rendered with no console errors/warnings and no framework overlay.
+  - Desktop longitudinal mode rendered with no console errors/warnings and no framework overlay.
+  - Mobile 390px cross-sectional mode rendered, the add-comparison menu opened, 9 comparison option buttons were found, and document width stayed at 390px.
+  - Screenshots were saved to the system temp directory, not the repository.
+- Residual UI note: mobile screenshots still show existing top dashboard filter/header controls as visually cramped; this is closer to the existing `PL-008` mobile comparison QA scope and was not mixed into `PL-003`.
+- Updated `docs/EXECUTION_BRIEF.md` so `PL-003` is `Done`, `PL-004` is the next default P1 task, and the code facts reflect Dashboard periodic testing as the first Dashboard consumer of the shared measurement store.
+- Updated `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect the PL-003 completion and PL-004 default next step.
+- Final verification after documentation updates:
+  - `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+  - `npm run lint` passes.
+- Final pre-commit git status: modified docs/context files plus `src/components/dashboard/PeriodicTesting.tsx`; new `src/lib/metric-surface-measurements.ts`.
+- Commit plan: create a local commit for PL-003 with message `Migrate dashboard periodic testing`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.

@@ -115,10 +115,10 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 - `src/lib/metric-registry.ts` 已有第一版 canonical metric registry。
 - `src/lib/import-parser.ts` 已支持真实 CSV/XLSX 解析，并能解析 registry metric id。
 - `src/components/data-entry/ValidationStagingArea.tsx` 已能做运动员、指标、重复次数、异常值的 staging validation。
-- `src/components/dashboard/PeriodicTesting.tsx` 已有“数据展示/纵向比较/横向比较”三种模式雏形，但仍使用本地 demo indicators。
+- `src/components/dashboard/PeriodicTesting.tsx` 已迁移为 registry + measurement selector 驱动：数据展示、纵向比较、横向比较共用 registry 指标、`MetricSurfaceConfig` 和 shared mock `Measurement[]` store。
 - `src/pages/Comparison.tsx` 仍是独立比较页面，内部有另一套 demo indicators、layers、统计函数和图表配置。
 - `src/pages/Correlation.tsx` 已从 metric registry 派生指标名称/类别，但数据仍来自 correlation demo generator。
-- `src/lib/measurement-store.ts` 已建立第一版共享 mock `Measurement[]` store 和 selector。Data Entry 手动录入、Excel 导入确认、Admin 页、Dashboard 还没有迁移为它的消费者。
+- `src/lib/measurement-store.ts` 已建立第一版共享 mock `Measurement[]` store 和 selector。Dashboard periodic testing 已开始消费它；Data Entry 手动录入、Excel 导入确认、Admin 页和其他 Dashboard 区块还没有迁移为它的消费者。
 - `src/lib/metric-surface-config.ts` 已建立第一版可序列化指标展示面配置模型，包含主数据组、最多 3 组额外对比数据组、时间/主体选择、聚合方式、横向参照群组和统计注释配置。
 
 ## 执行路线图
@@ -127,15 +127,15 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 | --- | --- | --- | --- | --- | --- |
 | PL-001 | P0 | Done | 建立 mock measurement store 和 selector | 已新增统一 `Measurement[]` mock 数据；能按 metric、athlete、team、position、session/time range、source、aggregation 查询；本轮未改 UI。性别、年龄段、专项和复杂参照群组筛选尚未实现，应在 PL-002/PL-003 设计中处理 | `src/lib/measurement-store.ts` |
 | PL-002 | P0 | Done | 定义指标展示面配置模型 | 已新增 `MetricSurfaceConfig`、`ComparisonDataGroupConfig`、`TimeSelection`、`SubjectSelector`、`ReferenceGroupSelector`、聚合方式和 `StatisticalAnnotationConfig`；`UpToThree` 与 `MAX_COMPARISON_DATA_GROUPS` 表达“最多 3 组额外对比数据”；`docs/METRIC_SURFACE_CONFIG.md` 记录产品边界。本轮未迁移 UI | `src/lib/metric-surface-config.ts`, `docs/METRIC_SURFACE_CONFIG.md` |
-| PL-003 | P0 | Todo | 迁移 Dashboard periodic testing 到 registry + measurement selector | `PeriodicTesting` 不再依赖本地 `DEMO_INDICATORS` 作为指标真相；display/longitudinal/cross-sectional 使用同一指标配置和数据 selector | `src/components/dashboard/PeriodicTesting.tsx`, `src/components/dashboard/data.ts` |
+| PL-003 | P0 | Done | 迁移 Dashboard periodic testing 到 registry + measurement selector | `PeriodicTesting` 不再依赖本地 `DEMO_INDICATORS` 作为指标真相；display/longitudinal/cross-sectional 使用 registry 指标、`MetricSurfaceConfig`、`metric-surface-measurements` adapter 和 shared measurement selector；横向运动员对比不再用 `Math.random()` | `src/components/dashboard/PeriodicTesting.tsx`, `src/lib/metric-surface-measurements.ts` |
 | PL-004 | P1 | Todo | 收敛 `/comparison` 页面 | 不再维护第二套指标/统计/图表真相；复用展示面组件或明确降级为 legacy/experimental | `src/pages/Comparison.tsx`, `src/App.tsx`, `src/components/Navbar.tsx` |
 | PL-005 | P1 | Todo | 统一 Data Entry 指标来源 | `IndicatorSelector` 从 registry/test battery config 派生；手动录入和 Excel 确认输出 `Measurement[]` | `src/components/data-entry/*`, `src/data/mockData.ts` |
 | PL-006 | P1 | Todo | 统计模块专业化 | TE/MDC/SWC/effect size/correlation 等集中在一个模块；输出包含 method、assumptions、sampleSize、missingDataPolicy、dataQuality | `src/lib/statistics.ts`, `src/lib/performance-statistics.ts` |
-| PL-007 | P2 | Todo | 稳定 mock 数据 | Dashboard 和比较模式不再使用未 seeded 的 `Math.random()`，刷新后数据稳定 | `src/components/dashboard/data.ts`, `src/components/dashboard/PeriodicTesting.tsx` |
+| PL-007 | P2 | Todo | 稳定 mock 数据 | Dashboard daily data 和 legacy comparison/correlation demo 数据不再使用未 seeded 的 `Math.random()`，刷新后数据稳定；`PeriodicTesting` 横向运动员对比已在 PL-003 中改为 measurement selector 汇总 | `src/components/dashboard/data.ts`, `src/pages/Comparison.tsx`, `src/pages/Correlation.tsx` |
 | PL-008 | P2 | Todo | 移动端比较视图 QA | 390px、768px、1440px 下 Dashboard 比较视图和 Comparison 页面无页面级横向溢出，关键文本不重叠 | Dashboard, Comparison, Playwright smoke |
 | PL-009 | P2 | Todo | 路由级性能优化 | ECharts-heavy 页面按路由 lazy load；build 仍可通过；bundle 警告有明确处理或记录 | `src/App.tsx`, Vite build output |
 
-如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始。当前默认下一步是 `PL-003`，因为 `PL-001` 已建立 measurement store，`PL-002` 已定义可序列化的指标展示面配置模型，后续应迁移 Dashboard periodic testing。
+如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始。当前默认下一步是 `PL-004`，因为 `PL-003` 已迁移 Dashboard periodic testing，后续应收敛 `/comparison` 页面，避免继续维护第二套指标/统计/图表真相。
 
 ## 高优先级问题详情
 
@@ -143,7 +143,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 
 问题：
 
-- `src/pages/Comparison.tsx` 和 `src/components/dashboard/PeriodicTesting.tsx` 都有自己的 demo indicators、layers、统计函数和图表配置。
+- `src/pages/Comparison.tsx` 仍维护自己的 demo indicators、layers、统计函数和图表配置；Dashboard periodic testing 已在 PL-003 中迁移到 registry + measurement selector。
 - 这会造成同一指标在不同页面的名称、单位、方向、目标值和统计解释不一致。
 
 处理原则：
@@ -180,7 +180,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 ## 中优先级问题
 
 - `src/components/dashboard/data.ts` 使用未 seeded 的 `Math.random()`，刷新会改变 daily data。
-- `src/components/dashboard/PeriodicTesting.tsx` 添加横向运动员对比时使用 `Math.random()`，同一操作不可复现。
+- `src/components/dashboard/PeriodicTesting.tsx` 横向运动员对比已不再使用 `Math.random()`；剩余随机性主要在 daily data 和 legacy analysis demo 数据中。
 - `src/pages/Comparison.tsx` 和 `src/pages/Correlation.tsx` 都是超大单文件，后续需要拆分，但拆分前先统一数据模型。
 - Vite build 仍有 >500 kB chunk 警告，ECharts-heavy 页面后续应 route-level lazy import。
 - Import History 仍是临时前端 state + mock history，不反映真实 `ImportBatch` 和 committed measurements。
@@ -191,19 +191,19 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 
 若用户没有指定其他任务，下一次应执行：
 
-`PL-003`: 迁移 Dashboard periodic testing 到 registry + measurement selector。
+`PL-004`: 收敛 `/comparison` 页面。
 
 开始前应先确认：
 
 - 是否已有未提交改动。
 - 是否存在近期文档更新改变了优先级。
-- `src/lib/metric-surface-config.ts` 的 `MetricSurfaceConfig` 是否足够覆盖当前 `PeriodicTesting` 的 display/longitudinal/cross-sectional 三种模式。
-- `measurement-store` 的 series/summary selector 是否需要补充一个轻量 adapter，把 `MetricSurfaceConfig` 转换为图表数据。
-- 迁移时是否先保留当前视觉结构，只替换指标来源和数据选择逻辑。
+- 是否复用 `src/lib/metric-surface-measurements.ts` 和 `src/components/dashboard/PeriodicTesting.tsx` 中已经验证过的 surface data 形状。
+- `/comparison` 短期是复用 dashboard 展示面，还是明确降级为 legacy/experimental，并在导航和文案上弱化其权威性。
+- 哪些现有 `/comparison` 交互必须保留，哪些 demo-only 统计可以先删除或标注。
 
 完成后必须：
 
-- 更新本文档中 `PL-003` 状态。
+- 更新本文档中 `PL-004` 状态。
 - 更新 `progress.md` 记录具体改动和验证。
 - 如果发现数据模型不足，先记录到 `progress.md`；若该发现长期有效，补充到 `findings.md`；只有当它改变路线图、完成判据或默认下一步时，才同步更新本文档。
 - 如果改动代码，运行 `npm run build`。

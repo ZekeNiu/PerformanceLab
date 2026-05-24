@@ -67,7 +67,7 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verification: `npm run lint` passes.
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
 - Completed: Created the first shared mock `Measurement[]` store and selector layer in `src/lib/measurement-store.ts`.
-- Next recommended architecture work: migrate `PeriodicTesting` comparison modes to registry-derived metric surfaces (`PL-003`), using the shared measurement store and metric surface config model.
+- Next recommended architecture work: consolidate `/comparison` so it no longer maintains a second metric/stat/chart truth (`PL-004`), now that Dashboard periodic testing has been migrated.
 
 ## 2026-05-24 PL-002 Metric Surface Config Task
 
@@ -128,6 +128,17 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed: Clarified that `NEXT_CHAT_PROMPT.md` “当前重要状态” is only a minimal bootstrap fallback for conversations that cannot read local files.
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
 
+## 2026-05-24 PL-003 Dashboard Periodic Testing Task
+
+- Completed: Added `src/lib/metric-surface-measurements.ts` as the first adapter from metric surface data-group config to measurement-store selectors.
+- Completed: Migrated `src/components/dashboard/PeriodicTesting.tsx` away from local `DEMO_INDICATORS` and random athlete comparison layers.
+- Completed: Dashboard periodic display, longitudinal comparison, and cross-sectional comparison now derive metric identity from the registry and values from the shared mock `Measurement[]` store.
+- Completed: Preserved the current dashboard visual structure while making the periodic surface driven by registry/store-derived surface data.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
+- Verification: `npm run lint` passes.
+- Verification: Local Playwright smoke passed for desktop display, desktop longitudinal, and 390px mobile cross-sectional add-comparison flow with no console errors/warnings and no page-level horizontal overflow.
+- Next recommended architecture work: consolidate `/comparison` so it no longer maintains a second metric/stat/chart truth (`PL-004`).
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.
@@ -148,4 +159,4 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed: Excel/CSV upload now performs real parsing with `xlsx` loaded dynamically.
 - Completed: Data import keeps filename, previews parsed rows, validates unknown athletes/repeat counts, and flags metrics not found in the registry.
 - Verified: real CSV upload smoke test reached the staging validation table with 2 parsed rows and no console errors.
-- Remaining architecture work: migrate `Comparison.tsx`, dashboard periodic testing, and `mockData.ts` fully onto the registry and a shared measurement store instead of local demo arrays.
+- Remaining architecture work: migrate `Comparison.tsx` and `mockData.ts` fully onto the registry and shared measurement store instead of local demo arrays.

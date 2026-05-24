@@ -50,7 +50,7 @@ The dashboard should be highly configurable. Analysts may work with different te
 - Full Kimi pages are now present, but they still need systematic runtime QA and cleanup.
 - Most data is still hardcoded/mock data.
 - Card configurability is not yet modeled as reusable config.
-- First-stage domain model, metric registry, mock measurement selector layer, and metric surface config model now exist in `src/lib/domain-model.ts`, `src/lib/metric-registry.ts`, `src/lib/measurement-store.ts`, and `src/lib/metric-surface-config.ts`, but `Comparison.tsx`, dashboard periodic testing, and `mockData.ts` still need migration onto that source.
+- First-stage domain model, metric registry, mock measurement selector layer, metric surface config model, and surface-to-measurement adapter now exist in `src/lib/domain-model.ts`, `src/lib/metric-registry.ts`, `src/lib/measurement-store.ts`, `src/lib/metric-surface-config.ts`, and `src/lib/metric-surface-measurements.ts`. Dashboard periodic testing now consumes that path; `Comparison.tsx` and `mockData.ts` still need migration onto that source.
 - Excel/CSV import now performs real parsing through `src/lib/import-parser.ts`, but committed rows are still frontend-only and not persisted to a backend or durable local store.
 - `docs/EXECUTION_BRIEF.md` is the current execution brief for architecture work. It defines the comparison data group model, roadmap status, completion criteria, default next task, and when the brief itself should be updated.
 - Build succeeds, but bundle size is large.
