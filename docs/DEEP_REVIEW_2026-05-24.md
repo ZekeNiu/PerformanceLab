@@ -1,193 +1,237 @@
-# PerformanceLab Deep Review - 2026-05-24
+# PerformanceLab Deep Review And Execution Brief - 2026-05-24
 
-本文件用于下一轮 Codex 对话快速恢复上下文。结论基于 2026-05-24 对当前 React/Vite 前端代码的系统检查，重点覆盖代码架构、运动表现专业性、产品设计和用户工作流。
+本文件不是普通总结，而是下一轮 Codex 对话的执行简报。新对话读完后，应能判断产品方向、当前架构问题、下一步优先级、每个待办是否完成，以及遇到新问题时应如何记录，避免每次都从头解释。
 
-## 当前判断
+## 如何使用本文件
 
-PerformanceLab 的正确长期方向是“指标优先、展示面可配置、比较作为图表层”。也就是说，基础数据展示、纵向比较和横向比较不应长期作为互相割裂的页面和数据源，而应共享同一张卡片/同一张图的 metric config、measurement source 和 comparison layers。
+新对话开始后按这个顺序做：
 
-推荐产品模型：
+1. 读取 `task_plan.md`、`findings.md`、`progress.md`、`docs/AI_CONTEXT.md`、`docs/ROADMAP.md`、`README.md` 和本文件。
+2. 运行 `git status --short --branch`。
+3. 如果用户没有指定更高优先级任务，优先执行本文档“执行路线图”中第一个状态不是 `Done` 的 `P0` 或 `P1` 任务。
+4. 每次完成一个待办，更新本文档中的状态、完成日期、完成判据，并同步更新 `progress.md`。
+5. 每次发现新的架构风险、产品约束、统计假设或 bug，必须写入本文档的“新增发现与决策记录”，并把简短版本写入 `findings.md`。
+6. 如果新问题阻塞当前任务，先记录阻塞原因和可选方案，再决定是否调整优先级；不要只在聊天中说明。
 
-- 先选择指标：例如 CMJ 跳跃高度、30m 冲刺、HRV RMSSD。
-- 再选择展示面：卡片、折线、柱图、雷达、表格。
-- 再打开可选比较层：
-  - 纵向层：同一运动员/队伍/指标的基准期 vs 对比期。
-  - 横向层：同一指标/时间窗下的运动员、位置、分组或队伍对比。
-  - 目标/阈值层：benchmark、SWC、MDC、目标区间。
-- 相关性分析保留独立页面，但必须复用同一个 metric registry 和 measurement store。
+状态定义：
 
-## 本轮已修复
+- `Todo`: 未开始。
+- `Doing`: 当前正在推进。
+- `Done`: 已完成，并通过对应完成判据。
+- `Blocked`: 被技术、产品定义或数据条件阻塞。
+- `Deferred`: 暂缓，原因必须写清楚。
 
-- `src/components/data-entry/ValidationStagingArea.tsx`
-  - 问题：上传第二个文件时，组件内部 `items` 只在首次挂载初始化，新的 `parsedRows` 不会重新校验，用户可能看到旧文件的校验表。
-  - 修复：抽出 `validateParsedRows`，并由 `ExcelImportTab` 为每次解析结果提供 parse-specific `key`，让校验区随新文件重新挂载并初始化。
+## 当前产品判断
 
-- `src/components/data-entry/UploadZone.tsx`
-  - 问题：下载模板的第二行示例运动员是 `李明`，但当前 mock athlete 表中不存在该运动员，模板本身会制造“未知姓名”错误。
-  - 修复：改为已存在的 `李娜 / ATH-2024-002`。
+PerformanceLab 的长期方向应是：强调指标展示和统计学深度，展示面可高度自由配置。
 
-- `src/lib/metric-registry.ts` 与 `src/lib/correlation-data.ts`
-  - 问题：`body_fat_pct` 与 `body_fat` 表示同一体脂率指标；`body_fat` 又是 `body_fat_pct` 的别名，后定义项会覆盖别名索引，导致导入 `body_fat` 时解析到非 canonical 指标。
-  - 修复：删除重复 `body_fat` 指标定义，保留 `body_fat` 作为 `body_fat_pct` 的别名；移除相关性 demo data 中未注册的 `body_fat` 值。
+基础数据展示、纵向比较和横向比较不应长期作为互相割裂的页面、组件和数据源。它们应共享同一套指标定义、同一套测量数据、同一套图表/卡片配置。用户的主要心智模型应是：
 
-## 高优先级问题
+1. 选择指标：例如 CMJ 跳跃高度、30m 冲刺、HRV RMSSD。
+2. 选择展示面：卡片、折线图、柱状图、雷达图、表格等。
+3. 选择主体和时间条件：运动员、队伍、分组、单个日期、日期范围或不限日期。
+4. 在同一张图/同一卡片上按需添加对比数据组。
+5. 查看统计解释：变化幅度、均值/最佳值、离散程度、TE、MDC、SWC、效应量、置信区间等。
 
-### 1. 比较分析仍有两套实现
+“对比数据组”是给用户看的产品概念。代码里以后可以叫 `ComparisonLayerConfig`，但文档和 UI 文案应尽量避免让非工程用户理解“图层”这个抽象。
 
-- 独立页面：`src/pages/Comparison.tsx`
-- Dashboard 内比较层雏形：`src/components/dashboard/PeriodicTesting.tsx`
-- 两者都维护各自的 demo indicators、layers、统计方法和图表配置。
+相关性分析建议保留独立页面，因为变量选择、模型诊断、共线性、残差图、相关矩阵和解释模型是探索式统计工作流，不适合强行塞进日常指标卡片。但相关性分析必须复用同一个 metric registry 和 measurement store。
 
-风险：
+## 对比数据组边界
 
-- 同一指标在不同页面可能名字、单位、方向、目标值不一致。
-- 后续接入真实数据时会出现双倍迁移工作。
-- 用户心智会被“独立比较页”和“数据展示内比较模式”拆开。
+每个指标展示面默认有 1 组主数据。用户最多额外添加 3 组对比数据，因此同屏最多显示 4 组数据。
 
-建议：
+目标、阈值、benchmark、SWC、MDC、置信区间、正常范围不算对比数据组。它们是指标展示面的统计注释或参考线，应跟随指标自动出现或由图表设置开关控制。它们不应占用“最多 3 组对比数据”的名额。
 
-- 把 `/comparison` 视为临时实验室或历史兼容入口，不继续在它上面扩功能。
-- 新架构优先落在 Dashboard 的指标展示面：`MetricDisplaySurface + ComparisonLayerConfig`。
-- 当 dashboard 比较层成熟后，`Comparison.tsx` 可以改为跳转/包装同一套组件，或重命名为“比较实验室”。
+### 纵向对比
 
-### 2. 指标定义仍分散
+纵向对比用于回答：同一个主体在不同时间条件下是否变化。
 
-目前至少有三处指标体系：
+基础条件：
 
-- `src/lib/metric-registry.ts`: 新增的 canonical metric registry。
-- `src/components/dashboard/data.ts`: Dashboard daily/periodic/comparison demo data。
-- `src/data/mockData.ts`: Data Entry 的 action/category/metric mock tree，指标 id 是 `m-1` 这类局部 id。
+- 同一运动员、队伍或分组。
+- 同一指标。
+- 基准时间条件：单个日期、日期范围或不限日期。
+- 对比时间条件：单个日期、日期范围或不限日期。
+- 聚合方式：均值或最佳值。后续可扩展为最新值、最大值、最小值、中位数。
 
-风险：
+可添加的额外对比数据组：
 
-- 手动录入选择的指标不是 registry metric id，无法自然落成 `Measurement.metricId`。
-- Excel 导入可以解析出 registry metric id，但确认入库后仍只是前端 import history，不进入统一 measurement store。
-- Dashboard 的卡片配置无法可靠知道“这个卡片可显示哪些兼容指标”。
+- 同一主体的另一个时间条件。
+- 同一指标下另一个已命名训练阶段或测试批次。
+- 同一主体的历史最佳或长期平均。此类可作为数据组，也可作为参考线，具体取决于视觉设计。
 
-建议：
+### 横向对比
 
-- 下一步新增 `src/lib/mock-measurements.ts` 或 `src/lib/measurement-store.ts`，用 `Measurement[]` 表示当前 mock 数据。
-- Dashboard、手动录入、Excel staging 都逐步转成读写 `Measurement.metricId`。
-- `mockActionCategories` 改为从 registry + test action/battery config 派生，而不是维护独立指标 id。
+横向对比用于回答：同一个指标和时间条件下，当前主体相对其他运动员或参照群体处于什么位置。
 
-### 3. 统计逻辑重复且专业解释不足
+基础条件：
 
-当前统计逻辑分布在：
+- 同一指标。
+- 同一时间条件：单个日期、日期范围或不限日期。
+- 聚合方式：均值或最佳值。
+- 可额外添加最多 3 组对比数据。
 
-- `src/components/dashboard/data.ts`
-- `src/pages/Comparison.tsx`
-- `src/lib/statistics.ts`
+可选对比对象：
 
-主要风险：
+- 真实运动员：指定单一运动员姓名或运动员 ID。
+- 全局数据库参照群组：同性别均值/最佳值。
+- 全局数据库参照群组：同性别 + 同专项均值/最佳值。
+- 全局数据库参照群组：同性别 + 同位置均值/最佳值。
+- 全局数据库参照群组：同性别 + 同年龄段均值/最佳值。
+- 指定队伍参照群组：同性别均值/最佳值。
+- 指定队伍参照群组：同性别 + 同位置均值/最佳值。
+- 指定队伍参照群组：同性别 + 同年龄段均值/最佳值。
+- 指定队伍参照群组：同性别 + 同年龄段 + 同位置均值/最佳值。
 
-- TE/MDC/SWC、Cohen's d、t-test 等实现有重复版本。
-- 部分统计是 demo 近似：例如 TE 固定乘以 `0.35`，paired t-test 没有真实配对差值 SD，VIF 当前只近似使用第一个其他变量。
-- UI 中展示 p 值、显著性、TreeSHAP、随机森林等高级术语，但当前实现更接近演示，不应被用户误认为严谨分析结果。
+后续可扩展但先不作为首版硬需求：
 
-建议：
+- 自定义筛选群组：由用户自由组合性别、专项、位置、年龄段、队伍、赛季、状态。
+- 百分位参照：P25、P50、P75、P90。
+- 队内排名或全局排名。
+- 伤病/可训练状态过滤。
 
-- 建立 `src/lib/performance-statistics.ts`，统一导出 dashboard/comparison 需要的统计函数。
-- 每个统计输出加 `method`, `assumptions`, `dataQuality` 字段。
-- 在 UI 中区分“演示数据/近似统计”和“可用于报告的统计”。
+## 架构原则
 
-### 4. 数据展示卡片还不是可配置 surface
+- `MetricDefinition` 是指标名称、单位、方向、类别、别名、适用上下文的唯一来源。
+- `Measurement[]` 应成为展示、比较、导入和相关性分析共享的数据源。
+- 图表和卡片应由可序列化配置驱动，而不是在页面组件里写死指标和统计逻辑。
+- 统计计算应集中管理，并明确方法、假设、样本量、缺失值处理和是否只是 demo 近似。
+- 独立 `/comparison` 页面短期可保留，但不应继续扩展成第二套比较系统。长期应复用同一套指标展示面，或降级为“比较实验室/预设视图”。
 
-现状：
+## 当前代码事实
 
-- `DailyMonitoring.tsx` 固定展示 HRV、RHR、ACWR、load 等。
-- `PeriodicTesting.tsx` 固定展示 periodic categories 和 demo comparison indicators。
-- `DashboardCard` 只有很轻的 `configOptions`，没有真正的 metric/visualization/time range/subject config。
+- `src/lib/domain-model.ts` 已有第一版 Team、Athlete、TestSession、TestBattery、MetricDefinition、Measurement、Benchmark、DisplayPreset、ImportBatch 类型。
+- `src/lib/metric-registry.ts` 已有第一版 canonical metric registry。
+- `src/lib/import-parser.ts` 已支持真实 CSV/XLSX 解析，并能解析 registry metric id。
+- `src/components/data-entry/ValidationStagingArea.tsx` 已能做运动员、指标、重复次数、异常值的 staging validation。
+- `src/components/dashboard/PeriodicTesting.tsx` 已有“数据展示/纵向比较/横向比较”三种模式雏形，但仍使用本地 demo indicators。
+- `src/pages/Comparison.tsx` 仍是独立比较页面，内部有另一套 demo indicators、layers、统计函数和图表配置。
+- `src/pages/Correlation.tsx` 已从 metric registry 派生指标名称/类别，但数据仍来自 correlation demo generator。
+- Data Entry 手动录入、Excel 导入确认、Admin 页、Dashboard 还没有统一到 `Measurement[]` store。
 
-建议的数据结构：
+## 执行路线图
 
-```ts
-interface MetricSurfaceConfig {
-  id: string
-  title: string
-  metricId: string
-  visualization: 'summary-card' | 'line' | 'bar' | 'radar' | 'table'
-  subjectScope: 'athlete' | 'group' | 'team'
-  timeRange: { mode: 'latest' | 'range' | 'session'; value?: string }
-  aggregation: 'latest' | 'mean' | 'best' | 'min' | 'max'
-  layers: ComparisonLayerConfig[]
-}
+| ID | 优先级 | 状态 | 任务 | 完成判据 | 主要文件 |
+| --- | --- | --- | --- | --- | --- |
+| PL-001 | P0 | Todo | 建立 mock measurement store 和 selector | 有统一 `Measurement[]` mock 数据；能按 metric、athlete、team/group、session/time range、aggregation 查询；不改 UI 或只做最小接入 | `src/lib/domain-model.ts`, `src/lib/measurement-store.ts` 或 `src/lib/mock-measurements.ts` |
+| PL-002 | P0 | Todo | 定义指标展示面配置模型 | 有 `MetricSurfaceConfig`、`ComparisonDataGroupConfig`、时间选择、主体选择、聚合方式、统计注释开关；文档和类型能表达“最多 3 组额外对比数据” | `src/lib/domain-model.ts` 或新配置文件 |
+| PL-003 | P0 | Todo | 迁移 Dashboard periodic testing 到 registry + measurement selector | `PeriodicTesting` 不再依赖本地 `DEMO_INDICATORS` 作为指标真相；display/longitudinal/cross-sectional 使用同一指标配置和数据 selector | `src/components/dashboard/PeriodicTesting.tsx`, `src/components/dashboard/data.ts` |
+| PL-004 | P1 | Todo | 收敛 `/comparison` 页面 | 不再维护第二套指标/统计/图表真相；复用展示面组件或明确降级为 legacy/experimental | `src/pages/Comparison.tsx`, `src/App.tsx`, `src/components/Navbar.tsx` |
+| PL-005 | P1 | Todo | 统一 Data Entry 指标来源 | `IndicatorSelector` 从 registry/test battery config 派生；手动录入和 Excel 确认输出 `Measurement[]` | `src/components/data-entry/*`, `src/data/mockData.ts` |
+| PL-006 | P1 | Todo | 统计模块专业化 | TE/MDC/SWC/effect size/correlation 等集中在一个模块；输出包含 method、assumptions、sampleSize、missingDataPolicy、dataQuality | `src/lib/statistics.ts`, `src/lib/performance-statistics.ts` |
+| PL-007 | P2 | Todo | 稳定 mock 数据 | Dashboard 和比较模式不再使用未 seeded 的 `Math.random()`，刷新后数据稳定 | `src/components/dashboard/data.ts`, `src/components/dashboard/PeriodicTesting.tsx` |
+| PL-008 | P2 | Todo | 移动端比较视图 QA | 390px、768px、1440px 下 Dashboard 比较视图和 Comparison 页面无页面级横向溢出，关键文本不重叠 | Dashboard, Comparison, Playwright smoke |
+| PL-009 | P2 | Todo | 路由级性能优化 | ECharts-heavy 页面按路由 lazy load；build 仍可通过；bundle 警告有明确处理或记录 | `src/App.tsx`, Vite build output |
 
-interface ComparisonLayerConfig {
-  id: string
-  type: 'longitudinal' | 'cross-sectional' | 'benchmark'
-  enabled: boolean
-  label: string
-  subjectSelector?: unknown
-  timeRange?: unknown
-  benchmarkId?: string
-}
-```
+如果用户没有指定任务，下一轮建议从 `PL-001` 开始。原因：没有统一 measurement store，后续比较、展示、导入、相关性都会继续分裂。
 
-### 5. 路由和导航需要跟产品方向对齐
+## 已完成修复记录
 
-`src/App.tsx` 仍有 `/comparison` 独立路由，`Navbar.tsx` 仍把 Comparison 作为一等导航项。短期可保留，但长期不应和 Dashboard 内的比较层并行扩展。
+| 日期 | 状态 | 内容 | 验证 |
+| --- | --- | --- | --- |
+| 2026-05-24 | Done | 上传第二个文件时，`ValidationStagingArea` 通过 parse-specific `key` 重新挂载，避免沿用旧校验状态 | `npm run lint`, `npm run build` |
+| 2026-05-24 | Done | CSV 模板示例运动员从不存在的 `李明` 改为 `李娜 / ATH-2024-002` | `npm run lint`, `npm run build` |
+| 2026-05-24 | Done | 删除重复 `body_fat` metric definition，保留其作为 `body_fat_pct` alias | `npm run lint`, `npm run build` |
 
-建议：
+## 高优先级问题详情
 
-- 第一阶段：保留 Comparison，但在文档中标记为 legacy/experimental。
-- 第二阶段：导航主入口聚焦 Dashboard、Correlation、Data Entry、Admin、Settings。
-- 第三阶段：Comparison 页面改用同一套 metric surface 组件，只预置“比较视图”。
+### 比较分析仍有两套实现
+
+问题：
+
+- `src/pages/Comparison.tsx` 和 `src/components/dashboard/PeriodicTesting.tsx` 都有自己的 demo indicators、layers、统计函数和图表配置。
+- 这会造成同一指标在不同页面的名称、单位、方向、目标值和统计解释不一致。
+
+处理原则：
+
+- 不继续在 `Comparison.tsx` 上扩展新能力。
+- 新能力优先落在 Dashboard 的指标展示面。
+- 当展示面成熟后，Comparison 页面复用同一套组件。
+
+### 指标定义仍分散
+
+问题：
+
+- `metric-registry.ts` 是 canonical registry。
+- `dashboard/data.ts` 仍有独立 periodic/comparison 指标。
+- `mockData.ts` 的 Data Entry 指标使用 `m-1` 这类局部 id。
+
+处理原则：
+
+- 所有进入系统的数据都应能映射到 `MetricDefinition.id`。
+- test action/test battery 可以有自己的结构，但其 metrics 必须引用 registry id。
+
+### 统计输出需要更严谨
+
+问题：
+
+- 当前部分统计是 demo 近似，却在 UI 中展示为专业统计结果。
+- TE、MDC、SWC、Cohen's d、t-test、VIF、TreeSHAP 等不应分散实现。
+
+处理原则：
+
+- 先统一函数，再提高严谨性。
+- 每个统计输出必须能解释“用的什么方法、适用条件是什么、样本量是多少、是否可靠”。
 
 ## 中优先级问题
 
-- `src/components/dashboard/data.ts` 使用 `Math.random()` 生成 daily data，页面刷新会改变 mock 数据，不利于回归测试和截图对比。建议改成 seeded random。
-- `src/components/dashboard/PeriodicTesting.tsx` 添加横向比较运动员层时也使用 `Math.random()`，同一操作不可复现。建议用 athlete id + metric id 派生固定 mock 值。
-- `src/pages/Comparison.tsx` 是超大单文件，混合数据、统计、图表和 UI，后续维护成本高。建议不在该文件继续堆功能。
-- `src/pages/Correlation.tsx` 也是超大单文件。相关性探索本身可保留独立，但变量选择、模型摘要、图表、诊断面板应该拆分。
-- Vite build 仍有 >500 kB bundle 警告。ECharts、xlsx、页面级大组件都应继续动态加载；下一步可 route-level lazy import。
-- Data Entry 的手动保存目前只是 toast 和本地 state reset，没有进入统一 store，也没有保存草稿实体。
-- Import History 是前端临时 state + mock history，不反映真实 staged/committed measurements。
-- `Measurement` 类型缺少一些未来会需要的字段：test action/battery id、raw import batch id、operator、notes、quality flags、side/limb、device/equipment。
-- `DisplayPreset` 目前只有 `metricIds` 和 `comparisonMode`，不足以表达卡片配置和多层比较。
-- 导入模板包含 `测试批次`、`动作分类`，但 parser 当前只使用姓名、日期、测试动作、测试指标、单位、重复值。后续需要把测试批次映射到 `TestSession`。
-- Admin 页维护的运动员/测试批次数据与 `mockData.ts`、domain model 未统一。
-- 部分移动端布局仍需复查：Comparison 页面存在固定 `grid-cols-2`、宽表格和高密度控件；Dashboard 比较模式的控制栏也需要移动端 wrap/scroll 策略。
+- `src/components/dashboard/data.ts` 使用未 seeded 的 `Math.random()`，刷新会改变 daily data。
+- `src/components/dashboard/PeriodicTesting.tsx` 添加横向运动员对比时使用 `Math.random()`，同一操作不可复现。
+- `src/pages/Comparison.tsx` 和 `src/pages/Correlation.tsx` 都是超大单文件，后续需要拆分，但拆分前先统一数据模型。
+- Vite build 仍有 >500 kB chunk 警告，ECharts-heavy 页面后续应 route-level lazy import。
+- Import History 仍是临时前端 state + mock history，不反映真实 `ImportBatch` 和 committed measurements。
+- `Measurement` 类型后续可能需要补充 test action/battery id、raw import batch id、operator、notes、quality flags、side/limb、device/equipment。
+- Admin 页维护的运动员/测试批次数据与 `mockData.ts`、domain model 尚未统一。
 
-## 建议实施顺序
+## 新增发现与决策记录
 
-1. 新增 mock measurement store
-   - 从现有 dashboard periodic demo 和 import parsed rows 生成统一 `Measurement[]`。
-   - 提供 selector：按 metric、athlete、session、time range 聚合。
+新对话如果发现新的问题，请按这个格式追加：
 
-2. 新增 metric surface config
-   - 先做一个 periodic metric card/table/chart 的配置对象。
-   - 让同一张图支持 `layers: []`、纵向 layer、横向 layer。
+```md
+### YYYY-MM-DD - 简短标题
 
-3. 迁移 Dashboard periodic testing
-   - 保留现有视觉外观。
-   - 数据来源改成 registry + measurement selectors。
-   - 让 `display/longitudinal/cross-sectional` 只是同一 surface 的 layer preset。
+- 类型：Bug / Product Decision / Architecture / Statistics / UX / Data Model
+- 发现：
+- 影响：
+- 决策：
+- 后续任务：
+- 同步到：task_plan.md / findings.md / progress.md / docs/ROADMAP.md
+```
 
-4. 收敛 Comparison 页面
-   - 删除页面内 demo data 和重复统计函数。
-   - 复用 Dashboard 的 surface 或成为预设视图。
+### 2026-05-24 - 目标/阈值不应算作对比数据组
 
-5. 迁移 Data Entry
-   - `IndicatorSelector` 从 registry/test battery config 派生。
-   - 手动录入和 Excel 导入都输出 `Measurement[]`。
-   - Import History 关联 `ImportBatch`。
+- 类型：Product Decision
+- 发现：上一版把 benchmark、SWC、MDC、目标区间写成“目标/阈值层”，容易让人误解它会占用用户最多 3 个对比数据组的名额。
+- 影响：会混淆对比数据组和统计参考线，影响配置模型设计。
+- 决策：目标、阈值、benchmark、SWC、MDC、置信区间、正常范围属于统计注释或参考线，不算对比数据组。
+- 后续任务：PL-002 中用配置字段明确区分 `comparisonDataGroups` 和 `statisticalAnnotations`。
+- 同步到：本文档。
 
-6. 统计专业化
-   - 把 TE/MDC/SWC/effect size/correlation 统一到一个统计模块。
-   - 给每个输出补充假设、样本量、缺失值策略和解释文案。
+### 2026-05-24 - 文档需要驱动下一步执行
 
-7. 性能与 QA
-   - route-level lazy imports。
-   - seeded mock data。
-   - 添加核心 smoke：dashboard periodic display + longitudinal + cross-sectional，data-entry upload，correlation render。
+- 类型：Architecture
+- 发现：上一版 deep review 描述了问题，但缺少状态、完成判据和默认下一步，新对话仍需要用户指定任务。
+- 影响：无法保证连续多轮对话形成闭环。
+- 决策：本文档改为 execution brief，加入状态表、完成判据、默认任务选择规则和新增发现记录格式。
+- 后续任务：每次完成 PL 编号任务都必须更新本文档状态。
+- 同步到：本文档、`progress.md`。
 
-## 下一轮推荐任务
+## 下一次默认任务
 
-如果下一轮继续编码，建议选择以下之一：
+若用户没有指定其他任务，下一次应执行：
 
-- 任务 A：建立 `mock-measurement-store` 和 selector，不改 UI，只把 canonical 数据源铺好。
-- 任务 B：把 `PeriodicTesting` 的 comparison indicators 从 `DEMO_INDICATORS` 迁移到 registry-derived config。
-- 任务 C：修移动端比较视图布局，并用 Playwright 做 390px/768px/1440px 截图检查。
-- 任务 D：拆出 `performance-statistics.ts`，先消除 dashboard 与 Comparison 的统计重复。
+`PL-001`: 建立 mock measurement store 和 selector。
 
-本轮已选择低风险 bug 修复，没有开始大规模架构迁移。
+开始前应先确认：
+
+- 是否已有未提交改动。
+- 是否存在近期文档更新改变了优先级。
+- `Measurement` 当前字段是否足够表达 dashboard periodic demo、manual entry、Excel import 和 correlation demo 的最低数据需求。
+
+完成后必须：
+
+- 更新本文档中 `PL-001` 状态。
+- 更新 `progress.md` 记录具体改动和验证。
+- 如果发现数据模型不足，追加到“新增发现与决策记录”，并同步 `findings.md`。
+- 如果改动代码，运行 `npm run build`。

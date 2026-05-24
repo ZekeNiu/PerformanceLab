@@ -108,3 +108,17 @@ Use this file as the session-by-session project journal.
 - Verification:
   - `npm run lint` passes.
   - `npm run build` passes. Vite still warns that the main JS chunk is larger than 500 kB.
+
+## 2026-05-24 Deep Review Restructure
+
+- Re-read `docs/DEEP_REVIEW_2026-05-24.md` and evaluated it as a future-session execution document.
+- Conclusion: the previous version was directionally useful but not sufficient for high-efficiency continuation because it mixed product direction, issue list, completed fixes, and next-step suggestions without status, completion criteria, or a new-problem recording loop.
+- Rewrote `docs/DEEP_REVIEW_2026-05-24.md` as an execution brief:
+  - Reframed the product direction as “指标展示和统计学深度 + 高度自由配置”.
+  - Replaced unclear “比较作为图表层” wording with “主数据 + 最多 3 组额外对比数据”.
+  - Clarified that benchmark, thresholds, SWC, MDC, confidence intervals, and normal ranges are statistical annotations/reference lines, not comparison data groups.
+  - Added detailed longitudinal and cross-sectional comparison boundaries.
+  - Added status definitions, a PL-numbered execution roadmap, completion criteria, and a default next task.
+  - Added a required “新增发现与决策记录” format so future sessions can preserve new problems and decisions.
+- Updated `docs/NEXT_CHAT_PROMPT.md` to match the new wording and default-task workflow.
+- Verification: docs-only change; no build run because no code changed.

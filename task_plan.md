@@ -68,6 +68,17 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
 - Next recommended architecture work: create a mock `Measurement[]` store and selector layer, then migrate `PeriodicTesting` comparison modes to registry-derived metric surfaces.
 
+## 2026-05-24 Deep Review Restructure Task
+
+- Completed: Reworked `docs/DEEP_REVIEW_2026-05-24.md` from a narrative review into an execution brief.
+- Completed: Clarified product direction as metric display, statistical depth, and highly configurable display surfaces.
+- Completed: Replaced ambiguous comparison-layer wording with explicit comparison data group constraints: one primary data group plus up to three additional comparison data groups.
+- Completed: Moved benchmark/threshold/SWC/MDC/CI into statistical annotations/reference lines rather than comparison data groups.
+- Completed: Added PL-numbered roadmap items with priority, status, completion criteria, and main files.
+- Completed: Added future-session update rules and a “new findings and decisions” recording template.
+- Completed: Updated `docs/NEXT_CHAT_PROMPT.md`, `progress.md`, and `findings.md` to match the new document structure.
+- Verification: docs-only change; no build required.
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.

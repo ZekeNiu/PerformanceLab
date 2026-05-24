@@ -52,3 +52,10 @@ Use this file for durable discoveries that should survive across conversations.
 - Import staging can parse real files and validate registry metrics, but confirmed rows still do not become `Measurement[]` records or persist beyond frontend state.
 - Statistical calculations are split across dashboard data, Comparison, and correlation modules. Some are demo approximations and need clearer assumptions before they are treated as report-grade sports science outputs.
 - Initial attempt to reset validation staging with `useEffect` failed lint under `react-hooks/set-state-in-effect`; final implementation remounts the staging component from `ExcelImportTab` using a parse-specific key.
+
+## 2026-05-24 Deep Review Restructure Findings
+
+- The phrase “比较作为图表层” is too engineering-oriented and not clear enough for continuation. The better product wording is “主数据 + 最多 3 组额外对比数据，同屏最多 4 组”.
+- Benchmark, target ranges, SWC, MDC, confidence intervals, and threshold lines should be modeled as statistical annotations/reference lines, not as comparison data groups.
+- A continuation document must include status, completion criteria, and update rules. Otherwise a future Codex session still needs the user to decide what to do next.
+- The default next architecture task should be a unified mock `Measurement[]` store and selector layer, because every other migration depends on a shared measurement source.
