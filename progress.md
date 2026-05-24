@@ -289,3 +289,6 @@ Use this file as the session-by-session project journal.
 - Commit plan: create a local commit with message `Update Pages workflow actions`.
 - Push plan: push to `main` to trigger `Deploy to GitHub Pages`, then inspect the resulting Actions run for Node 20 deprecation annotations.
 - Commit: created and amended one local commit with message `Update Pages workflow actions` before push so the progress log stays in the same change.
+- Push: pushed commit `a9f4311` to `origin/main`.
+- GitHub Actions verification: `Deploy to GitHub Pages #23` for commit `a9f4311` completed successfully in 35 seconds; `build-and-deploy` completed successfully in 32 seconds.
+- Warning verification: the run summary and job page no longer show the previous Node.js 20 actions deprecation annotation after upgrading the workflow actions to Node 24-compatible versions.
