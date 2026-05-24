@@ -274,3 +274,18 @@ Use this file as the session-by-session project journal.
 - Commit plan: create a local commit for PL-004 with message `Consolidate comparison page`.
 - Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
 - Commit: created and amended one local commit with message `Consolidate comparison page` before push so the progress log stays in the same change.
+
+## 2026-05-24 GitHub Actions Node 20 Warning Maintenance
+
+- Started maintenance task requested by the user: update `.github/workflows/deploy-pages.yml` and run GitHub Actions once to confirm the Node.js 20 actions deprecation warning is gone.
+- Confirmed initial git status: `main...origin/main` with no local changes.
+- Inspected `.github/workflows/deploy-pages.yml`; the workflow still used `actions/checkout@v4`, `actions/setup-node@v4`, and `peaceiris/actions-gh-pages@v4`.
+- Working decision: update those actions to versions that declare Node 24 action runtime while keeping the workflow behavior unchanged.
+- Updated `.github/workflows/deploy-pages.yml`:
+  - `actions/checkout@v4` -> `actions/checkout@v6`
+  - `actions/setup-node@v4` -> `actions/setup-node@v6`
+  - `peaceiris/actions-gh-pages@v4` -> `peaceiris/actions-gh-pages@v4.1.0`
+- Verification before commit: `npm run build` passes. Existing Vite >500 kB chunk warning remains and is unrelated to the Actions runtime warning.
+- Commit plan: create a local commit with message `Update Pages workflow actions`.
+- Push plan: push to `main` to trigger `Deploy to GitHub Pages`, then inspect the resulting Actions run for Node 20 deprecation annotations.
+- Commit: created and amended one local commit with message `Update Pages workflow actions` before push so the progress log stays in the same change.
