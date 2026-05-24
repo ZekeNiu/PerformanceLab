@@ -215,16 +215,6 @@ export const METRIC_DEFINITIONS: MetricDefinition[] = [
     supportedContexts: ['periodic', 'comparison', 'correlation', 'import'],
   },
   {
-    id: 'body_fat',
-    name: '体脂率',
-    categoryId: 'body-composition',
-    categoryName: '身体成分',
-    unit: '%',
-    direction: 'lower',
-    aliases: ['body_fat'],
-    supportedContexts: ['comparison'],
-  },
-  {
     id: 'muscle_mass',
     name: '肌肉量',
     categoryId: 'body-composition',

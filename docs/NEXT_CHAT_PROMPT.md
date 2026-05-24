@@ -13,6 +13,7 @@ D:\AI\PerformanceLab_1\app
 4. docs/AI_CONTEXT.md
 5. docs/ROADMAP.md
 6. README.md
+7. docs/DEEP_REVIEW_2026-05-24.md
 
 然后运行：
 git status --short --branch
@@ -33,6 +34,7 @@ git status --short --branch
 - 已新增统一领域模型和指标 registry 的第一阶段文件：src/lib/domain-model.ts、src/lib/metric-registry.ts。
 - Excel/CSV 导入已从纯 mock 改为真实解析，入口在 src/lib/import-parser.ts 和 src/components/data-entry/UploadZone.tsx。
 - npm run lint 已修到通过；如果再次失败，请优先确认是否是新增改动造成。
+- docs/DEEP_REVIEW_2026-05-24.md 记录了系统性代码/产品/专业性审查结论、比较层架构方向、已修 bug 和推荐实施顺序；继续架构工作前请先阅读。
 
 本次我想做的任务是：
 【在这里写具体任务。】

@@ -73,88 +73,74 @@ function StatusBadge({ status, text }: { status: ValidationStatus; text: string 
   )
 }
 
+function validateParsedRows(parsedRows: ParsedRow[]): ValidationItem[] {
+  return parsedRows.map((row) => {
+    let status: ValidationStatus = 'ok'
+    let statusType = '正常'
+    let errorMessage = ''
+    let isResolved = true
+    const metric = row.metricId ? getMetricDefinition(row.metricId) : resolveMetricDefinition(row.indicator)
+
+    const knownAthlete = mockAthletes.find(
+      (a) => a.name === row.athleteName || a.uuid === row.athleteUUID
+    )
+    if (!knownAthlete) {
+      status = 'error'
+      statusType = '未知姓名'
+      errorMessage = `运动员 "${row.athleteName}" 不在数据库中`
+      isResolved = false
+    }
+
+    if (!metric) {
+      status = 'error'
+      statusType = '未知指标'
+      errorMessage = `指标 "${row.indicator}" 不在统一指标 registry 中`
+      isResolved = false
+    }
+
+    const filledRepeats = row.repeats.filter((r) => r != null && !isNaN(r))
+    if (filledRepeats.length < 3) {
+      status = filledRepeats.length === 0 ? 'error' : 'warning'
+      statusType = filledRepeats.length === 0 ? '格式错误' : '数据不足'
+      errorMessage = `仅 ${filledRepeats.length} 次有效数据，至少需要3次`
+      if (filledRepeats.length === 0) isResolved = false
+    }
+
+    if (metric?.id === 'cmj_height' && filledRepeats.some((r) => r != null && r > 100)) {
+      status = 'warning'
+      statusType = '异常值'
+      errorMessage = 'CMJ 跳跃高度超过 100cm，请确认数据是否正确'
+      isResolved = true
+    }
+
+    if (
+      row.indicator === '跳跃高度' &&
+      filledRepeats.some((r) => r != null && r > 100)
+    ) {
+      status = 'warning'
+      statusType = '异常极值'
+      errorMessage = '跳跃高度超过100cm，请确认数据正确'
+      isResolved = true
+    }
+
+    return {
+      ...row,
+      status,
+      statusType,
+      errorMessage,
+      isResolved,
+      isEditing: false,
+    }
+  })
+}
+
 export default function ValidationStagingArea({
   parsedRows,
   onCommit,
   onCancel,
 }: ValidationStagingAreaProps) {
   const [filter, setFilter] = useState<FilterType>('all')
-  const [items, setItems] = useState<ValidationItem[]>(() => {
-    // Initial validation logic
-    return parsedRows.map((row) => {
-      let status: ValidationStatus = 'ok'
-      let statusType = '正常'
-      let errorMessage = ''
-      let isResolved = true
-      const metric = row.metricId ? getMetricDefinition(row.metricId) : resolveMetricDefinition(row.indicator)
-
-      // Check 1: Unknown athlete
-      const knownAthlete = mockAthletes.find(
-        (a) => a.name === row.athleteName || a.uuid === row.athleteUUID
-      )
-      if (!knownAthlete) {
-        status = 'error'
-        statusType = '未知姓名'
-        errorMessage = `运动员 "${row.athleteName}" 不在数据库中`
-        isResolved = false
-      }
-
-      if (!metric) {
-        status = 'error'
-        statusType = '未知指标'
-        errorMessage = `指标 "${row.indicator}" 不在统一指标 registry 中`
-        isResolved = false
-      }
-
-      // Check 2: Too few repeats
-      const filledRepeats = row.repeats.filter((r) => r != null && !isNaN(r))
-      if (filledRepeats.length < 3) {
-        status = filledRepeats.length === 0 ? 'error' : 'warning'
-        statusType = filledRepeats.length === 0 ? '格式错误' : '数据不足'
-        errorMessage = `仅 ${filledRepeats.length} 次有效数据，至少需要3次`
-        if (filledRepeats.length === 0) isResolved = false
-      }
-
-      if (metric?.id === 'cmj_height' && filledRepeats.some((r) => r != null && r > 100)) {
-        status = 'warning'
-        statusType = '异常值'
-        errorMessage = 'CMJ 跳跃高度超过 100cm，请确认数据是否正确'
-        isResolved = true
-      }
-
-      // Check 3: Outlier detection (mock: values > 100 for height in cm)
-      if (
-        row.indicator === '跳跃高度' &&
-        filledRepeats.some((r) => r != null && r > 100)
-      ) {
-        status = 'warning'
-        statusType = '异常极值'
-        errorMessage = '跳跃高度超过100cm，请确认数据正确'
-        isResolved = true // Warnings can be acknowledged
-      }
-
-      // Check 4: Null/invalid values
-      if (filledRepeats.some((r) => r == null || isNaN(r))) {
-        const validCount = filledRepeats.length
-        if (validCount >= 3) {
-          // Just nulls in extra columns, ok
-        } else {
-          status = validCount < 2 ? 'error' : 'warning'
-          statusType = validCount < 2 ? '格式错误' : '数据不足'
-          isResolved = validCount >= 2
-        }
-      }
-
-      return {
-        ...row,
-        status,
-        statusType,
-        errorMessage,
-        isResolved,
-        isEditing: false,
-      }
-    })
-  })
+  const [items, setItems] = useState<ValidationItem[]>(() => validateParsedRows(parsedRows))
 
   const [confirmOpen, setConfirmOpen] = useState(false)
 

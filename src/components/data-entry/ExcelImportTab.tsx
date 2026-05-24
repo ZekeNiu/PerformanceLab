@@ -55,6 +55,7 @@ export default function ExcelImportTab() {
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           >
             <ValidationStagingArea
+              key={`${currentFilename}-${parsedRows[0]?.id ?? 'empty'}-${parsedRows.length}`}
               parsedRows={parsedRows}
               onCommit={handleCommit}
               onCancel={handleCancel}

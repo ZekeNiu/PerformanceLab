@@ -40,3 +40,15 @@ Use this file for durable discoveries that should survive across conversations.
 - `xlsx` should stay dynamically imported from the upload parser. A static import adds roughly a 429 kB generated chunk and would otherwise inflate the initial app route bundle.
 - Real import parsing now expects a tabular first sheet with headers equivalent to: `姓名`, `测试日期`, `测试动作`, `测试指标`, and at least one repeat/value column such as `重复1`.
 - Import validation should remain a staging workflow: parse -> normalize metric -> validate athlete/metric/repeats -> preview -> commit. This is the right place to add rollback/import history persistence later.
+
+## 2026-05-24 Deep Review Findings
+
+- `rg.exe` from the bundled Codex WindowsApps resources returned `Access is denied`; PowerShell `Get-ChildItem` + `Select-String` was used as the search fallback.
+- PowerShell without explicit `-Encoding utf8` displayed Chinese files as mojibake, but the files themselves are valid UTF-8.
+- The deep review is recorded in `docs/DEEP_REVIEW_2026-05-24.md`. It should be read before future architecture work.
+- Longitudinal and cross-sectional comparison should be implemented as optional layers on metric display surfaces, not as permanently separate page-specific data islands.
+- `src/pages/Comparison.tsx` and `src/components/dashboard/PeriodicTesting.tsx` currently duplicate comparison demo data, layer config, chart config, and statistics. Prefer migrating the dashboard surface first, then reuse it from `/comparison` or downgrade `/comparison` to an experimental page.
+- Canonical metrics still coexist with independent dashboard and data-entry mock metric definitions. `mockActionCategories` uses local ids like `m-1`, which do not map directly to `MetricDefinition.id`.
+- Import staging can parse real files and validate registry metrics, but confirmed rows still do not become `Measurement[]` records or persist beyond frontend state.
+- Statistical calculations are split across dashboard data, Comparison, and correlation modules. Some are demo approximations and need clearer assumptions before they are treated as report-grade sports science outputs.
+- Initial attempt to reset validation staging with `useEffect` failed lint under `react-hooks/set-state-in-effect`; final implementation remounts the staging component from `ExcelImportTab` using a parse-specific key.

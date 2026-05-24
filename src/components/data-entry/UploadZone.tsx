@@ -161,7 +161,7 @@ export default function UploadZone({ onFileParsed }: UploadZoneProps) {
               e.stopPropagation()
               const headers = ['UUID', '姓名', '测试批次', '测试日期', '动作分类', '测试动作', '测试指标', '单位', '重复1', '重复2', '重复3', '重复4', '重复5', '重复6']
               const sample1 = ['ATH-2024-001', '张伟', '2024夏训期初测', '2024-06-15', '爆发力', 'CMJ', '跳跃高度', 'cm', '42.3', '43.1', '41.8', '', '', '']
-              const sample2 = ['ATH-2024-002', '李明', '2024夏训期初测', '2024-06-15', '爆发力', 'CMJ', '峰值力', 'N', '2200', '2250', '2180', '', '', '']
+              const sample2 = ['ATH-2024-002', '李娜', '2024夏训期初测', '2024-06-15', '爆发力', 'CMJ', '峰值力', 'N', '2200', '2250', '2180', '', '', '']
               const csv = [headers, sample1, sample2].map((row) => row.join(',')).join('\n')
               const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
               const url = URL.createObjectURL(blob)

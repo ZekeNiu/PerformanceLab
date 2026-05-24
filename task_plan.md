@@ -55,6 +55,19 @@ Build a professional sports performance dashboard for performance analysts and h
 - Add a clean data model for athletes, teams, sessions, tests, metrics, and measurements.
 - Add regression checks for Pages asset paths and core navigation.
 
+## 2026-05-24 Deep Review Task
+
+- Completed: Systematic review of current code, product direction, data model, comparison workflow, statistics, import flow, and UI/UX risks.
+- Completed: Added `docs/DEEP_REVIEW_2026-05-24.md` as the durable continuation document for the next conversation.
+- Completed: Updated `docs/NEXT_CHAT_PROMPT.md` to include the deep review document in the required reading list.
+- Completed: Fixed low-risk import/registry bugs found during the review:
+  - Validation staging remounts for a newly parsed file.
+  - Downloaded CSV template uses an athlete that exists in `mockAthletes`.
+  - `body_fat` now resolves as an alias of canonical `body_fat_pct` instead of a duplicate metric definition.
+- Verification: `npm run lint` passes.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
+- Next recommended architecture work: create a mock `Measurement[]` store and selector layer, then migrate `PeriodicTesting` comparison modes to registry-derived metric surfaces.
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.

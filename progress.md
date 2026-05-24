@@ -91,3 +91,20 @@ Use this file as the session-by-session project journal.
   - `npm run lint` passes with 0 warnings.
   - `npm run build` passes. Vite still warns about the main JS bundle being larger than 500 kB.
   - Playwright smoke on local preview: uploaded a real CSV file through `#/data-entry`; the app showed parsed filename, rendered the staging validation table, accepted 2 preview rows, kept mobile page width at 390px, and logged no console errors. `#/correlation` also rendered with no console errors.
+
+## 2026-05-24 Deep Review And Low-Risk Fixes
+
+- Read project memory files, roadmap, README, and current next-chat prompt.
+- Confirmed git status started clean on `main...origin/main`.
+- `rg --files` failed with `Access is denied` from the bundled WindowsApps `rg.exe`; used PowerShell file traversal and `Select-String` instead.
+- Confirmed Chinese source/docs are valid UTF-8 when read with `Get-Content -Encoding utf8`.
+- Completed a systematic review across routing, dashboard, comparison, correlation, data-entry, metric registry, domain model, statistics, and mock data.
+- Added `docs/DEEP_REVIEW_2026-05-24.md` with architecture direction, prioritized issues, professional/statistical concerns, and recommended implementation sequence.
+- Updated `docs/NEXT_CHAT_PROMPT.md` so future sessions read the deep review document.
+- Fixed import validation staging so a newly parsed file remounts `ValidationStagingArea` with fresh validation state.
+- Fixed the downloaded CSV template to use `李娜 / ATH-2024-002`, which exists in `mockAthletes`.
+- Removed duplicate `body_fat` metric definition and kept `body_fat` as an alias of canonical `body_fat_pct`; removed unregistered `body_fat` from correlation demo values.
+- Lint note: an initial `useEffect` reset implementation failed `react-hooks/set-state-in-effect`; replaced it with a parse-specific component `key`.
+- Verification:
+  - `npm run lint` passes.
+  - `npm run build` passes. Vite still warns that the main JS chunk is larger than 500 kB.

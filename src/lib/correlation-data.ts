@@ -76,7 +76,6 @@ export function generateDemoData(n: number): DataPoint[] {
       sleep_score: Math.round((85 - fatigue * 0.5 + rng() * 15) * 10) / 10,
       rpe: Math.round((fatigue * 0.6 + rng() * 2) * 10) / 10,
       body_fat_pct: Math.round((8 + rng() * 12) * 10) / 10,
-      body_fat: Math.round((8 + rng() * 12) * 10) / 10,
       muscle_mass: Math.round((65 + baseFitness * 0.3 + rng() * 5) * 10) / 10,
       weight: Math.round((75 + rng() * 20) * 10) / 10,
       height: Math.round((175 + rng() * 15) * 10) / 10,
