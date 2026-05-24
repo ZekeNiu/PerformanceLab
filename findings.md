@@ -73,3 +73,4 @@ Use this file for durable discoveries that should survive across conversations.
 - The store intentionally maps existing `mockAthletes` and `mockTestSessions` into the domain-model `Athlete`, `Team`, and `TestSession` shapes instead of replacing the current UI mock data in one step.
 - Selector coverage now exists for metric, athlete, team, position, session, time range, source, and aggregation. UI pages still need to be migrated onto these selectors in later PL tasks.
 - Mock measurement generation is deterministic and should not add new refresh-to-refresh value drift.
+- PL-001 should not be interpreted as the complete horizontal reference-group system. Gender, age band, specialty, custom groups, percentiles, and other advanced reference selectors still need to be modeled in PL-002 and implemented in a later migration.

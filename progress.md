@@ -145,3 +145,13 @@ Use this file as the session-by-session project journal.
 - Verification:
   - `npm run build` passes. Existing Vite >500 kB chunk warning remains.
   - `npm run lint` passes.
+
+## 2026-05-24 New-Conversation Test Review
+
+- Reviewed the new-conversation test result after commit `4b24caf Add shared measurement store`.
+- Confirmed the workflow met the main expectation: the new conversation followed the default task path, completed PL-001, updated the execution brief, updated logs, ran build/lint, committed, and pushed.
+- Found one documentation boundary issue: PL-001 was marked Done correctly, but its completion wording could be read as if the full horizontal reference-group system already exists.
+- Updated `docs/DEEP_REVIEW_2026-05-24.md` and `findings.md` to clarify that PL-001 covers the shared measurement store and basic selectors only; gender, age band, specialty, custom reference groups, and percentiles must be modeled in PL-002 and implemented later.
+- Verification:
+  - `npm run lint` passes.
+  - `npm run build` passes. Existing Vite >500 kB chunk warning remains.

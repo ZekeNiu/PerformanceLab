@@ -88,6 +88,13 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed: Updated `AI_CONTEXT.md` and `ROADMAP.md` to align with the newer “comparison data group” wording and default execution-brief workflow.
 - Verification: docs-only change; no build required.
 
+## 2026-05-24 New-Conversation Test Review Task
+
+- Completed: Reviewed the result of a new-conversation test that produced commit `4b24caf Add shared measurement store`.
+- Completed: Confirmed the continuation workflow achieved its main goal: the new conversation selected the default task, implemented PL-001, updated `docs/DEEP_REVIEW_2026-05-24.md`, wrote logs, verified build/lint, committed, and pushed.
+- Completed: Clarified PL-001 wording so it does not overclaim full reference-group support. Current selector coverage is metric, athlete, team, position, session, time range, source, and aggregation; gender/age/specialty/custom group/percentile selectors remain future work.
+- Verification: `npm run lint` and `npm run build` pass after review. Existing Vite chunk-size warning remains.
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.

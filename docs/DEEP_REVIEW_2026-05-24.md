@@ -108,13 +108,13 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 - `src/components/dashboard/PeriodicTesting.tsx` 已有“数据展示/纵向比较/横向比较”三种模式雏形，但仍使用本地 demo indicators。
 - `src/pages/Comparison.tsx` 仍是独立比较页面，内部有另一套 demo indicators、layers、统计函数和图表配置。
 - `src/pages/Correlation.tsx` 已从 metric registry 派生指标名称/类别，但数据仍来自 correlation demo generator。
-- Data Entry 手动录入、Excel 导入确认、Admin 页、Dashboard 还没有统一到 `Measurement[]` store。
+- `src/lib/measurement-store.ts` 已建立第一版共享 mock `Measurement[]` store 和 selector。Data Entry 手动录入、Excel 导入确认、Admin 页、Dashboard 还没有迁移为它的消费者。
 
 ## 执行路线图
 
 | ID | 优先级 | 状态 | 任务 | 完成判据 | 主要文件 |
 | --- | --- | --- | --- | --- | --- |
-| PL-001 | P0 | Done | 建立 mock measurement store 和 selector | 已新增统一 `Measurement[]` mock 数据；能按 metric、athlete、team/group、session/time range、aggregation 查询；本轮未改 UI | `src/lib/measurement-store.ts` |
+| PL-001 | P0 | Done | 建立 mock measurement store 和 selector | 已新增统一 `Measurement[]` mock 数据；能按 metric、athlete、team、position、session/time range、source、aggregation 查询；本轮未改 UI。性别、年龄段、专项和复杂参照群组筛选尚未实现，应在 PL-002/PL-003 设计中处理 | `src/lib/measurement-store.ts` |
 | PL-002 | P0 | Todo | 定义指标展示面配置模型 | 有 `MetricSurfaceConfig`、`ComparisonDataGroupConfig`、时间选择、主体选择、聚合方式、统计注释开关；文档和类型能表达“最多 3 组额外对比数据” | `src/lib/domain-model.ts` 或新配置文件 |
 | PL-003 | P0 | Todo | 迁移 Dashboard periodic testing 到 registry + measurement selector | `PeriodicTesting` 不再依赖本地 `DEMO_INDICATORS` 作为指标真相；display/longitudinal/cross-sectional 使用同一指标配置和数据 selector | `src/components/dashboard/PeriodicTesting.tsx`, `src/components/dashboard/data.ts` |
 | PL-004 | P1 | Todo | 收敛 `/comparison` 页面 | 不再维护第二套指标/统计/图表真相；复用展示面组件或明确降级为 legacy/experimental | `src/pages/Comparison.tsx`, `src/App.tsx`, `src/components/Navbar.tsx` |
@@ -133,7 +133,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 | 2026-05-24 | Done | 上传第二个文件时，`ValidationStagingArea` 通过 parse-specific `key` 重新挂载，避免沿用旧校验状态 | `npm run lint`, `npm run build` |
 | 2026-05-24 | Done | CSV 模板示例运动员从不存在的 `李明` 改为 `李娜 / ATH-2024-002` | `npm run lint`, `npm run build` |
 | 2026-05-24 | Done | 删除重复 `body_fat` metric definition，保留其作为 `body_fat_pct` alias | `npm run lint`, `npm run build` |
-| 2026-05-24 | Done | 完成 `PL-001`：新增 mock measurement store、领域 athlete/session/team 映射、稳定 mock `Measurement[]` 和 selector/summary/series 查询 API | `npm run build`, `npm run lint` |
+| 2026-05-24 | Done | 完成 `PL-001`：新增 mock measurement store、领域 athlete/session/team 映射、稳定 mock `Measurement[]` 和 selector/summary/series 查询 API；复杂参照群组筛选留给 PL-002/PL-003 | `npm run build`, `npm run lint` |
 
 ## 高优先级问题详情
 
@@ -218,6 +218,15 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 - 后续任务：每次完成 PL 编号任务都必须更新本文档状态。
 - 同步到：本文档、`progress.md`。
 
+### 2026-05-24 - PL-001 完成但参照群组能力尚未完整
+
+- 类型：Data Model
+- 发现：`src/lib/measurement-store.ts` 已支持 metric、athlete、team、position、session、time range、source 和 aggregation 查询，但还没有性别、年龄段、专项、自定义群组、百分位等横向参照群组选择能力。
+- 影响：PL-001 可以视为共享测量数据底座完成，但不能被误解为横向比较参照群组系统已经完成。
+- 决策：PL-001 保持 Done；PL-002 需要在配置模型中表达参照群组 selector，PL-003 或后续任务再实现这些 selector 的数据计算。
+- 后续任务：PL-002 明确 `ComparisonDataGroupConfig` 与 `ReferenceGroupSelector` 的字段边界。
+- 同步到：本文档、`findings.md`。
+
 ## 下一次默认任务
 
 若用户没有指定其他任务，下一次应执行：
@@ -229,6 +238,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 - 是否已有未提交改动。
 - 是否存在近期文档更新改变了优先级。
 - `PL-001` 的 selector API 是否足够支撑 `MetricSurfaceConfig`、`ComparisonDataGroupConfig` 和统计注释配置。
+- `ComparisonDataGroupConfig` 是否需要单独定义 `ReferenceGroupSelector`，用于表达性别、年龄段、专项、位置、队伍、百分位等横向参照群组条件。
 
 完成后必须：
 
