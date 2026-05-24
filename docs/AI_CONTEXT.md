@@ -52,7 +52,7 @@ The dashboard should be highly configurable. Analysts may work with different te
 - Card configurability is not yet modeled as reusable config.
 - First-stage domain model, metric registry, and mock measurement selector layer now exist in `src/lib/domain-model.ts`, `src/lib/metric-registry.ts`, and `src/lib/measurement-store.ts`, but `Comparison.tsx`, dashboard periodic testing, and `mockData.ts` still need migration onto that source.
 - Excel/CSV import now performs real parsing through `src/lib/import-parser.ts`, but committed rows are still frontend-only and not persisted to a backend or durable local store.
-- `docs/DEEP_REVIEW_2026-05-24.md` is the current execution brief for architecture work. It defines the comparison data group model, roadmap status, completion criteria, and default next task.
+- `docs/DEEP_REVIEW_2026-05-24.md` is the current execution brief for architecture work. It defines the comparison data group model, roadmap status, completion criteria, default next task, and when the brief itself should be updated.
 - Build succeeds, but bundle size is large.
 - Dependency audit warnings exist and should be reviewed later.
 
@@ -73,7 +73,7 @@ At the start of a new AI session:
 When work is completed:
 
 1. Run `npm run build`.
-2. Update `progress.md` and any relevant docs, including `docs/DEEP_REVIEW_2026-05-24.md` when a PL-numbered roadmap item changes status or a new decision is made.
+2. Update `progress.md` and any relevant docs. Update `docs/DEEP_REVIEW_2026-05-24.md` only when a PL-numbered roadmap item changes status, the default next task changes, completion criteria change, or a decision changes future execution.
 3. Commit with a concise message.
 4. Push to `main`.
 5. Check GitHub Actions if deployment behavior changed.

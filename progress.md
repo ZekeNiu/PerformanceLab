@@ -155,3 +155,16 @@ Use this file as the session-by-session project journal.
 - Verification:
   - `npm run lint` passes.
   - `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+
+## 2026-05-24 Execution Brief Boundary Review
+
+- Reviewed whether `docs/DEEP_REVIEW_2026-05-24.md` should keep accumulating “新增发现与决策记录” and “已完成修复记录”.
+- Decision: the execution brief should not become a second `progress.md` or `findings.md`. It should only hold current product/architecture constraints, the PL roadmap, completion criteria, and default next task.
+- Removed the append-only “新增发现与决策记录” section and the “已完成修复记录” table from `docs/DEEP_REVIEW_2026-05-24.md`.
+- Added explicit update boundaries: update the execution brief only when roadmap status, default next task, completion criteria, priority, or key product/architecture constraints change.
+- Clarified log destinations:
+  - `progress.md`: required session log, verification results, attempted fixes, and errors.
+  - `findings.md`: durable discoveries that should survive across conversations.
+  - `task_plan.md`: high-level task/status summary.
+  - `docs/DEEP_REVIEW_2026-05-24.md`: current execution state and next-action guidance only.
+- Verification: docs-only change; no build run because no code changed.

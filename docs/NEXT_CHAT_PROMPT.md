@@ -43,7 +43,7 @@ git status --short --branch
 - 已新增统一领域模型和指标 registry 的第一阶段文件：src/lib/domain-model.ts、src/lib/metric-registry.ts。
 - Excel/CSV 导入已从纯 mock 改为真实解析，入口在 src/lib/import-parser.ts 和 src/components/data-entry/UploadZone.tsx。
 - npm run lint 已修到通过；如果再次失败，请优先确认是否是新增改动造成。
-- docs/DEEP_REVIEW_2026-05-24.md 是后续架构工作的执行简报，包含当前产品判断、对比数据组边界、待办状态、完成判据和新问题记录规则；如果用户没有指定任务，默认从其中第一个未完成的 P0/P1 任务开始。
+- docs/DEEP_REVIEW_2026-05-24.md 是后续架构工作的执行简报，包含当前产品判断、对比数据组边界、待办状态、完成判据、默认下一步和文档更新边界；如果用户没有指定任务，默认从其中第一个未完成的 P0/P1 任务开始。
 
 本次我想做的任务是：
 【在这里写具体任务。如果没有具体任务，请按 docs/DEEP_REVIEW_2026-05-24.md 的默认下一步继续。】

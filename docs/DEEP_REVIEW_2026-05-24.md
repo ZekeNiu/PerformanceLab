@@ -9,9 +9,10 @@
 1. 读取 `task_plan.md`、`findings.md`、`progress.md`、`docs/AI_CONTEXT.md`、`docs/ROADMAP.md`、`README.md` 和本文件。
 2. 运行 `git status --short --branch`。
 3. 如果用户没有指定更高优先级任务，优先执行本文档“执行路线图”中第一个状态不是 `Done` 的 `P0` 或 `P1` 任务。
-4. 每次完成一个待办，更新本文档中的状态、完成日期、完成判据，并同步更新 `progress.md`。
-5. 每次发现新的架构风险、产品约束、统计假设或 bug，必须写入本文档的“新增发现与决策记录”，并把简短版本写入 `findings.md`。
-6. 如果新问题阻塞当前任务，先记录阻塞原因和可选方案，再决定是否调整优先级；不要只在聊天中说明。
+4. 每次完成一个 PL 编号待办，更新本文档“执行路线图”的状态、完成判据和“下一次默认任务”，并同步更新 `progress.md`。
+5. 只有当新信息会改变下一次对话的执行方向、任务优先级、完成判据、默认下一步或关键产品/架构约束时，才更新本文档。
+6. 普通过程日志、验证结果、错误尝试写入 `progress.md`；长期有效但不直接改变下一步执行的发现写入 `findings.md`。
+7. 如果新问题阻塞当前任务，先在 `progress.md` 记录阻塞原因和可选方案；只有它改变路线图或默认下一步时，才同步更新本文档。
 
 状态定义：
 
@@ -126,15 +127,6 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 
 如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始。当前默认下一步是 `PL-002`，因为 `PL-001` 已建立 measurement store，后续需要先定义可序列化的指标展示面配置模型，再迁移 Dashboard periodic testing。
 
-## 已完成修复记录
-
-| 日期 | 状态 | 内容 | 验证 |
-| --- | --- | --- | --- |
-| 2026-05-24 | Done | 上传第二个文件时，`ValidationStagingArea` 通过 parse-specific `key` 重新挂载，避免沿用旧校验状态 | `npm run lint`, `npm run build` |
-| 2026-05-24 | Done | CSV 模板示例运动员从不存在的 `李明` 改为 `李娜 / ATH-2024-002` | `npm run lint`, `npm run build` |
-| 2026-05-24 | Done | 删除重复 `body_fat` metric definition，保留其作为 `body_fat_pct` alias | `npm run lint`, `npm run build` |
-| 2026-05-24 | Done | 完成 `PL-001`：新增 mock measurement store、领域 athlete/session/team 映射、稳定 mock `Measurement[]` 和 selector/summary/series 查询 API；复杂参照群组筛选留给 PL-002/PL-003 | `npm run build`, `npm run lint` |
-
 ## 高优先级问题详情
 
 ### 比较分析仍有两套实现
@@ -185,48 +177,6 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 - `Measurement` 类型后续可能需要补充 test action/battery id、raw import batch id、operator、notes、quality flags、side/limb、device/equipment。
 - Admin 页维护的运动员/测试批次数据与 `mockData.ts`、domain model 尚未统一。
 
-## 新增发现与决策记录
-
-新对话如果发现新的问题，请按这个格式追加：
-
-```md
-### YYYY-MM-DD - 简短标题
-
-- 类型：Bug / Product Decision / Architecture / Statistics / UX / Data Model
-- 发现：
-- 影响：
-- 决策：
-- 后续任务：
-- 同步到：task_plan.md / findings.md / progress.md / docs/ROADMAP.md
-```
-
-### 2026-05-24 - 目标/阈值不应算作对比数据组
-
-- 类型：Product Decision
-- 发现：上一版把 benchmark、SWC、MDC、目标区间写成“目标/阈值层”，容易让人误解它会占用用户最多 3 个对比数据组的名额。
-- 影响：会混淆对比数据组和统计参考线，影响配置模型设计。
-- 决策：目标、阈值、benchmark、SWC、MDC、置信区间、正常范围属于统计注释或参考线，不算对比数据组。
-- 后续任务：PL-002 中用配置字段明确区分 `comparisonDataGroups` 和 `statisticalAnnotations`。
-- 同步到：本文档。
-
-### 2026-05-24 - 文档需要驱动下一步执行
-
-- 类型：Architecture
-- 发现：上一版 deep review 描述了问题，但缺少状态、完成判据和默认下一步，新对话仍需要用户指定任务。
-- 影响：无法保证连续多轮对话形成闭环。
-- 决策：本文档改为 execution brief，加入状态表、完成判据、默认任务选择规则和新增发现记录格式。
-- 后续任务：每次完成 PL 编号任务都必须更新本文档状态。
-- 同步到：本文档、`progress.md`。
-
-### 2026-05-24 - PL-001 完成但参照群组能力尚未完整
-
-- 类型：Data Model
-- 发现：`src/lib/measurement-store.ts` 已支持 metric、athlete、team、position、session、time range、source 和 aggregation 查询，但还没有性别、年龄段、专项、自定义群组、百分位等横向参照群组选择能力。
-- 影响：PL-001 可以视为共享测量数据底座完成，但不能被误解为横向比较参照群组系统已经完成。
-- 决策：PL-001 保持 Done；PL-002 需要在配置模型中表达参照群组 selector，PL-003 或后续任务再实现这些 selector 的数据计算。
-- 后续任务：PL-002 明确 `ComparisonDataGroupConfig` 与 `ReferenceGroupSelector` 的字段边界。
-- 同步到：本文档、`findings.md`。
-
 ## 下一次默认任务
 
 若用户没有指定其他任务，下一次应执行：
@@ -244,5 +194,5 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 
 - 更新本文档中 `PL-002` 状态。
 - 更新 `progress.md` 记录具体改动和验证。
-- 如果发现数据模型不足，追加到“新增发现与决策记录”，并同步 `findings.md`。
+- 如果发现数据模型不足，先记录到 `progress.md`；若该发现长期有效，补充到 `findings.md`；只有当它改变路线图、完成判据或默认下一步时，才同步更新本文档。
 - 如果改动代码，运行 `npm run build`。

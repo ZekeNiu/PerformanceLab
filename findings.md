@@ -74,3 +74,9 @@ Use this file for durable discoveries that should survive across conversations.
 - Selector coverage now exists for metric, athlete, team, position, session, time range, source, and aggregation. UI pages still need to be migrated onto these selectors in later PL tasks.
 - Mock measurement generation is deterministic and should not add new refresh-to-refresh value drift.
 - PL-001 should not be interpreted as the complete horizontal reference-group system. Gender, age band, specialty, custom groups, percentiles, and other advanced reference selectors still need to be modeled in PL-002 and implemented in a later migration.
+
+## 2026-05-24 Documentation Boundary Findings
+
+- The required “log” mentioned in `docs/NEXT_CHAT_PROMPT.md` is `progress.md`: it records session activity, verification, errors, and completed work.
+- `docs/DEEP_REVIEW_2026-05-24.md` should not accumulate routine discoveries or completed fix history. It should be updated only when future execution would change: roadmap status, default next task, completion criteria, priorities, or key product/architecture constraints.
+- Durable discoveries that matter beyond one session but do not directly change the execution roadmap belong in `findings.md`.

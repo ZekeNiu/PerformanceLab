@@ -95,6 +95,14 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed: Clarified PL-001 wording so it does not overclaim full reference-group support. Current selector coverage is metric, athlete, team, position, session, time range, source, and aggregation; gender/age/specialty/custom group/percentile selectors remain future work.
 - Verification: `npm run lint` and `npm run build` pass after review. Existing Vite chunk-size warning remains.
 
+## 2026-05-24 Execution Brief Boundary Task
+
+- Completed: Reviewed whether `docs/DEEP_REVIEW_2026-05-24.md` should keep detailed “新增发现与决策记录” and “已完成修复记录” sections.
+- Completed: Decided to keep `docs/DEEP_REVIEW_2026-05-24.md` as a lean execution brief rather than an append-only log.
+- Completed: Removed routine decision/fix-history sections from the execution brief and added explicit update boundaries.
+- Completed: Clarified that the required session log is `progress.md`; durable discoveries go to `findings.md`; high-level task status goes to `task_plan.md`.
+- Verification: docs-only change; no build required.
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.
