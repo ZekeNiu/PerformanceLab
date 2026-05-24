@@ -334,3 +334,35 @@ Use this file as the session-by-session project journal.
 - GitHub Actions note: local `gh` CLI is not installed, so deployment status was checked through the GitHub Actions REST API.
 - GitHub Actions verification: `Deploy to GitHub Pages` run `26366340470` for commit `2e86d93` completed successfully. The earlier run for `08dde05` was cancelled because it was superseded by the follow-up log commit.
 - Commit/push plan: record this deployment verification in a docs-only `[skip ci]` commit so it does not start another Pages deployment run.
+
+## 2026-05-25 Navigation Localization And Theme Persistence
+
+- Started user-requested UI maintenance task:
+  - Translate the left navigation labels from English to Chinese.
+  - Fix the theme bug where switching to light mode can revert to dark mode after navigating.
+  - Provide design/product thoughts for improving the current data display, longitudinal analysis, and cross-sectional analysis pages without implementing those larger UI changes yet.
+- Confirmed initial git status: `main...origin/main` with no local changes.
+- Read the React best-practices and frontend-testing-debugging skills because this task changes React navigation/theme behavior and needs rendered verification.
+- Inspected `src/components/Navbar.tsx`, `src/pages/Settings.tsx`, `src/components/Layout.tsx`, `src/App.tsx`, and `src/index.css`.
+- Root-cause finding: `Navbar` toggled the `.light` class in the DOM but did not persist `sportpulse-theme`; `Settings` reads `sportpulse-theme` and defaults to dark when it is missing, so visiting Settings after a Navbar light-mode toggle can remove the `.light` class and revert the app to dark.
+- Added `src/lib/theme.ts` with shared theme helpers and `useAppTheme()` so theme state is read from `sportpulse-theme`, applied to the root `.light` class, persisted, and synchronized through a custom browser event.
+- Updated `src/components/Navbar.tsx`:
+  - Translated left navigation labels to Chinese: 数据看板、比较分析、相关性分析、数据录入、数据管理、系统设置.
+  - Replaced local theme state with `useAppTheme()`.
+  - Translated the theme toggle and user-role labels.
+- Updated `src/pages/Settings.tsx` so the appearance page uses the same shared theme source instead of rewriting theme state independently on mount.
+- Verification: `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+- Verification: `npm run lint` passes.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright script note: the first inline script failed before page interaction because PowerShell pipe encoding corrupted Chinese regex literals; reran with ASCII-only Unicode escapes.
+- Playwright smoke on local `npm run preview` at `http://127.0.0.1:4173/` passed:
+  - Desktop left navigation labels rendered in Chinese: 数据看板、比较分析、相关性分析、数据录入、数据管理、系统设置.
+  - Navbar theme toggle changed to light mode, set `sportpulse-theme=light`, and retained `.light` after navigating to `/comparison` and `/settings`.
+  - Settings page changed back to dark mode, set `sportpulse-theme=dark`, and retained dark mode after navigating to `/data-entry`.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
+  - Screenshot was saved to the system temp directory, not the repository.
+- `git diff --check` passed.
+- Commit plan: create a local commit with message `Localize navigation and persist theme`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created and amended one local commit with message `Localize navigation and persist theme` before push so the progress log stays in the same change.

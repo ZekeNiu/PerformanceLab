@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
+import { useAppTheme } from '@/lib/theme'
 
 interface NavItem {
   label: string
@@ -21,18 +22,18 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { label: 'Comparison', path: '/comparison', icon: GitCompare },
-  { label: 'Correlation', path: '/correlation', icon: ScatterChart },
-  { label: 'Data Entry', path: '/data-entry', icon: Upload },
-  { label: 'Admin', path: '/admin', icon: Database },
-  { label: 'Settings', path: '/settings', icon: Settings },
+  { label: '数据看板', path: '/', icon: LayoutDashboard },
+  { label: '比较分析', path: '/comparison', icon: GitCompare },
+  { label: '相关性分析', path: '/correlation', icon: ScatterChart },
+  { label: '数据录入', path: '/data-entry', icon: Upload },
+  { label: '数据管理', path: '/admin', icon: Database },
+  { label: '系统设置', path: '/settings', icon: Settings },
 ]
 
 export default function Navbar() {
   const [collapsed, setCollapsed] = useState(false)
-  const [isDark, setIsDark] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const { isDark, toggleTheme } = useAppTheme()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -41,18 +42,6 @@ export default function Navbar() {
     checkWidth()
     window.addEventListener('resize', checkWidth)
     return () => window.removeEventListener('resize', checkWidth)
-  }, [])
-
-  const toggleTheme = useCallback(() => {
-    setIsDark((prev) => {
-      const next = !prev
-      if (next) {
-        document.documentElement.classList.remove('light')
-      } else {
-        document.documentElement.classList.add('light')
-      }
-      return next
-    })
   }, [])
 
   if (isMobile) {
@@ -219,7 +208,7 @@ export default function Navbar() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2, delay: 0.1 }}
               >
-                {isDark ? 'Light Mode' : 'Dark Mode'}
+                {isDark ? '浅色模式' : '深色模式'}
               </motion.span>
             )}
           </AnimatePresence>
@@ -247,10 +236,10 @@ export default function Navbar() {
                 transition={{ duration: 0.2, delay: 0.1 }}
               >
                 <span className="truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                  Performance Analyst
+                  表现分析师
                 </span>
                 <span className="truncate text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  Admin
+                  管理员
                 </span>
               </motion.div>
             )}

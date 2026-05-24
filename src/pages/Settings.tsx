@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
+import { useAppTheme } from '@/lib/theme'
 
 /* ─────────────────────── Types ─────────────────────── */
 
@@ -123,10 +124,7 @@ function readStoredChartColors() {
 /* ─────────────────────── Zustand-like local store ─────────────────────── */
 
 function useThemeStore() {
-  const [isDark, setIsDark] = useState(() => {
-    const stored = localStorage.getItem('sportpulse-theme')
-    return stored ? stored === 'dark' : true
-  })
+  const { isDark, setTheme } = useAppTheme()
 
   const [chartColors, setChartColors] = useState(() => {
     return readStoredChartColors()
@@ -137,15 +135,13 @@ function useThemeStore() {
   })
 
   useEffect(() => {
-    localStorage.setItem('sportpulse-theme', isDark ? 'dark' : 'light')
     localStorage.setItem('sportpulse-chart-colors', JSON.stringify(chartColors))
     localStorage.setItem('sportpulse-accent', accentColor)
-    if (isDark) {
-      document.documentElement.classList.remove('light')
-    } else {
-      document.documentElement.classList.add('light')
-    }
-  }, [isDark, chartColors, accentColor])
+  }, [chartColors, accentColor])
+
+  const setIsDark = useCallback((value: boolean) => {
+    setTheme(value ? 'dark' : 'light')
+  }, [setTheme])
 
   return { isDark, setIsDark, chartColors, setChartColors, accentColor, setAccentColor }
 }
