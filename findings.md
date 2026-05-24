@@ -80,12 +80,14 @@ Use this file for durable discoveries that should survive across conversations.
 - The required “log” mentioned in `docs/NEXT_CHAT_PROMPT.md` is `progress.md`: it records session activity, verification, errors, and completed work.
 - `docs/EXECUTION_BRIEF.md` should not accumulate routine discoveries or completed fix history. It should be updated only when future execution would change: roadmap status, default next task, completion criteria, priorities, or key product/architecture constraints.
 - Durable discoveries that matter beyond one session but do not directly change the execution roadmap belong in `findings.md`.
+- `progress.md` should be treated as the single complete chronological work log. `findings.md`, `docs/EXECUTION_BRIEF.md`, and `docs/NEXT_CHAT_PROMPT.md` are derived/context files, not parallel logs.
 
 ## 2026-05-24 Continuation Entry Findings
 
 - A dated filename is useful for historical review snapshots, but it is misleading for a living execution brief that must be read and updated every new architecture session.
 - `docs/EXECUTION_BRIEF.md` should be the stable authoritative path for the current execution brief. The old dated path can remain only as a short redirect so older prompts do not fail.
 - `docs/NEXT_CHAT_PROMPT.md` benefits from a compact “当前重要状态” section because it supports the fallback case where a new conversation cannot read local files. That section must stay brief and mirror only execution-critical state from `docs/EXECUTION_BRIEF.md`.
+- If a new conversation can read local files, `docs/EXECUTION_BRIEF.md` remains authoritative; the prompt summary is only a minimal bootstrap fallback.
 
 ## 2026-05-24 Metric Surface Config Findings
 

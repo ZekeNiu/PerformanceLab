@@ -200,3 +200,13 @@ Use this file as the session-by-session project journal.
 - Refreshed the `docs/NEXT_CHAT_PROMPT.md` “当前重要状态” section so it includes PL-001 Done, PL-002 Done, PL-003 as the default next task, and the comparison-data-group product boundary.
 - Added a maintenance rule: update that summary only when `docs/EXECUTION_BRIEF.md` default next task, PL status, or key product/architecture constraints change.
 - Verification: docs-only change; no build run because no code changed.
+
+## 2026-05-24 Documentation Logging Boundary Update
+
+- Reviewed the concern that separate rules for `progress.md`, `findings.md`, `docs/EXECUTION_BRIEF.md`, and `docs/NEXT_CHAT_PROMPT.md` could create incomplete or scattered logs.
+- Decision: `progress.md` is the single complete chronological work log. Other docs are derived from it or from durable architecture/product decisions.
+- Updated `docs/NEXT_CHAT_PROMPT.md` so the copied prompt explicitly says every work item, change, verification, error, commit, and push is recorded in `progress.md` first.
+- Updated `docs/EXECUTION_BRIEF.md` with a “文档职责边界” section that separates complete logs, durable findings, authoritative execution state, and bootstrap summary.
+- Updated `docs/AI_CONTEXT.md` so future sessions update `progress.md` first before distilling findings or changing execution state docs.
+- Updated `findings.md` and `task_plan.md` with the clarified boundary.
+- Verification: `npm run build` passes. Existing Vite >500 kB chunk warning remains.

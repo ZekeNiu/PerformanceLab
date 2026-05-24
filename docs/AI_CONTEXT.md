@@ -73,7 +73,9 @@ At the start of a new AI session:
 When work is completed:
 
 1. Run `npm run build`.
-2. Update `progress.md` and any relevant docs. Update `docs/EXECUTION_BRIEF.md` only when a PL-numbered roadmap item changes status, the default next task changes, completion criteria change, or a decision changes future execution. When those execution-brief changes affect startup context, also update the “当前重要状态” block in `docs/NEXT_CHAT_PROMPT.md`.
-3. Commit with a concise message.
-4. Push to `main`.
-5. Check GitHub Actions if deployment behavior changed.
+2. Update `progress.md` first as the complete chronological work log for work performed, verification, errors, commits, and pushes.
+3. Distill durable discoveries into `findings.md` when they should survive future sessions.
+4. Update `docs/EXECUTION_BRIEF.md` only when a PL-numbered roadmap item changes status, the default next task changes, completion criteria change, or a decision changes future execution. When those execution-brief changes affect startup context, also update the “当前重要状态” block in `docs/NEXT_CHAT_PROMPT.md`.
+5. Commit with a concise message.
+6. Push to `main`.
+7. Check GitHub Actions if deployment behavior changed.

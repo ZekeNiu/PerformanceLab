@@ -121,6 +121,13 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed: Refreshed `docs/NEXT_CHAT_PROMPT.md` “当前重要状态” so it mirrors the current PL-001/PL-002/PL-003 state and added its maintenance boundary.
 - Verification: docs-only change; no build required.
 
+## 2026-05-24 Documentation Logging Boundary Task
+
+- Completed: Clarified that `progress.md` is the single complete chronological work log.
+- Completed: Clarified that `findings.md`, `docs/EXECUTION_BRIEF.md`, and `docs/NEXT_CHAT_PROMPT.md` are derived/context files rather than parallel logs.
+- Completed: Clarified that `NEXT_CHAT_PROMPT.md` “当前重要状态” is only a minimal bootstrap fallback for conversations that cannot read local files.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.

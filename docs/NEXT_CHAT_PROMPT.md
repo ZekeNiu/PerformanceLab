@@ -33,7 +33,7 @@ git status --short --branch
 - 当前是 React 19 + TypeScript + Vite + Tailwind + ECharts，部署在 GitHub Pages。
 - 数据目前主要是 mock 前端数据，没有后端。
 - 每次代码修改后请运行 npm run build。
-- 每次进行改动必须提供日志。
+- 每次进行改动必须先在 progress.md 记录完整工作日志。
 - 如果完成了可提交的工作，请提交并推送到 main；GitHub Actions 会自动部署到 Pages。
 
 当前重要状态：
@@ -47,8 +47,11 @@ git status --short --branch
 - npm run build 当前通过，但仍有既有 Vite >500 kB chunk 警告。
 
 文档维护规则：
-- docs/EXECUTION_BRIEF.md 是权威状态源；每次其默认下一步、PL 状态或关键产品/架构约束变化时，同步更新本 prompt 的“当前重要状态”。
-- 普通工作日志写入 progress.md；长期发现写入 findings.md；不要把普通日志写进 docs/EXECUTION_BRIEF.md 或本 prompt。
+- progress.md 是唯一完整工作日志。每次工作、改动、验证、错误、提交和推送都先记录到 progress.md；不要只记录在其他文件。
+- findings.md 只保存从 progress.md 或代码审查中提炼出的长期有效发现，不替代 progress.md。
+- docs/EXECUTION_BRIEF.md 是权威执行状态源，只维护路线图、默认下一步、完成判据和关键产品/架构约束，不记录普通过程日志。
+- 本 prompt 的“当前重要状态”只是无法读取本地文件时使用的最小启动摘要；如果新对话可以读取本地文件，以 docs/EXECUTION_BRIEF.md 为准。
+- 每次 docs/EXECUTION_BRIEF.md 的默认下一步、PL 状态或关键产品/架构约束变化时，同步更新本 prompt 的“当前重要状态”。
 
 本次我想做的任务是：
 【在这里写具体任务。如果没有具体任务，请按 docs/EXECUTION_BRIEF.md 的默认下一步继续。】
