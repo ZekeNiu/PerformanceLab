@@ -330,3 +330,7 @@ Use this file as the session-by-session project journal.
 - Commit: created and amended one local commit with message `Unify data entry metrics` before push so the progress log stays in the same change.
 - Push: pushed commit `08dde05` to `origin/main`.
 - Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as well.
+- Push: pushed the follow-up progress-log commit `2e86d93` to `origin/main`.
+- GitHub Actions note: local `gh` CLI is not installed, so deployment status was checked through the GitHub Actions REST API.
+- GitHub Actions verification: `Deploy to GitHub Pages` run `26366340470` for commit `2e86d93` completed successfully. The earlier run for `08dde05` was cancelled because it was superseded by the follow-up log commit.
+- Commit/push plan: record this deployment verification in a docs-only `[skip ci]` commit so it does not start another Pages deployment run.
