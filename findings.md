@@ -108,5 +108,15 @@ Use this file for durable discoveries that should survive across conversations.
 
 - `src/pages/Comparison.tsx` now functions as a route wrapper over `PeriodicTesting` instead of a standalone comparison system.
 - `/comparison` no longer owns a separate local demo metric list, comparison layer data, statistical utility set, or ECharts option truth. It reuses the Dashboard periodic testing path backed by registry metrics, `MetricSurfaceConfig`, `metric-surface-measurements`, and the shared mock `Measurement[]` store.
-- PL-004 reduced comparison-specific maintenance risk, but Data Entry still uses local `m-*` metric ids in `mockData.ts`; PL-005 should align Data Entry selectors and confirmations with `MetricDefinition.id` and shared measurements.
+- PL-004 reduced comparison-specific maintenance risk; the Data Entry `m-*` migration remained for PL-005 and has since been addressed for the active Data Entry workflow.
 - Remaining unseeded mock randomness is now primarily in Dashboard daily data and correlation demo data, not in `/comparison`.
+
+## 2026-05-24 Data Entry Metric Source Findings
+
+- Data Entry now uses `src/lib/data-entry-config.ts` as a registry-backed test battery config instead of reading `mockActionCategories` from `mockData.ts`.
+- `src/lib/data-entry-measurements.ts` is the first Data Entry adapter that turns manual entry data and Excel staging rows into domain-model `Measurement[]` rows.
+- Import parsing now prefers exact header aliases in priority order, so a template with both `动作分类` and `测试动作` uses the specific test-action column for action-aware metric resolution.
+- Manual Data Entry currently stores generated measurements only in page-level React state for confirmation feedback. It does not yet append to `mockMeasurementStore`, browser storage, import history persistence, or a backend.
+- `mockData.ts` still contains the older `m-*` action metric structure for other mock/admin contexts, but Data Entry no longer consumes it as metric truth.
+- The manual batch-entry UI applies one set of repeat values across all selected athletes. That matches the existing UI behavior but is a product/data-entry limitation to revisit before treating batch entry as production-grade.
+- PL-006 should start by inventorying existing statistics in `src/lib/statistics.ts`, `src/lib/performance-statistics.ts` if created, Dashboard periodic testing, and `src/pages/Correlation.tsx` before changing UI copy or statistical claims.

@@ -292,3 +292,39 @@ Use this file as the session-by-session project journal.
 - Push: pushed commit `a9f4311` to `origin/main`.
 - GitHub Actions verification: `Deploy to GitHub Pages #23` for commit `a9f4311` completed successfully in 35 seconds; `build-and-deploy` completed successfully in 32 seconds.
 - Warning verification: the run summary and job page no longer show the previous Node.js 20 actions deprecation annotation after upgrading the workflow actions to Node 24-compatible versions.
+
+## 2026-05-24 PL-005 Data Entry Metric Source Unification
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: `PL-005`, unify Data Entry metric sources so manual entry and Excel confirmation can emit shared `Measurement[]` rows.
+- Read the required project context files and confirmed initial git status: `main...origin/main` with no local changes.
+- Read the React best-practices, frontend-testing-debugging, and karpathy-guidelines skills because this task changes React data-entry components and should be verified through build/lint plus rendered smoke testing.
+- Inspected `src/data/mockData.ts`, `src/components/data-entry/IndicatorSelector.tsx`, `ManualEntryTab.tsx`, `RepeatTestTable.tsx`, `ValidationStagingArea.tsx`, `ExcelImportTab.tsx`, `UploadZone.tsx`, `src/lib/import-parser.ts`, `src/lib/domain-model.ts`, `src/lib/metric-registry.ts`, and `src/lib/measurement-store.ts`.
+- Working decision: keep the existing Data Entry UI structure, but replace its metric source with a small registry-backed test battery config and add adapter functions that convert manual rows/import staging rows into domain-model `Measurement[]` records. No backend persistence is being introduced in this pass.
+- Extended `src/lib/metric-registry.ts` with the Data Entry test metrics that were still only represented by local `m-*` ids, including SJ, RFD, relative strength, isokinetic, max speed, Yo-Yo VO2max estimate, 12-minute run distance, HRV SDNN, and resting lactate metrics.
+- Added `src/lib/data-entry-config.ts` as the registry-backed test battery config for Data Entry categories, actions, equipment, and metric ids.
+- Added `src/lib/data-entry-measurements.ts` to build domain-model `Measurement[]` records from manual entry state and Excel staging rows.
+- Migrated `IndicatorSelector` from `mockActionCategories`/`IndicatorMetric` to `dataEntryActionCategories` and `MetricDefinition`.
+- Migrated `RepeatTestTable` and `ManualEntryTab` to registry metric definitions and manual-entry Measurement generation.
+- Migrated `ValidationStagingArea` and `ExcelImportTab` so Excel confirmation passes both accepted parsed rows and generated import-source `Measurement[]` records.
+- Updated import parsing to prefer specific headers by alias priority, so templates containing both `动作分类` and `测试动作` use the specific test-action column.
+- Added action-aware Data Entry metric resolution so duplicated labels such as `相对力量` can resolve within the selected test action before falling back to global metric aliases.
+- Updated `DataEntry` to collect generated Measurement rows in page-level React state and show a user-facing staged-record count without exposing internal store terminology.
+- Updated the CSV template examples to use canonical registry metric names (`CMJ 跳跃高度`, `CMJ 峰值力`).
+- First verification after code edits: `npm run build` passed with the existing Vite >500 kB chunk warning; `npm run lint` passed.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Preview setup note: the first `Start-Process npm` attempt launched the wrong executable association (`Notepad`) in this Windows environment; stopped it and restarted preview with `npm.cmd`.
+- Playwright script note: the first inline script failed before page interaction because PowerShell pipe encoding corrupted Chinese regex literals; reran the script using ASCII-only Unicode escapes.
+- Playwright smoke on local `npm run preview` at `http://127.0.0.1:4173/#/data-entry` passed:
+  - Manual flow selected an existing test session, CMJ test action, athlete 张伟, entered three repeat values, saved, and showed `当前页面已暂存 3 条测量记录。`.
+  - Excel flow uploaded a generated CSV with two canonical registry metrics, reached the staging table, confirmed import, and showed `当前页面已暂存 9 条测量记录。`.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
+  - Screenshots were saved to the system temp directory, not the repository.
+- Final verification after UI copy cleanup and action-aware import parsing: `npm run build` passes with the existing Vite >500 kB chunk warning; `npm run lint` passes.
+- Final Playwright rerun after parser changes passed the same `/data-entry` manual + Excel flow with empty console errors/warnings and staged-record counts of 3 then 9.
+- Updated `docs/EXECUTION_BRIEF.md` so `PL-005` is `Done`, `PL-006` is the next default P1 task, and the current code facts reflect Data Entry Measurement generation as frontend-only page state.
+- Updated `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect PL-005 completion and PL-006 as the next default task.
+- Final pre-commit git status: modified docs/context files, Data Entry components, `src/lib/import-parser.ts`, `src/lib/metric-registry.ts`, and `src/pages/DataEntry.tsx`; new `src/lib/data-entry-config.ts` and `src/lib/data-entry-measurements.ts`.
+- Commit plan: create a local commit for PL-005 with message `Unify data entry metrics`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created and amended one local commit with message `Unify data entry metrics` before push so the progress log stays in the same change.

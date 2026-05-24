@@ -15,6 +15,9 @@ import type { ValidationStatus } from '@/data/mockData'
 import { mockAthletes } from '@/data/mockData'
 import { Input } from '@/components/ui/input'
 import { getMetricDefinition, resolveMetricDefinition } from '@/lib/metric-registry'
+import type { Measurement } from '@/lib/domain-model'
+import { buildImportMeasurements } from '@/lib/data-entry-measurements'
+import { resolveDataEntryMetric } from '@/lib/data-entry-config'
 
 interface ValidationItem {
   id: string
@@ -36,7 +39,7 @@ interface ValidationItem {
 
 interface ValidationStagingAreaProps {
   parsedRows: ParsedRow[]
-  onCommit: (validRows: ParsedRow[]) => void
+  onCommit: (validRows: ParsedRow[], measurements: Measurement[]) => void
   onCancel: () => void
 }
 
@@ -79,7 +82,7 @@ function validateParsedRows(parsedRows: ParsedRow[]): ValidationItem[] {
     let statusType = '正常'
     let errorMessage = ''
     let isResolved = true
-    const metric = row.metricId ? getMetricDefinition(row.metricId) : resolveMetricDefinition(row.indicator)
+    const metric = row.metricId ? getMetricDefinition(row.metricId) : resolveDataEntryMetric(row.action, row.indicator) ?? resolveMetricDefinition(row.indicator)
 
     const knownAthlete = mockAthletes.find(
       (a) => a.name === row.athleteName || a.uuid === row.athleteUUID
@@ -213,7 +216,7 @@ export default function ValidationStagingArea({
         unit: i.unit,
         repeats: i.repeats,
       }))
-    onCommit(validRows)
+    onCommit(validRows, buildImportMeasurements(validRows))
     setConfirmOpen(false)
   }
 

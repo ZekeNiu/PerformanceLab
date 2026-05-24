@@ -1,5 +1,5 @@
 import type { WorkBook } from 'xlsx'
-import { resolveMetricDefinition } from './metric-registry'
+import { resolveDataEntryMetric } from './data-entry-config'
 
 export interface ParsedImportRow {
   id: string
@@ -35,7 +35,12 @@ function normalizeHeader(value: unknown) {
 
 function findHeaderIndex(headers: unknown[], aliases: string[]) {
   const normalizedAliases = aliases.map(normalizeHeader)
-  return headers.findIndex((header) => normalizedAliases.includes(normalizeHeader(header)))
+  const normalizedHeaders = headers.map(normalizeHeader)
+  for (const alias of normalizedAliases) {
+    const index = normalizedHeaders.findIndex((header) => header === alias)
+    if (index >= 0) return index
+  }
+  return -1
 }
 
 function cellToString(value: unknown) {
@@ -106,15 +111,16 @@ export async function parseImportFile(file: File): Promise<ParsedImportRow[]> {
   return rows
     .slice(1)
     .map((row, rowIndex) => {
+      const rawAction = cellToString(row[actionIndex])
       const rawIndicator = cellToString(row[indicatorIndex])
-      const metric = resolveMetricDefinition(rawIndicator)
+      const metric = resolveDataEntryMetric(rawAction, rawIndicator)
       return {
         id: `row-${Date.now()}-${rowIndex + 1}`,
         rowNum: rowIndex + 2,
         athleteName: cellToString(row[athleteNameIndex]),
         athleteUUID: uuidIndex >= 0 ? cellToString(row[uuidIndex]) || undefined : undefined,
         date: cellToString(row[dateIndex]),
-        action: cellToString(row[actionIndex]),
+        action: rawAction,
         indicator: metric?.name ?? rawIndicator,
         metricId: metric?.id,
         unit: unitIndex >= 0 ? cellToString(row[unitIndex]) || metric?.unit : metric?.unit,

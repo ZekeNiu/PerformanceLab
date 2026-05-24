@@ -80,7 +80,7 @@ Options when the project is ready:
 
 ## Current Recommended Next Step
 
-Dashboard periodic testing and `/comparison` now use the same registry-derived periodic testing surface through `src/lib/metric-surface-measurements.ts` and `src/components/dashboard/PeriodicTesting.tsx`. Next, unify Data Entry metric sources so manual entry and Excel confirmation can emit shared `Measurement[]` rows instead of local `m-*` metric ids.
+Dashboard periodic testing, `/comparison`, and Data Entry now share registry-derived metric ids. Data Entry's manual save and Excel confirmation paths generate domain-model `Measurement[]` rows in frontend state. Next, centralize professional statistics so TE/MDC/SWC/effect size/correlation outputs have shared method metadata, assumptions, sample-size reporting, missing-data policy, and data-quality flags.
 
 ## Analysis Workflow Direction
 

@@ -149,6 +149,17 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verification: Local Playwright smoke passed for `/comparison` desktop longitudinal-to-cross-sectional interaction, add-comparison menu, and 390px mobile cross-sectional width with no console errors/warnings and no page-level horizontal overflow.
 - Next recommended architecture work: unify Data Entry metric sources so manual entry and Excel confirmation can emit shared `Measurement[]` rows (`PL-005`).
 
+## 2026-05-24 PL-005 Data Entry Metric Source Task
+
+- Completed: Added `src/lib/data-entry-config.ts` as the registry-backed test battery config for Data Entry actions and metrics.
+- Completed: Added `src/lib/data-entry-measurements.ts` to convert manual entry data and Excel staging rows into domain-model `Measurement[]`.
+- Completed: Migrated `IndicatorSelector`, `ManualEntryTab`, `RepeatTestTable`, `ValidationStagingArea`, `ExcelImportTab`, and `DataEntry` to use registry metric definitions and committed Measurement rows.
+- Completed: Extended `src/lib/metric-registry.ts` with the remaining Data Entry test metrics needed by the current test battery.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
+- Verification: `npm run lint` passes.
+- Verification: Local Playwright smoke passed for `/data-entry` manual save and Excel confirmation. Manual entry generated 3 frontend-staged Measurement rows; Excel confirmation generated 6 more rows for a total of 9; console errors/warnings were empty and desktop width had no page-level overflow.
+- Next recommended architecture work: centralize professional statistics outputs and metadata (`PL-006`).
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.

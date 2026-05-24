@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 
 import { Plus, ArrowUp, ArrowDown, Trash2 } from 'lucide-react'
-import type { IndicatorMetric, DirectionType } from '@/data/mockData'
+import type { MetricDefinition } from '@/lib/domain-model'
 import { Input } from '@/components/ui/input'
 
 interface MetricData {
@@ -10,19 +10,19 @@ interface MetricData {
 }
 
 interface RepeatTestTableProps {
-  metrics: IndicatorMetric[]
+  metrics: MetricDefinition[]
   data: MetricData[]
   onDataChange: (data: MetricData[]) => void
 }
 
-function calcStats(repeats: (number | null)[], direction: DirectionType) {
+function calcStats(repeats: (number | null)[], direction: MetricDefinition['direction']) {
   const values = repeats.filter((v): v is number => v != null && !isNaN(v))
   if (values.length === 0) {
     return { mean: null, best: null, sd: null, cv: null, count: 0 }
   }
   const count = values.length
   const mean = values.reduce((a, b) => a + b, 0) / count
-  const best = direction === 'lower' ? Math.min(...values) : Math.max(...values)
+  const best = direction === 'lower' ? Math.min(...values) : direction === 'neutral' ? mean : Math.max(...values)
   const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / count
   const sd = Math.sqrt(variance)
   const cv = mean !== 0 ? (sd / Math.abs(mean)) * 100 : 0

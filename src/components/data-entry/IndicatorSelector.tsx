@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ArrowUp, ArrowDown, ArrowLeftRight } from 'lucide-react'
-import type { IndicatorMetric } from '@/data/mockData'
-import { mockActionCategories } from '@/data/mockData'
+import type { MetricDefinition } from '@/lib/domain-model'
+import { dataEntryActionCategories, getDataEntryActionMetrics } from '@/lib/data-entry-config'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface IndicatorSelectorProps {
-  selectedMetrics: IndicatorMetric[]
-  onMetricsChange: (metrics: IndicatorMetric[]) => void
+  selectedMetrics: MetricDefinition[]
+  onMetricsChange: (metrics: MetricDefinition[]) => void
 }
 
-function DirectionBadge({ direction, range }: { direction: string; range?: [number, number] }) {
+function DirectionBadge({ direction, range }: { direction: MetricDefinition['direction']; range?: [number, number] }) {
   if (direction === 'higher') {
     return (
       <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: 'rgba(16,185,129,0.15)', color: '#10B981' }}>
@@ -24,6 +24,9 @@ function DirectionBadge({ direction, range }: { direction: string; range?: [numb
         <ArrowDown size={10} /> 越小越好
       </span>
     )
+  }
+  if (direction === 'neutral') {
+    return null
   }
   return (
     <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: 'rgba(59,130,246,0.15)', color: '#3B82F6' }} title={range ? `最优范围: ${range[0]}-${range[1]}` : undefined}>
@@ -39,12 +42,12 @@ export default function IndicatorSelector({
   const [level1Id, setLevel1Id] = useState('')
   const [level2Id, setLevel2Id] = useState('')
 
-  const selectedCategory = mockActionCategories.find((c) => c.id === level1Id)
+  const selectedCategory = dataEntryActionCategories.find((c) => c.id === level1Id)
   const selectedAction = selectedCategory?.actions.find((a) => a.id === level2Id)
 
-  const availableMetrics = selectedAction?.metrics || []
+  const availableMetrics = selectedAction ? getDataEntryActionMetrics(selectedAction) : []
 
-  const toggleMetric = (metric: IndicatorMetric) => {
+  const toggleMetric = (metric: MetricDefinition) => {
     const exists = selectedMetrics.find((m) => m.id === metric.id)
     if (exists) {
       onMetricsChange(selectedMetrics.filter((m) => m.id !== metric.id))
@@ -64,7 +67,7 @@ export default function IndicatorSelector({
     // Auto-select all metrics by default when action changes
     const action = selectedCategory?.actions.find((a) => a.id === id)
     if (action) {
-      onMetricsChange([...action.metrics])
+      onMetricsChange(getDataEntryActionMetrics(action))
     } else {
       onMetricsChange([])
     }
@@ -102,7 +105,7 @@ export default function IndicatorSelector({
               <option value="" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                 请选择动作分类
               </option>
-              {mockActionCategories.map((cat) => (
+              {dataEntryActionCategories.map((cat) => (
                 <option key={cat.id} value={cat.id} style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                   {cat.name} ({cat.actions.length}项测试)
                 </option>

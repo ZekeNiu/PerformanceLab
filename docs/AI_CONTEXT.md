@@ -50,8 +50,8 @@ The dashboard should be highly configurable. Analysts may work with different te
 - Full Kimi pages are now present, but they still need systematic runtime QA and cleanup.
 - Most data is still hardcoded/mock data.
 - Card configurability is not yet modeled as reusable config.
-- First-stage domain model, metric registry, mock measurement selector layer, metric surface config model, and surface-to-measurement adapter now exist in `src/lib/domain-model.ts`, `src/lib/metric-registry.ts`, `src/lib/measurement-store.ts`, `src/lib/metric-surface-config.ts`, and `src/lib/metric-surface-measurements.ts`. Dashboard periodic testing and `/comparison` now consume that path; `mockData.ts` and Data Entry still need migration onto registry ids and shared measurements.
-- Excel/CSV import now performs real parsing through `src/lib/import-parser.ts`, but committed rows are still frontend-only and not persisted to a backend or durable local store.
+- First-stage domain model, metric registry, mock measurement selector layer, metric surface config model, and surface-to-measurement adapter now exist in `src/lib/domain-model.ts`, `src/lib/metric-registry.ts`, `src/lib/measurement-store.ts`, `src/lib/metric-surface-config.ts`, and `src/lib/metric-surface-measurements.ts`. Dashboard periodic testing and `/comparison` consume that path.
+- Data Entry now uses `src/lib/data-entry-config.ts` as a registry-backed test battery config. Manual saves and Excel confirmation generate domain-model `Measurement[]` through `src/lib/data-entry-measurements.ts`, but those committed rows are still frontend-only and not persisted to a backend or durable local store.
 - `docs/EXECUTION_BRIEF.md` is the current execution brief for architecture work. It defines the comparison data group model, roadmap status, completion criteria, default next task, and when the brief itself should be updated.
 - Build succeeds, but bundle size is large.
 - Dependency audit warnings exist and should be reviewed later.

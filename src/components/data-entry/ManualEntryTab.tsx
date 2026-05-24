@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Loader2, Save } from 'lucide-react'
 import { toast } from 'sonner'
-import type { TestSession, IndicatorMetric, Athlete } from '@/data/mockData'
+import type { TestSession, Athlete } from '@/data/mockData'
+import type { Measurement, MetricDefinition } from '@/lib/domain-model'
+import { buildManualEntryMeasurements } from '@/lib/data-entry-measurements'
 import TestSessionSelector from './TestSessionSelector'
 import IndicatorSelector from './IndicatorSelector'
 import AthleteSelector from './AthleteSelector'
@@ -13,9 +15,13 @@ interface MetricData {
   repeats: (number | null)[]
 }
 
-export default function ManualEntryTab() {
+interface ManualEntryTabProps {
+  onMeasurementsCommitted?: (measurements: Measurement[]) => void
+}
+
+export default function ManualEntryTab({ onMeasurementsCommitted }: ManualEntryTabProps) {
   const [selectedSession, setSelectedSession] = useState<TestSession | null>(null)
-  const [selectedMetrics, setSelectedMetrics] = useState<IndicatorMetric[]>([])
+  const [selectedMetrics, setSelectedMetrics] = useState<MetricDefinition[]>([])
   const [selectedAthletes, setSelectedAthletes] = useState<Athlete[]>([])
   const [entryMode, setEntryMode] = useState<EntryMode>('single')
   const [metricData, setMetricData] = useState<MetricData[]>([])
@@ -24,13 +30,20 @@ export default function ManualEntryTab() {
   const canProceed = selectedSession && selectedMetrics.length > 0 && selectedAthletes.length > 0
 
   const handleSave = async () => {
-    if (!canProceed) return
+    if (!selectedSession || selectedMetrics.length === 0 || selectedAthletes.length === 0) return
     setIsSaving(true)
+    const measurements = buildManualEntryMeasurements({
+      session: selectedSession,
+      athletes: selectedAthletes,
+      metrics: selectedMetrics,
+      metricData,
+    })
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000))
     setIsSaving(false)
+    onMeasurementsCommitted?.(measurements)
     toast.success('数据已保存', {
-      description: `已为 ${selectedAthletes.length} 名运动员保存 ${selectedMetrics.length} 项指标数据`,
+      description: `已生成 ${measurements.length} 条测量记录`,
     })
     // Reset form for next entry
     setMetricData([])

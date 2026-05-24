@@ -1,13 +1,19 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, FileInput } from 'lucide-react'
 import ManualEntryTab from '@/components/data-entry/ManualEntryTab'
 import ExcelImportTab from '@/components/data-entry/ExcelImportTab'
+import type { Measurement } from '@/lib/domain-model'
 
 type SubTab = 'manual' | 'excel'
 
 export default function DataEntry() {
   const [activeTab, setActiveTab] = useState<SubTab>('manual')
+  const [committedMeasurements, setCommittedMeasurements] = useState<Measurement[]>([])
+
+  const handleMeasurementsCommitted = useCallback((measurements: Measurement[]) => {
+    setCommittedMeasurements((prev) => [...measurements, ...prev])
+  }, [])
 
   const tabs = [
     { id: 'manual' as SubTab, label: '手动录入', icon: FileInput },
@@ -67,6 +73,15 @@ export default function DataEntry() {
         </div>
       </div>
 
+      {committedMeasurements.length > 0 && (
+        <div
+          className="border-b px-6 py-2 text-xs"
+          style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+        >
+          当前页面已暂存 <strong style={{ color: 'var(--accent-cyan)' }}>{committedMeasurements.length}</strong> 条测量记录。
+        </div>
+      )}
+
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <AnimatePresence mode="wait">
@@ -78,7 +93,7 @@ export default function DataEntry() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25, ease: [0.45, 0, 0.55, 1] as [number, number, number, number] }}
             >
-              <ManualEntryTab />
+              <ManualEntryTab onMeasurementsCommitted={handleMeasurementsCommitted} />
             </motion.div>
           ) : (
             <motion.div
@@ -88,7 +103,7 @@ export default function DataEntry() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25, ease: [0.45, 0, 0.55, 1] as [number, number, number, number] }}
             >
-              <ExcelImportTab />
+              <ExcelImportTab onMeasurementsCommitted={handleMeasurementsCommitted} />
             </motion.div>
           )}
         </AnimatePresence>

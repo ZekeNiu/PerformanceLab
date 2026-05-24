@@ -5,8 +5,13 @@ import UploadZone, { type ParsedRow } from './UploadZone'
 import ValidationStagingArea from './ValidationStagingArea'
 import ImportHistory from './ImportHistory'
 import type { ImportHistoryEntry } from '@/data/mockData'
+import type { Measurement } from '@/lib/domain-model'
 
-export default function ExcelImportTab() {
+interface ExcelImportTabProps {
+  onMeasurementsCommitted?: (measurements: Measurement[]) => void
+}
+
+export default function ExcelImportTab({ onMeasurementsCommitted }: ExcelImportTabProps) {
   const [parsedRows, setParsedRows] = useState<ParsedRow[] | null>(null)
   const [importHistory, setImportHistory] = useState<ImportHistoryEntry[]>([])
   const [currentFilename, setCurrentFilename] = useState('imported_data.xlsx')
@@ -19,8 +24,9 @@ export default function ExcelImportTab() {
     })
   }, [])
 
-  const handleCommit = useCallback((validRows: ParsedRow[]) => {
+  const handleCommit = useCallback((validRows: ParsedRow[], measurements: Measurement[]) => {
     setParsedRows(null)
+    onMeasurementsCommitted?.(measurements)
     const newEntry: ImportHistoryEntry = {
       id: `ih-${Date.now()}`,
       time: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
@@ -33,9 +39,9 @@ export default function ExcelImportTab() {
     }
     setImportHistory((prev) => [newEntry, ...prev])
     toast.success('数据导入成功', {
-      description: `已成功导入 ${validRows.length} 条数据。`,
+      description: `已生成 ${measurements.length} 条测量记录。`,
     })
-  }, [currentFilename])
+  }, [currentFilename, onMeasurementsCommitted])
 
   const handleCancel = useCallback(() => {
     setParsedRows(null)
