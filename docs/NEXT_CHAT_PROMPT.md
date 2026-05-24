@@ -38,10 +38,11 @@ git status --short --branch
 
 当前重要状态：
 - docs/EXECUTION_BRIEF.md 是后续架构工作的权威执行简报；如果用户没有指定任务，默认从其中第一个未完成的 P0/P1 任务开始。
-- 当前默认下一步是 PL-004：收敛 `/comparison` 页面，避免继续维护第二套指标/统计/图表真相。
+- 当前默认下一步是 PL-005：统一 Data Entry 指标来源，让手动录入和 Excel 确认逐步输出共享 `Measurement[]`。
 - PL-001 已完成：src/lib/measurement-store.ts 提供第一版共享 mock Measurement[] store 和 selector。
 - PL-002 已完成：src/lib/metric-surface-config.ts 和 docs/METRIC_SURFACE_CONFIG.md 定义第一版可序列化指标展示面配置模型。
 - PL-003 已完成：Dashboard periodic testing 已迁移到 registry + metric surface config + measurement selector；新增 src/lib/metric-surface-measurements.ts adapter。
+- PL-004 已完成：`/comparison` 页面已收敛为复用 `PeriodicTesting` 的路由壳，不再维护第二套页面本地指标/统计/图表真相。
 - 横向/纵向比较的推荐方向是同一指标展示面上的“主数据 + 最多 3 组额外对比数据”，同屏最多 4 组；目标、阈值、benchmark、SWC、MDC、置信区间等是统计注释或参考线，不占对比数据组名额。
 - 相关性分析建议保留独立探索工作流，但必须复用统一 metric registry 和 measurement store。
 - Excel/CSV 导入已从纯 mock 改为真实解析，入口在 src/lib/import-parser.ts 和 src/components/data-entry/UploadZone.tsx；npm run lint 当前已修到通过。

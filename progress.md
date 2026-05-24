@@ -246,3 +246,31 @@ Use this file as the session-by-session project journal.
 - Final pre-commit git status: modified docs/context files plus `src/components/dashboard/PeriodicTesting.tsx`; new `src/lib/metric-surface-measurements.ts`.
 - Commit plan: create a local commit for PL-003 with message `Migrate dashboard periodic testing`.
 - Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+
+## 2026-05-24 PL-004 Comparison Page Consolidation
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: `PL-004`, consolidate `/comparison` so it no longer maintains a second metric/stat/chart truth.
+- Read the required project context files and confirmed initial git status: `main...origin/main` with no local changes.
+- Read the React best-practices skill and frontend testing/debugging skill because this task changes a React route and should be rendered-verified after build.
+- Inspected `src/pages/Comparison.tsx`, `src/pages/Dashboard.tsx`, `src/App.tsx`, `src/components/Navbar.tsx`, `src/components/dashboard/PeriodicTesting.tsx`, and `src/lib/metric-surface-measurements.ts`.
+- Working decision: keep `/comparison` as a route, but replace the legacy standalone page implementation with a focused wrapper around the already migrated `PeriodicTesting` longitudinal/cross-sectional metric surface. This removes the page-local `DEMO_INDICATORS`, comparison layers, statistical utilities, and chart options from `/comparison` rather than extending them.
+- Replaced `src/pages/Comparison.tsx` with a small route wrapper: it keeps longitudinal/cross-sectional mode switching and renders `PeriodicTesting mode={mode}` so comparison data, statistics, charts, and metric identity all come from the shared Dashboard periodic surface path.
+- Verification: `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+- Verification: `npm run lint` passes.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright smoke on local `npm run preview` at `http://127.0.0.1:4173/#/comparison` passed:
+  - Desktop 1440px loaded `/comparison`, rendered the shared periodic-testing comparison surface, switched from longitudinal to cross-sectional mode, and opened the add-comparison menu.
+  - Mobile 390px loaded `/comparison`, switched to cross-sectional mode, had no framework overlay, and kept document width at 390px.
+  - Console errors, console warnings, and page errors were empty.
+  - Screenshots were saved to the system temp directory, not the repository.
+- Cleanup note: one Vite preview child `node` process remained listening on port 4173 after the Playwright command wrapper exited; it was stopped manually.
+- UI copy follow-up: shortened the `/comparison` page subtitle from an implementation-oriented phrase to `Periodic Testing`.
+- Final verification after the subtitle adjustment:
+  - `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+  - `npm run lint` passes.
+- Updated `docs/EXECUTION_BRIEF.md` so `PL-004` is `Done`, `PL-005` is the next default P1 task, and the current code facts reflect `/comparison` as a `PeriodicTesting` route wrapper.
+- Updated `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect PL-004 completion and PL-005 as the next default task.
+- Final pre-commit git status: modified `src/pages/Comparison.tsx`, `docs/AI_CONTEXT.md`, `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `findings.md`, `progress.md`, and `task_plan.md`.
+- Commit plan: create a local commit for PL-004 with message `Consolidate comparison page`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created and amended one local commit with message `Consolidate comparison page` before push so the progress log stays in the same change.

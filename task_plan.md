@@ -67,7 +67,7 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verification: `npm run lint` passes.
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
 - Completed: Created the first shared mock `Measurement[]` store and selector layer in `src/lib/measurement-store.ts`.
-- Next recommended architecture work: consolidate `/comparison` so it no longer maintains a second metric/stat/chart truth (`PL-004`), now that Dashboard periodic testing has been migrated.
+- Next recommended architecture work: unify Data Entry metric sources so manual entry and Excel confirmation can emit shared `Measurement[]` rows (`PL-005`), now that Dashboard periodic testing and `/comparison` share the same comparison surface.
 
 ## 2026-05-24 PL-002 Metric Surface Config Task
 
@@ -137,7 +137,17 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
 - Verification: `npm run lint` passes.
 - Verification: Local Playwright smoke passed for desktop display, desktop longitudinal, and 390px mobile cross-sectional add-comparison flow with no console errors/warnings and no page-level horizontal overflow.
-- Next recommended architecture work: consolidate `/comparison` so it no longer maintains a second metric/stat/chart truth (`PL-004`).
+- Next recommended architecture work: unify Data Entry metric sources so manual entry and Excel confirmation can emit shared `Measurement[]` rows (`PL-005`).
+
+## 2026-05-24 PL-004 Comparison Page Consolidation Task
+
+- Completed: Replaced the legacy `/comparison` implementation with a focused route wrapper around `PeriodicTesting`.
+- Completed: Removed the page-local demo indicators, comparison layers, statistical utilities, and ECharts option truth from `src/pages/Comparison.tsx`.
+- Completed: `/comparison` longitudinal and cross-sectional modes now reuse the Dashboard periodic testing path: registry metrics, `MetricSurfaceConfig`, `metric-surface-measurements`, shared mock `Measurement[]` selectors, statistics, and chart components.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
+- Verification: `npm run lint` passes.
+- Verification: Local Playwright smoke passed for `/comparison` desktop longitudinal-to-cross-sectional interaction, add-comparison menu, and 390px mobile cross-sectional width with no console errors/warnings and no page-level horizontal overflow.
+- Next recommended architecture work: unify Data Entry metric sources so manual entry and Excel confirmation can emit shared `Measurement[]` rows (`PL-005`).
 
 ## 2026-05-22 Active Task
 
@@ -159,4 +169,4 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed: Excel/CSV upload now performs real parsing with `xlsx` loaded dynamically.
 - Completed: Data import keeps filename, previews parsed rows, validates unknown athletes/repeat counts, and flags metrics not found in the registry.
 - Verified: real CSV upload smoke test reached the staging validation table with 2 parsed rows and no console errors.
-- Remaining architecture work: migrate `Comparison.tsx` and `mockData.ts` fully onto the registry and shared measurement store instead of local demo arrays.
+- Remaining architecture work: migrate `mockData.ts` and Data Entry fully onto registry ids and the shared measurement store instead of local `m-*` metric ids.

@@ -103,3 +103,10 @@ Use this file for durable discoveries that should survive across conversations.
 - Cross-sectional athlete comparison layers in `PeriodicTesting` are now deterministic measurement summaries instead of `Math.random()` generated values.
 - The dashboard periodic migration still uses lightweight target-score estimation from mock measurement distributions because no canonical benchmark/target store exists yet. Treat those target anchors as demo display scaffolding until benchmark modeling is added.
 - Browser smoke at 390px confirmed no page-level width overflow in Dashboard periodic cross-sectional mode, but the existing top dashboard filter/header area remains visually cramped on mobile and should stay in the PL-008 mobile QA scope.
+
+## 2026-05-24 Comparison Page Consolidation Findings
+
+- `src/pages/Comparison.tsx` now functions as a route wrapper over `PeriodicTesting` instead of a standalone comparison system.
+- `/comparison` no longer owns a separate local demo metric list, comparison layer data, statistical utility set, or ECharts option truth. It reuses the Dashboard periodic testing path backed by registry metrics, `MetricSurfaceConfig`, `metric-surface-measurements`, and the shared mock `Measurement[]` store.
+- PL-004 reduced comparison-specific maintenance risk, but Data Entry still uses local `m-*` metric ids in `mockData.ts`; PL-005 should align Data Entry selectors and confirmations with `MetricDefinition.id` and shared measurements.
+- Remaining unseeded mock randomness is now primarily in Dashboard daily data and correlation demo data, not in `/comparison`.

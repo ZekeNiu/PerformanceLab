@@ -80,7 +80,7 @@ Options when the project is ready:
 
 ## Current Recommended Next Step
 
-Dashboard periodic testing now uses registry-derived metrics, metric surface configuration, and measurement selectors through `src/lib/metric-surface-measurements.ts` and `src/components/dashboard/PeriodicTesting.tsx`. Next, consolidate `/comparison` so it no longer maintains a second metric/stat/chart truth.
+Dashboard periodic testing and `/comparison` now use the same registry-derived periodic testing surface through `src/lib/metric-surface-measurements.ts` and `src/components/dashboard/PeriodicTesting.tsx`. Next, unify Data Entry metric sources so manual entry and Excel confirmation can emit shared `Measurement[]` rows instead of local `m-*` metric ids.
 
 ## Analysis Workflow Direction
 
