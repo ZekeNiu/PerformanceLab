@@ -110,13 +110,14 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 - `src/pages/Comparison.tsx` 仍是独立比较页面，内部有另一套 demo indicators、layers、统计函数和图表配置。
 - `src/pages/Correlation.tsx` 已从 metric registry 派生指标名称/类别，但数据仍来自 correlation demo generator。
 - `src/lib/measurement-store.ts` 已建立第一版共享 mock `Measurement[]` store 和 selector。Data Entry 手动录入、Excel 导入确认、Admin 页、Dashboard 还没有迁移为它的消费者。
+- `src/lib/metric-surface-config.ts` 已建立第一版可序列化指标展示面配置模型，包含主数据组、最多 3 组额外对比数据组、时间/主体选择、聚合方式、横向参照群组和统计注释配置。
 
 ## 执行路线图
 
 | ID | 优先级 | 状态 | 任务 | 完成判据 | 主要文件 |
 | --- | --- | --- | --- | --- | --- |
 | PL-001 | P0 | Done | 建立 mock measurement store 和 selector | 已新增统一 `Measurement[]` mock 数据；能按 metric、athlete、team、position、session/time range、source、aggregation 查询；本轮未改 UI。性别、年龄段、专项和复杂参照群组筛选尚未实现，应在 PL-002/PL-003 设计中处理 | `src/lib/measurement-store.ts` |
-| PL-002 | P0 | Todo | 定义指标展示面配置模型 | 有 `MetricSurfaceConfig`、`ComparisonDataGroupConfig`、时间选择、主体选择、聚合方式、统计注释开关；文档和类型能表达“最多 3 组额外对比数据” | `src/lib/domain-model.ts` 或新配置文件 |
+| PL-002 | P0 | Done | 定义指标展示面配置模型 | 已新增 `MetricSurfaceConfig`、`ComparisonDataGroupConfig`、`TimeSelection`、`SubjectSelector`、`ReferenceGroupSelector`、聚合方式和 `StatisticalAnnotationConfig`；`UpToThree` 与 `MAX_COMPARISON_DATA_GROUPS` 表达“最多 3 组额外对比数据”；`docs/METRIC_SURFACE_CONFIG.md` 记录产品边界。本轮未迁移 UI | `src/lib/metric-surface-config.ts`, `docs/METRIC_SURFACE_CONFIG.md` |
 | PL-003 | P0 | Todo | 迁移 Dashboard periodic testing 到 registry + measurement selector | `PeriodicTesting` 不再依赖本地 `DEMO_INDICATORS` 作为指标真相；display/longitudinal/cross-sectional 使用同一指标配置和数据 selector | `src/components/dashboard/PeriodicTesting.tsx`, `src/components/dashboard/data.ts` |
 | PL-004 | P1 | Todo | 收敛 `/comparison` 页面 | 不再维护第二套指标/统计/图表真相；复用展示面组件或明确降级为 legacy/experimental | `src/pages/Comparison.tsx`, `src/App.tsx`, `src/components/Navbar.tsx` |
 | PL-005 | P1 | Todo | 统一 Data Entry 指标来源 | `IndicatorSelector` 从 registry/test battery config 派生；手动录入和 Excel 确认输出 `Measurement[]` | `src/components/data-entry/*`, `src/data/mockData.ts` |
@@ -125,7 +126,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 | PL-008 | P2 | Todo | 移动端比较视图 QA | 390px、768px、1440px 下 Dashboard 比较视图和 Comparison 页面无页面级横向溢出，关键文本不重叠 | Dashboard, Comparison, Playwright smoke |
 | PL-009 | P2 | Todo | 路由级性能优化 | ECharts-heavy 页面按路由 lazy load；build 仍可通过；bundle 警告有明确处理或记录 | `src/App.tsx`, Vite build output |
 
-如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始。当前默认下一步是 `PL-002`，因为 `PL-001` 已建立 measurement store，后续需要先定义可序列化的指标展示面配置模型，再迁移 Dashboard periodic testing。
+如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始。当前默认下一步是 `PL-003`，因为 `PL-001` 已建立 measurement store，`PL-002` 已定义可序列化的指标展示面配置模型，后续应迁移 Dashboard periodic testing。
 
 ## 高优先级问题详情
 
@@ -181,18 +182,19 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 
 若用户没有指定其他任务，下一次应执行：
 
-`PL-002`: 定义指标展示面配置模型。
+`PL-003`: 迁移 Dashboard periodic testing 到 registry + measurement selector。
 
 开始前应先确认：
 
 - 是否已有未提交改动。
 - 是否存在近期文档更新改变了优先级。
-- `PL-001` 的 selector API 是否足够支撑 `MetricSurfaceConfig`、`ComparisonDataGroupConfig` 和统计注释配置。
-- `ComparisonDataGroupConfig` 是否需要单独定义 `ReferenceGroupSelector`，用于表达性别、年龄段、专项、位置、队伍、百分位等横向参照群组条件。
+- `src/lib/metric-surface-config.ts` 的 `MetricSurfaceConfig` 是否足够覆盖当前 `PeriodicTesting` 的 display/longitudinal/cross-sectional 三种模式。
+- `measurement-store` 的 series/summary selector 是否需要补充一个轻量 adapter，把 `MetricSurfaceConfig` 转换为图表数据。
+- 迁移时是否先保留当前视觉结构，只替换指标来源和数据选择逻辑。
 
 完成后必须：
 
-- 更新本文档中 `PL-002` 状态。
+- 更新本文档中 `PL-003` 状态。
 - 更新 `progress.md` 记录具体改动和验证。
 - 如果发现数据模型不足，先记录到 `progress.md`；若该发现长期有效，补充到 `findings.md`；只有当它改变路线图、完成判据或默认下一步时，才同步更新本文档。
 - 如果改动代码，运行 `npm run build`。

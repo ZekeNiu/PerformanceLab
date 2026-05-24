@@ -67,7 +67,17 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verification: `npm run lint` passes.
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
 - Completed: Created the first shared mock `Measurement[]` store and selector layer in `src/lib/measurement-store.ts`.
-- Next recommended architecture work: define the metric display surface configuration model (`PL-002`), then migrate `PeriodicTesting` comparison modes to registry-derived metric surfaces.
+- Next recommended architecture work: migrate `PeriodicTesting` comparison modes to registry-derived metric surfaces (`PL-003`), using the shared measurement store and metric surface config model.
+
+## 2026-05-24 PL-002 Metric Surface Config Task
+
+- Completed: Added `src/lib/metric-surface-config.ts` with the first serializable metric display surface model.
+- Completed: Modeled `MetricSurfaceConfig`, `MetricDataGroupConfig`, `ComparisonDataGroupConfig`, `TimeSelection`, `SubjectSelector`, `ReferenceGroupSelector`, and statistical annotation options.
+- Completed: Encoded the product rule of one primary data group plus up to three additional comparison data groups with `MAX_COMPARISON_DATA_GROUPS` and `UpToThree`.
+- Completed: Added `docs/METRIC_SURFACE_CONFIG.md` to document the boundary between comparison data groups and statistical annotations/reference lines.
+- Completed: Updated `docs/DEEP_REVIEW_2026-05-24.md` so `PL-002` is `Done` and the default next task is `PL-003`.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
+- Verification: `npm run lint` passes.
 
 ## 2026-05-24 Deep Review Restructure Task
 

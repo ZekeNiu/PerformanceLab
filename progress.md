@@ -168,3 +168,23 @@ Use this file as the session-by-session project journal.
   - `task_plan.md`: high-level task/status summary.
   - `docs/DEEP_REVIEW_2026-05-24.md`: current execution state and next-action guidance only.
 - Verification: docs-only change; no build run because no code changed.
+
+## 2026-05-24 PL-002 Metric Surface Config
+
+- Read project context files and confirmed git status started clean on `main...origin/main`.
+- Added `src/lib/metric-surface-config.ts` as the first serializable configuration model for metric display surfaces.
+- Defined:
+  - `MetricSurfaceConfig` for one canonical metric, visualization, mode, context, primary data group, optional comparison data groups, annotations, and display options.
+  - `MetricDataGroupConfig` and `ComparisonDataGroupConfig` for subject, time, aggregation, source filters, and longitudinal/cross-sectional comparison semantics.
+  - `TimeSelection`, `SubjectSelector`, and `ReferenceGroupSelector` so later dashboard migration can represent athletes, teams, positions, custom groups, same-gender/age/specialty/position/team reference groups, and percentile references.
+  - `StatisticalAnnotationConfig` so target, threshold, benchmark, SWC, MDC, confidence interval, and normal range settings stay outside the comparison data group quota.
+- Encoded the product constraint of one primary data group plus up to three extra comparison groups with `MAX_COMPARISON_DATA_GROUPS`, `MAX_TOTAL_DATA_GROUPS`, and `UpToThree`.
+- Added `docs/METRIC_SURFACE_CONFIG.md` documenting the configuration boundary and confirming that PL-002 does not migrate Dashboard or `/comparison` rendering yet.
+- Updated `docs/DEEP_REVIEW_2026-05-24.md`, `task_plan.md`, `findings.md`, `docs/ROADMAP.md`, and `docs/AI_CONTEXT.md` so the default next task is `PL-003`.
+- Correction note: the first `apply_patch` call used the workspace parent as its base directory; the two new files were immediately moved into `app/` and the misplaced parent-level copies were removed before validation.
+- Commit note: the first combined `git add ... && git commit ...` attempt failed because this PowerShell environment does not accept `&&` as a statement separator; the add and commit were rerun as separate commands.
+- Commit: created local commit for `Add metric surface config model`.
+- Push note: first `git push origin main` attempt failed because the environment could not connect to `github.com:443`.
+- Verification:
+  - `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+  - `npm run lint` passes.

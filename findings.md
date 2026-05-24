@@ -80,3 +80,10 @@ Use this file for durable discoveries that should survive across conversations.
 - The required “log” mentioned in `docs/NEXT_CHAT_PROMPT.md` is `progress.md`: it records session activity, verification, errors, and completed work.
 - `docs/DEEP_REVIEW_2026-05-24.md` should not accumulate routine discoveries or completed fix history. It should be updated only when future execution would change: roadmap status, default next task, completion criteria, priorities, or key product/architecture constraints.
 - Durable discoveries that matter beyond one session but do not directly change the execution roadmap belong in `findings.md`.
+
+## 2026-05-24 Metric Surface Config Findings
+
+- `src/lib/metric-surface-config.ts` is now the first shared, serializable configuration boundary for metric display surfaces.
+- `ComparisonDataGroupConfig` intentionally represents extra data groups only. Targets, thresholds, benchmarks, SWC, MDC, confidence intervals, and normal ranges belong to `StatisticalAnnotationConfig` and do not count toward the three-group comparison limit.
+- `ReferenceGroupSelector` is modeled ahead of UI support so PL-003 can migrate Dashboard without inventing another local shape for same-gender, age-band, specialty, position, team, custom group, and percentile references.
+- PL-002 did not add an adapter from `MetricSurfaceConfig` to `measurement-store` queries. That should be considered during PL-003 when `PeriodicTesting` is migrated.
