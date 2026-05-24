@@ -185,6 +185,7 @@ Use this file as the session-by-session project journal.
 - Commit note: the first combined `git add ... && git commit ...` attempt failed because this PowerShell environment does not accept `&&` as a statement separator; the add and commit were rerun as separate commands.
 - Commit: created local commit for `Add metric surface config model`.
 - Push note: first `git push origin main` attempt failed because the environment could not connect to `github.com:443`.
+- Push: retry succeeded and updated `origin/main`.
 - Verification:
   - `npm run build` passes. Existing Vite >500 kB chunk warning remains.
   - `npm run lint` passes.
