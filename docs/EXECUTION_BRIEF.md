@@ -121,7 +121,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 - `src/pages/Comparison.tsx` 已收敛为 `/comparison` 路由壳，纵向/横向比较复用 `PeriodicTesting` 的 registry + `MetricSurfaceConfig` + measurement selector 展示面，不再维护第二套 demo indicators、layers、统计函数和图表配置。
 - `src/pages/Correlation.tsx` 已从 metric registry 派生指标名称/类别，并已开始消费 `src/lib/performance-statistics.ts` 的相关性统计输出；数据仍来自 correlation demo generator。
 - `src/lib/measurement-store.ts` 已建立第一版共享 mock `Measurement[]` store 和 selector。Data Entry 手动录入和 Excel 导入确认已能生成 `Measurement[]` 并在 PL-010 中写入本地 JSON workspace；Dashboard periodic testing 和 `/comparison` 已开始读取活动 workspace；Admin 页和其他 Dashboard 区块还没有迁移为 workspace/selector 消费者。
-- `src/lib/workspace-file.ts`、`src/lib/workspace-store.tsx`、`src/lib/workspace-measurement-store.ts` 和 `src/components/WorkspaceFileBar.tsx` 已建立第一版本地 `performancelab.workspace.json` 文件层和到 measurement selector 的读取 adapter。它支持 File System Access API 的创建、打开、保存、另存为，以及不支持浏览器的 JSON 导入/导出降级；当前仍需补 Admin 定义库、动作分类新增、剩余核心页面读取路径和清缓存后重连恢复验证。
+- `src/lib/workspace-file.ts`、`src/lib/workspace-store.tsx`、`src/lib/workspace-measurement-store.ts` 和 `src/components/WorkspaceFileBar.tsx` 已建立第一版本地 `performancelab.workspace.json` 文件层和到 measurement selector 的读取 adapter。它支持 File System Access API 的创建、打开、保存、另存为，以及不支持浏览器的 JSON 导入/导出降级；Settings 的外观偏好、人体图、显示阈值、通知规则、系统统计和导出入口已接入活动 workspace；当前仍需补 Admin 定义库、动作分类新增、剩余核心页面读取路径和清缓存后重连恢复验证。
 - `src/lib/domain-model.ts` 已扩展 `MetricDefinition`、`Measurement`、`TestAction`、`TestBattery`、`SessionBatteryAssignment`、`DerivedMetricDefinition` 等字段，为测试内容、批次、维度、质量标记和衍生指标做准备；`src/lib/derived-metric-formulas.ts` 已有公式 registry 雏形，但尚未接入 measurement query 和 UI。
 - `src/lib/metric-surface-config.ts` 已建立第一版可序列化指标展示面配置模型，包含主数据组、最多 3 组额外对比数据组、时间/主体选择、聚合方式、横向参照群组和统计注释配置。
 - `src/lib/performance-statistics.ts` 已建立第一版专业统计边界，集中 summary comparison、TE、MDC、SWC、SNR、Cohen's d、summary-level p-value、Pearson/Spearman correlation、CI、样本量、缺失值策略和数据质量 metadata。Dashboard periodic comparison 和 `/correlation` 的主统计表已开始消费该边界。
@@ -136,18 +136,18 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 | PL-004 | P1 | Done | 收敛 `/comparison` 页面 | `src/pages/Comparison.tsx` 已替换为复用 `PeriodicTesting` 的路由壳；纵向/横向比较共用 Dashboard periodic testing 的 metric registry、metric surface config、measurement selector、统计和图表路径；不再维护第二套页面本地指标/统计/图表真相 | `src/pages/Comparison.tsx`, `src/components/dashboard/PeriodicTesting.tsx` |
 | PL-005 | P1 | Done | 统一 Data Entry 指标来源 | `IndicatorSelector` 已从 registry-backed test battery config 派生，不再消费本地 `m-*` 指标；手动录入保存和 Excel 暂存确认都会生成 domain-model `Measurement[]`；持久化已在 PL-010 开始接入本地 JSON workspace | `src/components/data-entry/*`, `src/lib/data-entry-config.ts`, `src/lib/data-entry-measurements.ts`, `src/lib/metric-registry.ts` |
 | PL-006 | P1 | Done | 统计模块专业化 | 已新增 `src/lib/performance-statistics.ts`，集中 summary comparison、TE、MDC、SWC、SNR、effect size、summary-level p-value 和 correlation 输出；结果包含 method、assumptions、sampleSize、missingDataPolicy、dataQuality。Dashboard periodic comparison 和 `/correlation` 主统计表已迁移到该边界；仍需后续用真实 paired/reliability 原始数据替换 summary-level 近似 | `src/lib/statistics.ts`, `src/lib/performance-statistics.ts`, `src/components/dashboard/PeriodicTesting.tsx`, `src/pages/Correlation.tsx` |
-| PL-010 | P0 | Doing | 本地 JSON 工作区文件持久化 | 已建立 `performancelab.workspace.json` 文件层、全局工作区文件栏、创建/打开/保存/另存为/导入/导出入口；Data Entry 手动保存、Excel 导入确认、Settings 阈值与通知设置已写入 workspace；Dashboard periodic testing 和 `/comparison` 已通过 workspace adapter 读取活动 JSON 中的测量数据。完成前还需补 Admin 定义库修改、新增动作分类、Settings 剩余配置、其他核心页面读取路径，并验证清缓存后重新打开同一 JSON 能恢复核心数据 | `src/lib/workspace-file.ts`, `src/lib/workspace-store.tsx`, `src/lib/workspace-measurement-store.ts`, `src/components/WorkspaceFileBar.tsx`, `src/components/dashboard/PeriodicTesting.tsx`, `src/pages/DataEntry.tsx`, `src/pages/Settings.tsx`, `src/pages/Admin.tsx` |
+| PL-010 | P0 | Doing | 本地 JSON 工作区文件持久化 | 已建立 `performancelab.workspace.json` 文件层、全局工作区文件栏、创建/打开/保存/另存为/导入/导出入口；Data Entry 手动保存、Excel 导入确认、Settings 外观偏好/人体图/显示阈值/通知规则/系统统计/导出入口已写入或读取 workspace；Dashboard periodic testing 和 `/comparison` 已通过 workspace adapter 读取活动 JSON 中的测量数据。完成前还需补 Admin 定义库修改、新增动作分类、其他核心页面读取路径，并验证清缓存后重新打开同一 JSON 能恢复核心数据 | `src/lib/workspace-file.ts`, `src/lib/workspace-store.tsx`, `src/lib/workspace-measurement-store.ts`, `src/components/WorkspaceFileBar.tsx`, `src/components/dashboard/PeriodicTesting.tsx`, `src/pages/DataEntry.tsx`, `src/pages/Settings.tsx`, `src/pages/Admin.tsx` |
 | PL-011 | P0 | Todo | 测试内容、测试批次与 availability matrix | 建立 `TestAction`、`TestBattery`、`SessionBatteryAssignment` 的真实使用路径；横向比较默认只比较共同可用指标，表格可展示全集并标记 missing/partial/incompatible；同一批次、同一备赛阶段、不同测试内容的边界规则写入 selector 和 UI | `src/lib/domain-model.ts`, `src/lib/workspace-file.ts`, measurement selector, Dashboard periodic testing |
 | PL-012 | P0 | Todo | 衍生指标公式 registry | 公式 registry 能从 raw measurements 计算 derived metrics，首版覆盖不对称性、比值、相对体重、差值、均值；衍生指标有依赖指标、维度标签、质量标记和缺失数据处理说明；UI 不要求用户手写公式即可展示常见衍生指标 | `src/lib/derived-metric-formulas.ts`, `src/lib/domain-model.ts`, measurement store/query adapter |
 | PL-013 | P1 | Todo | Dashboard 全局筛选和卡片切换实装 | 顶部日期、运动员、测试批次筛选实际驱动 measurement query；所有可切换卡片改为真实 metric/display config，不再只是菜单高亮；雷达图少于 3 个可用维度时自动降级为柱状图、折线图或表格 | `src/components/dashboard/*`, `src/lib/metric-surface-config.ts`, `src/lib/metric-surface-measurements.ts` |
 | PL-014 | P1 | Todo | 日常监控 UI 重构 | 人体图隐藏绿色正常点；右侧改为损伤历史趋势图并按严重程度着色；人体图下方卡片重新组织为更专业、密度合理、与真实指标选择兼容的布局 | `src/components/dashboard/DailyMonitoring.tsx`, `src/components/dashboard/data.ts` |
 | PL-015 | P1 | Todo | 定期测试 UI 与异常预警重构 | 定期测试改为更专业的左图右表结构；异常值标红并显示原因；纵向比较支持基准组 + 最多 3 个对比时间组；横向参考群体补全并避免均值/最佳值语义混乱 | `src/components/dashboard/PeriodicTesting.tsx`, `src/lib/performance-statistics.ts`, `src/lib/metric-surface-measurements.ts` |
-| PL-016 | P1 | Todo | Admin 定义库与 Settings 完整持久化 | Admin 支持新增动作分类、测试动作和指标定义，并与 Data Entry 共享同一 workspace 配置源；Settings 中身体图、显示偏好、通知规则等用户配置写入 JSON 文件而不是只存在浏览器状态或 alert | `src/pages/Admin.tsx`, `src/pages/Settings.tsx`, `src/lib/workspace-store.tsx` |
+| PL-016 | P1 | Todo | Admin 定义库与高级 Settings 持久化 | Admin 支持新增动作分类、测试动作和指标定义，并与 Data Entry 共享同一 workspace 配置源；Settings 后续如新增自定义通知分组、更多用户配置或显示预设，也应写入 JSON 文件而不是只存在浏览器状态或 alert | `src/pages/Admin.tsx`, `src/pages/Settings.tsx`, `src/lib/workspace-store.tsx` |
 | PL-007 | P2 | Todo | 稳定 mock 数据 | Dashboard daily data 和 correlation demo 数据不再使用未 seeded 的 `Math.random()`，刷新后数据稳定；`PeriodicTesting` 横向运动员对比已在 PL-003 中改为 measurement selector 汇总，`/comparison` 已在 PL-004 中复用该路径 | `src/components/dashboard/data.ts`, `src/pages/Correlation.tsx` |
 | PL-008 | P2 | Todo | 移动端比较视图 QA | 390px、768px、1440px 下 Dashboard 比较视图和 Comparison 页面无页面级横向溢出，关键文本不重叠 | Dashboard, Comparison, Playwright smoke |
 | PL-009 | P2 | Todo | 路由级性能优化 | ECharts-heavy 页面按路由 lazy load；build 仍可通过；bundle 警告有明确处理或记录 | `src/App.tsx`, Vite build output |
 
-如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始；当前默认继续 `PL-010`。本轮已完成本地 JSON workspace 的基础文件层、全局文件栏、Data Entry 写入、部分 Settings 写入，以及 Dashboard periodic testing/`/comparison` 对活动 workspace 测量数据的读取，但还不能把 PL-010 判定为 `Done`，因为 Admin 定义库、动作分类新增、Settings 剩余配置、其他核心页面读取路径和清缓存后重连恢复验证仍未完成。
+如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始；当前默认继续 `PL-010`。本轮已完成本地 JSON workspace 的基础文件层、全局文件栏、Data Entry 写入、Settings 主要配置读写，以及 Dashboard periodic testing/`/comparison` 对活动 workspace 测量数据的读取，但还不能把 PL-010 判定为 `Done`，因为 Admin 定义库、动作分类新增、其他核心页面读取路径和清缓存后重连恢复验证仍未完成。
 
 ## 高优先级问题详情
 
@@ -196,7 +196,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 
 - 是否已有未提交改动。
 - 是否存在近期文档更新改变了优先级。
-- Admin 定义库、动作分类新增、Settings 其他配置、Dashboard 其他区块和 selector 哪些路径仍只读 mock/local state，而不是 workspace。
+- Admin 定义库、动作分类新增、Dashboard 其他区块和 selector 哪些路径仍只读 mock/local state，而不是 workspace。
 - File System Access API 的创建、打开、保存、另存为、导入/导出降级是否在当前浏览器可用；清缓存后重新打开同一 JSON 文件是否能恢复核心数据。
 - PL-010 完成前不要把 IndexedDB/localStorage 作为核心数据权威源；localStorage 只能保留主题、UI 偏好或最近提示一类非核心状态。
 - 如果发现 PL-010 范围继续扩大，应先把 Admin、Dashboard、Settings 的子问题拆给 PL-011/PL-013/PL-016，而不是在一个组件里硬接所有逻辑。

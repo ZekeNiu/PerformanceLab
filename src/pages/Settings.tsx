@@ -60,6 +60,28 @@ interface ColorScheme {
   colors: string[]
 }
 
+type DataDensity = '标准' | '紧凑' | '舒适'
+
+interface AppearancePreferences {
+  chartColors: string[]
+  accentColor: string
+  selectedScheme: number
+  density: DataDensity
+}
+
+interface BodyMapSettings {
+  frontJoints: Joint[]
+  backJoints: Joint[]
+  customFrontImage: string | null
+  customBackImage: string | null
+}
+
+interface NotificationSettings {
+  enabled: boolean
+  rules: NotificationRule[]
+  maxDisplay: number
+}
+
 const DEFAULT_DISPLAY_THRESHOLDS = {
   hrvDeviation: 1.5,
   rhrDeviation: 1.5,
@@ -130,6 +152,146 @@ const JOINT_COLORS = [
   '#D97706', '#DC2626', '#2563EB', '#059669',
 ]
 
+const DEFAULT_NOTIFICATION_RULES: NotificationRule[] = [
+  { id: 'hrv-severe', label: 'HRV 偏离阈值且连续', enabled: true, threshold: 1.5, days: 2 },
+  { id: 'rhr-severe', label: 'RHR 偏离阈值且连续', enabled: true, threshold: 1.5, days: 2 },
+  { id: 'injury-severe', label: '伤病评分 ≥', enabled: true, threshold: 6 },
+  { id: 'acwr-danger', label: 'ACWR 进入危险区 (>', enabled: true, threshold: 1.5 },
+  { id: 'hrv-caution', label: 'HRV 偏离 > 阈值 单日', enabled: true, threshold: 1.0 },
+  { id: 'rhr-caution', label: 'RHR 偏离 > 阈值 单日', enabled: true, threshold: 1.0 },
+  { id: 'injury-caution', label: '伤病评分 1-5', enabled: true },
+  { id: 'acwr-caution', label: 'ACWR 进入警戒区 (1.3 - 1.5)', enabled: true },
+  { id: 'recovery', label: '之前异常指标连续恢复正常', enabled: true, days: 3 },
+]
+
+const DEFAULT_APPEARANCE_PREFERENCES: AppearancePreferences = {
+  chartColors: CHART_SCHEMES[0].colors,
+  accentColor: '#00D4AA',
+  selectedScheme: 0,
+  density: '标准',
+}
+
+const DEFAULT_BODY_MAP_SETTINGS: BodyMapSettings = {
+  frontJoints: DEFAULT_FRONT_JOINTS,
+  backJoints: DEFAULT_BACK_JOINTS,
+  customFrontImage: null,
+  customBackImage: null,
+}
+
+const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
+  enabled: true,
+  rules: DEFAULT_NOTIFICATION_RULES,
+  maxDisplay: 10,
+}
+
+function cloneJoints(joints: Joint[]): Joint[] {
+  return joints.map((joint) => ({ ...joint }))
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isValidColorArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === 'string')
+}
+
+function isDataDensity(value: unknown): value is DataDensity {
+  return value === '标准' || value === '紧凑' || value === '舒适'
+}
+
+function readWorkspaceAppearancePreferences(
+  value: unknown,
+  fallback: AppearancePreferences = DEFAULT_APPEARANCE_PREFERENCES,
+): AppearancePreferences {
+  if (!isRecord(value)) return { ...fallback, chartColors: [...fallback.chartColors] }
+
+  const selectedScheme = value.selectedScheme
+  return {
+    chartColors: isValidColorArray(value.chartColors) ? [...value.chartColors] : [...fallback.chartColors],
+    accentColor: typeof value.accentColor === 'string' ? value.accentColor : fallback.accentColor,
+    selectedScheme:
+      typeof selectedScheme === 'number' &&
+      Number.isInteger(selectedScheme) &&
+      selectedScheme >= 0 &&
+      selectedScheme < CHART_SCHEMES.length
+        ? selectedScheme
+        : fallback.selectedScheme,
+    density: isDataDensity(value.density) ? value.density : fallback.density,
+  }
+}
+
+function readWorkspaceJoints(value: unknown, fallback: Joint[]): Joint[] {
+  if (!Array.isArray(value)) return cloneJoints(fallback)
+
+  const joints = value
+    .filter(isRecord)
+    .map((joint): Joint => {
+      const side: Joint['side'] =
+        joint.side === 'left' || joint.side === 'right' || joint.side === 'center'
+          ? joint.side
+          : 'center'
+
+      return {
+        id: typeof joint.id === 'number' ? joint.id : 0,
+        name: typeof joint.name === 'string' ? joint.name : '',
+        x: typeof joint.x === 'number' && Number.isFinite(joint.x) ? joint.x : 50,
+        y: typeof joint.y === 'number' && Number.isFinite(joint.y) ? joint.y : 50,
+        side,
+      }
+    })
+    .filter((joint) => joint.id > 0 && joint.name)
+
+  return joints.length ? joints : cloneJoints(fallback)
+}
+
+function readWorkspaceBodyMapSettings(value: unknown): BodyMapSettings {
+  if (!isRecord(value)) {
+    return {
+      frontJoints: cloneJoints(DEFAULT_BODY_MAP_SETTINGS.frontJoints),
+      backJoints: cloneJoints(DEFAULT_BODY_MAP_SETTINGS.backJoints),
+      customFrontImage: null,
+      customBackImage: null,
+    }
+  }
+
+  return {
+    frontJoints: readWorkspaceJoints(value.frontJoints, DEFAULT_FRONT_JOINTS),
+    backJoints: readWorkspaceJoints(value.backJoints, DEFAULT_BACK_JOINTS),
+    customFrontImage: typeof value.customFrontImage === 'string' ? value.customFrontImage : null,
+    customBackImage: typeof value.customBackImage === 'string' ? value.customBackImage : null,
+  }
+}
+
+function readWorkspaceNotificationSettings(value: unknown): NotificationSettings {
+  if (!isRecord(value)) {
+    return {
+      enabled: DEFAULT_NOTIFICATION_SETTINGS.enabled,
+      rules: DEFAULT_NOTIFICATION_RULES.map((rule) => ({ ...rule })),
+      maxDisplay: DEFAULT_NOTIFICATION_SETTINGS.maxDisplay,
+    }
+  }
+
+  const rules = Array.isArray(value.rules)
+    ? value.rules.filter(isRecord).map((rule) => ({
+        id: typeof rule.id === 'string' ? rule.id : '',
+        label: typeof rule.label === 'string' ? rule.label : '',
+        enabled: typeof rule.enabled === 'boolean' ? rule.enabled : true,
+        threshold: typeof rule.threshold === 'number' ? rule.threshold : undefined,
+        days: typeof rule.days === 'number' ? rule.days : undefined,
+      })).filter((rule) => rule.id && rule.label)
+    : DEFAULT_NOTIFICATION_RULES.map((rule) => ({ ...rule }))
+
+  return {
+    enabled: typeof value.enabled === 'boolean' ? value.enabled : DEFAULT_NOTIFICATION_SETTINGS.enabled,
+    rules: rules.length ? rules : DEFAULT_NOTIFICATION_RULES.map((rule) => ({ ...rule })),
+    maxDisplay:
+      typeof value.maxDisplay === 'number' && Number.isFinite(value.maxDisplay)
+        ? value.maxDisplay
+        : DEFAULT_NOTIFICATION_SETTINGS.maxDisplay,
+  }
+}
+
 function readStoredChartColors() {
   const stored = localStorage.getItem('sportpulse-chart-colors')
   if (!stored) return CHART_SCHEMES[0].colors
@@ -147,15 +309,15 @@ function readStoredChartColors() {
 
 /* ─────────────────────── Zustand-like local store ─────────────────────── */
 
-function useThemeStore() {
+function useThemeStore(initialAppearance: AppearancePreferences) {
   const { isDark, setTheme } = useAppTheme()
 
   const [chartColors, setChartColors] = useState(() => {
-    return readStoredChartColors()
+    return initialAppearance.chartColors
   })
 
   const [accentColor, setAccentColor] = useState(() => {
-    return localStorage.getItem('sportpulse-accent') || '#00D4AA'
+    return initialAppearance.accentColor
   })
 
   useEffect(() => {
@@ -175,7 +337,15 @@ const sectionEase = [0.16, 1, 0.3, 1] as [number, number, number, number]
 /* ─════════════════════════ SETTINGS PAGE ═══════════════════════─ */
 
 export default function Settings() {
-  const { isDark, setIsDark, chartColors, setChartColors, accentColor, setAccentColor } = useThemeStore()
+  const { workspace } = useWorkspaceStore()
+  const initialAppearance = readWorkspaceAppearancePreferences(workspace.settings.chartPreferences, {
+    chartColors: readStoredChartColors(),
+    accentColor: localStorage.getItem('sportpulse-accent') || DEFAULT_APPEARANCE_PREFERENCES.accentColor,
+    selectedScheme: DEFAULT_APPEARANCE_PREFERENCES.selectedScheme,
+    density: DEFAULT_APPEARANCE_PREFERENCES.density,
+  })
+  const { isDark, setIsDark, chartColors, setChartColors, accentColor, setAccentColor } =
+    useThemeStore(initialAppearance)
 
   return (
     <div className="flex min-h-full flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -201,6 +371,8 @@ export default function Settings() {
           setChartColors={setChartColors}
           accentColor={accentColor}
           setAccentColor={setAccentColor}
+          initialDensity={initialAppearance.density}
+          initialSelectedScheme={initialAppearance.selectedScheme}
         />
         <BodyMapSection />
         <DisplayPreferencesSection />
@@ -220,6 +392,8 @@ function AppearanceSection({
   setChartColors,
   accentColor,
   setAccentColor,
+  initialDensity,
+  initialSelectedScheme,
 }: {
   isDark: boolean
   setIsDark: (v: boolean) => void
@@ -227,14 +401,35 @@ function AppearanceSection({
   setChartColors: (v: string[]) => void
   accentColor: string
   setAccentColor: (v: string) => void
+  initialDensity: DataDensity
+  initialSelectedScheme: number
 }) {
-  const [selectedScheme, setSelectedScheme] = useState(0)
-  const [density, setDensity] = useState<'标准' | '紧凑' | '舒适'>('标准')
+  const { updateSettings } = useWorkspaceStore()
+  const [selectedScheme, setSelectedScheme] = useState(initialSelectedScheme)
+  const [density, setDensity] = useState<DataDensity>(initialDensity)
 
   const applyScheme = useCallback((index: number) => {
     setSelectedScheme(index)
     setChartColors(CHART_SCHEMES[index].colors)
   }, [setChartColors])
+
+  const saveAppearancePreferences = async () => {
+    try {
+      await updateSettings({
+        chartPreferences: {
+          chartColors,
+          accentColor,
+          selectedScheme,
+          density,
+        },
+      })
+      toast.success('外观设置已保存到本地工作区')
+    } catch (error) {
+      toast.error('外观设置保存失败', {
+        description: error instanceof Error ? error.message : '请重新授权本地文件或导出备份。',
+      })
+    }
+  }
 
   return (
     <motion.section
@@ -403,7 +598,7 @@ function AppearanceSection({
       <div>
         <Label className="mb-3 block text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>数据密度</Label>
         <div className="flex flex-col gap-2">
-          {(['标准', '紧凑', '舒适'] as const).map((d) => (
+          {(['标准', '紧凑', '舒适'] as DataDensity[]).map((d) => (
             <label key={d} className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors" style={{ borderColor: density === d ? 'var(--accent-cyan)' : 'var(--border-subtle)', backgroundColor: density === d ? 'var(--bg-primary)' : 'transparent' }}>
               <input
                 type="radio"
@@ -425,6 +620,16 @@ function AppearanceSection({
           ))}
         </div>
       </div>
+
+      <div className="mt-5 flex gap-3">
+        <button
+          onClick={saveAppearancePreferences}
+          className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: 'var(--accent-cyan)' }}
+        >
+          <Save size={14} /> 保存外观设置
+        </button>
+      </div>
     </motion.section>
   )
 }
@@ -432,14 +637,16 @@ function AppearanceSection({
 /* ═══════════════ Section 2: Body Map Configuration ═══════════════ */
 
 function BodyMapSection() {
+  const { workspace, updateSettings } = useWorkspaceStore()
+  const bodyMapSettings = readWorkspaceBodyMapSettings(workspace.settings.bodyMap)
   const [activeView, setActiveView] = useState<'front' | 'back'>('front')
   const [editMode, setEditMode] = useState<'drag' | 'table'>('drag')
   const [zoom, setZoom] = useState(100)
-  const [frontJoints, setFrontJoints] = useState<Joint[]>(DEFAULT_FRONT_JOINTS)
-  const [backJoints, setBackJoints] = useState<Joint[]>(DEFAULT_BACK_JOINTS)
+  const [frontJoints, setFrontJoints] = useState<Joint[]>(bodyMapSettings.frontJoints)
+  const [backJoints, setBackJoints] = useState<Joint[]>(bodyMapSettings.backJoints)
   const [draggingId, setDraggingId] = useState<number | null>(null)
-  const [customFrontImage, setCustomFrontImage] = useState<string | null>(null)
-  const [customBackImage, setCustomBackImage] = useState<string | null>(null)
+  const [customFrontImage, setCustomFrontImage] = useState<string | null>(bodyMapSettings.customFrontImage)
+  const [customBackImage, setCustomBackImage] = useState<string | null>(bodyMapSettings.customBackImage)
   const imageRef = useRef<HTMLDivElement>(null)
 
   const joints = activeView === 'front' ? frontJoints : backJoints
@@ -497,6 +704,24 @@ function BodyMapSection() {
     }
     reader.readAsDataURL(file)
   }, [])
+
+  const saveBodyMapSettings = async () => {
+    try {
+      await updateSettings({
+        bodyMap: {
+          frontJoints,
+          backJoints,
+          customFrontImage,
+          customBackImage,
+        },
+      })
+      toast.success('人体图配置已保存到本地工作区')
+    } catch (error) {
+      toast.error('人体图配置保存失败', {
+        description: error instanceof Error ? error.message : '请重新授权本地文件或导出备份。',
+      })
+    }
+  }
 
   return (
     <motion.section
@@ -796,7 +1021,7 @@ function BodyMapSection() {
             <RotateCcw size={14} /> 恢复默认坐标
           </button>
           <button
-            onClick={() => alert('配置已保存')}
+            onClick={saveBodyMapSettings}
             className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: 'var(--accent-cyan)' }}
           >
@@ -911,20 +1136,11 @@ function DisplayPreferencesSection() {
 /* ═══════════════ Section 4: Notification Settings ═══════════════ */
 
 function NotificationSection() {
-  const { updateSettings } = useWorkspaceStore()
-  const [enabled, setEnabled] = useState(true)
-  const [rules, setRules] = useState<NotificationRule[]>([
-    { id: 'hrv-severe', label: 'HRV 偏离阈值且连续', enabled: true, threshold: 1.5, days: 2 },
-    { id: 'rhr-severe', label: 'RHR 偏离阈值且连续', enabled: true, threshold: 1.5, days: 2 },
-    { id: 'injury-severe', label: '伤病评分 ≥', enabled: true, threshold: 6 },
-    { id: 'acwr-danger', label: 'ACWR 进入危险区 (>', enabled: true, threshold: 1.5 },
-    { id: 'hrv-caution', label: 'HRV 偏离 > 阈值 单日', enabled: true, threshold: 1.0 },
-    { id: 'rhr-caution', label: 'RHR 偏离 > 阈值 单日', enabled: true, threshold: 1.0 },
-    { id: 'injury-caution', label: '伤病评分 1-5', enabled: true },
-    { id: 'acwr-caution', label: 'ACWR 进入警戒区 (1.3 - 1.5)', enabled: true },
-    { id: 'recovery', label: '之前异常指标连续恢复正常', enabled: true, days: 3 },
-  ])
-  const [maxDisplay, setMaxDisplay] = useState(10)
+  const { workspace, updateSettings } = useWorkspaceStore()
+  const notificationSettings = readWorkspaceNotificationSettings(workspace.settings.notificationRules)
+  const [enabled, setEnabled] = useState(notificationSettings.enabled)
+  const [rules, setRules] = useState<NotificationRule[]>(notificationSettings.rules)
+  const [maxDisplay, setMaxDisplay] = useState(notificationSettings.maxDisplay)
 
   const toggleRule = (id: string) => {
     setRules((prev) => prev.map((r) => r.id === id ? { ...r, enabled: !r.enabled } : r))
@@ -1045,14 +1261,21 @@ function NotificationSection() {
 /* ═══════════════ Section 5: System Info ═══════════════ */
 
 function SystemInfoSection() {
+  const { workspace, exportBackup } = useWorkspaceStore()
   const [clearCacheOpen, setClearCacheOpen] = useState(false)
 
   const stats = [
-    { label: '运动员总数', value: '156 人' },
-    { label: '测试批次总数', value: '48 次' },
-    { label: '数据记录总数', value: '12,847 条' },
-    { label: '定义指标总数', value: '86 个' },
+    { label: '运动员总数', value: `${workspace.athletes.length} 人` },
+    { label: '测试批次总数', value: `${workspace.testSessions.length} 次` },
+    { label: '数据记录总数', value: `${workspace.measurements.length.toLocaleString()} 条` },
+    { label: '定义指标总数', value: `${workspace.metricDefinitions.length} 个` },
   ]
+
+  const localCacheSizeKb = Math.round(
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith('sportpulse-'))
+      .reduce((total, key) => total + key.length + (localStorage.getItem(key)?.length ?? 0), 0) / 1024,
+  )
 
   const handleClearCache = () => {
     const keys = Object.keys(localStorage).filter((k) => k.startsWith('sportpulse-'))
@@ -1084,8 +1307,8 @@ function SystemInfoSection() {
         </div>
         <div className="flex items-center gap-2 text-[13px]">
           <CalendarDays size={14} style={{ color: 'var(--text-muted)' }} />
-          <span style={{ color: 'var(--text-secondary)' }}>最后更新:</span>
-          <span style={{ color: 'var(--text-primary)' }}>2024-06-15</span>
+          <span style={{ color: 'var(--text-secondary)' }}>工作区更新时间:</span>
+          <span style={{ color: 'var(--text-primary)' }}>{new Date(workspace.updatedAt).toLocaleString()}</span>
         </div>
 
         {/* Data Stats */}
@@ -1107,7 +1330,7 @@ function SystemInfoSection() {
           <div className="flex items-center gap-3">
             <HardDrive size={14} style={{ color: 'var(--text-muted)' }} />
             <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>本地缓存大小:</span>
-            <span className="font-mono text-[13px]" style={{ color: 'var(--text-primary)' }}>2.4 MB</span>
+            <span className="font-mono text-[13px]" style={{ color: 'var(--text-primary)' }}>{localCacheSizeKb} KB</span>
             <button
               onClick={() => setClearCacheOpen(true)}
               className="ml-auto flex items-center gap-2 rounded-lg border px-4 py-2 text-[12px] font-medium transition-colors"
@@ -1117,7 +1340,7 @@ function SystemInfoSection() {
             </button>
           </div>
           <p className="mt-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            将重置所有本地偏好设置，不会删除服务器数据
+            将重置浏览器内的主题和短期偏好；核心数据请以本地 JSON 工作区文件为准。
           </p>
         </div>
 
@@ -1126,7 +1349,7 @@ function SystemInfoSection() {
           <div className="mb-3 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>数据管理</div>
           <div className="flex gap-3">
             <button
-              onClick={() => alert('开始导出全部数据...')}
+              onClick={exportBackup}
               className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: 'var(--accent-blue)' }}
             >
@@ -1134,7 +1357,7 @@ function SystemInfoSection() {
             </button>
           </div>
           <p className="mt-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            下载完整的系统数据备份 (JSON/Excel)
+            下载当前活动工作区的完整 JSON 备份。
           </p>
         </div>
       </div>
@@ -1145,7 +1368,7 @@ function SystemInfoSection() {
           <DialogHeader>
             <DialogTitle style={{ color: 'var(--text-primary)' }}>确认清除缓存</DialogTitle>
             <DialogDescription style={{ color: 'var(--text-secondary)' }}>
-              此操作将删除所有本地存储的设置和偏好，但不会删除服务器上的数据。确定要继续吗？
+              此操作会删除浏览器内的主题和短期偏好。重新载入后，请通过顶部文件栏重新打开同一个 JSON 工作区文件恢复核心数据。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

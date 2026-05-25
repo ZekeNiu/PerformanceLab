@@ -511,3 +511,41 @@ Use this file as the session-by-session project journal.
 - GitHub Actions note: the GitHub connector did not return push workflow runs for commit `ae59f58`.
 - GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `b27fc4f` with message `deploy: ae59f58c6c644b993eb8bc9ea4bbae5f072a66af`, confirming the PL-010 workspace periodic read-path commit deployed. The follow-up progress-log commit `93a27cd` used `[skip ci]` and did not need a deployment run.
 - Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
+
+## 2026-05-25 PL-010 Settings Workspace Persistence Continuation
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: continue `PL-010`, local JSON workspace file persistence.
+- Read the required project context files and confirmed initial git status: `main...origin/main` with no local changes.
+- Read the karpathy-guidelines skill because this pass should stay surgical and verifiable rather than attempting all remaining PL-010 scope at once.
+- Inventory finding: Settings display thresholds already read/write `workspace.settings.thresholds`, and notification settings write `workspace.settings.notificationRules`, but notification settings do not restore from an opened JSON workspace.
+- Inventory finding: Settings body-map configuration still lives only in component state and the save button only shows an alert.
+- Inventory finding: Settings appearance chart colors/accent/density still rely on localStorage/component state rather than the workspace JSON, and System Info still shows hardcoded data counts plus a mock export alert.
+- Working decision: keep this pass focused on Settings as one bounded PL-010 slice: persist and restore appearance preferences, body-map configuration, notification rules, and make System Info read/export the active workspace. Admin definition persistence and remaining dashboard read paths stay open for later PL-010/PL-016 passes.
+- Updated `src/pages/Settings.tsx` so appearance preferences, body-map coordinates/images, notification rules, and system statistics/export consume the active workspace settings/data instead of only local component state or hardcoded values.
+- Verification note: first `npm run lint` passed, but first `npm run build` failed because the body-map joint normalizer inferred `side` as `string` instead of the `Joint['side']` union.
+- Fixed the body-map joint normalizer to return the explicit `Joint` shape with a narrowed `side` union.
+- Verification: reran `npm run build`; it passes with the existing Vite >500 kB chunk warning.
+- Verification: reran `npm run lint`; it passes with no warnings.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright setup note: started local `npm run preview` on `http://127.0.0.1:4173/`.
+- Playwright script note: first inline script failed before browser interaction because PowerShell pipe encoding corrupted Chinese regex literals; reran with ASCII-only Unicode escapes.
+- Playwright assertion note: second script reached Settings after import but used a broad text locator for `BodyMapSmoke`, which matched both the body-map label and coordinate table; reran with a table-cell locator.
+- Playwright fixture note: third script used a custom notification id that the current UI does not render because notification groups are derived from known rule ids; reran with the known `hrv-severe` id and a custom label.
+- Playwright smoke on local preview passed for `/settings`:
+  - Imported a temporary `performancelab-settings-smoke.json` through the global workspace file bar.
+  - Settings System Info rendered workspace-derived counts: 2 athletes, 1 test session, 1 measurement, and 1 metric definition.
+  - Body Map rendered the workspace-provided joint label `BodyMapSmoke`.
+  - Notification Settings rendered the workspace-provided rule label `NotificationSmoke` and restored max display value `3`.
+  - Data export downloaded `performancelab.workspace.json`.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
+- Cleanup note: stopped the local Vite preview process and its child process on port 4173.
+- Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/AI_CONTEXT.md`, `docs/ROADMAP.md`, `task_plan.md`, and `findings.md` to reflect that Settings main preferences now read/write the active workspace while PL-010 remains `Doing`.
+- Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Final verification: `npm run lint` passes with no warnings.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files, `progress.md`, `findings.md`, `task_plan.md`, and `src/pages/Settings.tsx`.
+- Commit plan: create a local commit for this PL-010 continuation with message `Persist settings in workspace`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `53d9850` with message `Persist settings in workspace`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing.

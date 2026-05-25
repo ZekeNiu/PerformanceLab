@@ -182,10 +182,12 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed this pass: Connected Settings display thresholds and notification settings to workspace settings.
 - Completed this pass: Added `src/lib/derived-metric-formulas.ts` as the first formula registry skeleton.
 - Completed this continuation pass: Added `src/lib/workspace-measurement-store.ts` and migrated `PeriodicTesting`/`/comparison` to derive periodic surface data from the active workspace measurements instead of module-level `mockMeasurementStore`.
+- Completed this continuation pass: Settings appearance preferences, body-map coordinates/images, display thresholds, notification rules, system statistics, and data export now read/write the active workspace instead of only local component state, localStorage, hardcoded counts, or alerts.
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
 - Verification: `npm run lint` passes.
 - Verification: Playwright workspace import smoke passed for `/comparison`; after importing a temporary JSON workspace, the longitudinal table displayed the JSON-provided `88.0` value and the cross-sectional add-comparison menu listed a workspace-provided athlete.
-- Still open before PL-010 can be marked Done: Admin definition/action-category persistence, full Settings persistence, remaining workspace-powered selector/page consumers, and browser/manual verification that clearing cache then reopening the same JSON restores core data.
+- Verification: Playwright workspace import smoke passed for `/settings`; after importing a temporary JSON workspace, Settings rendered workspace-derived counts, body-map joint config, notification config, and exported a JSON backup with no console errors/warnings or desktop page overflow.
+- Still open before PL-010 can be marked Done: Admin definition/action-category persistence, remaining workspace-powered selector/page consumers, and browser/manual verification that clearing cache then reopening the same JSON restores core data.
 - Next recommended architecture work: continue PL-010, then proceed to PL-011/PL-012 for availability matrix and derived metric computation.
 
 ## 2026-05-22 Active Task
