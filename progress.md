@@ -410,3 +410,6 @@ Use this file as the session-by-session project journal.
 
 - Push: pushed PL-006 commit `fad4170` (`Professionalize statistics module`) to `origin/main`.
 - Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages deployment run.
+- GitHub Actions note: anonymous REST API check was rate-limited, and the GitHub connector did not return push workflow runs for the commit.
+- GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `5ab628c` with message `deploy: fad4170beb7c4b92bccb441574ffa998547d82d1`, confirming the PL-006 code commit deployed. The follow-up progress-log commit `b78f879` used `[skip ci]` and did not need a deployment run.
+- Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
