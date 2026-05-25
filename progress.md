@@ -549,6 +549,9 @@ Use this file as the session-by-session project journal.
 - Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
 - Commit: created local commit `b0c7e21` with message `Persist admin definitions in workspace`.
 - Commit amend plan: amend the commit to include this commit log entry before pushing.
+- Commit amend: updated the local commit to `2fd3f22` with the same message before push so the progress log stays in the same change.
+- Push: pushed commit `2fd3f22` to `origin/main`.
+- Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages deployment run.
 - Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/AI_CONTEXT.md`, `docs/ROADMAP.md`, `task_plan.md`, and `findings.md` to reflect that Settings main preferences now read/write the active workspace while PL-010 remains `Doing`.
 - Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
 - Final verification: `npm run lint` passes with no warnings.
