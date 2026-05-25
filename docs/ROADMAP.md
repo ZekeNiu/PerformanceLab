@@ -80,7 +80,7 @@ Options when the project is ready:
 
 ## Current Recommended Next Step
 
-Dashboard periodic testing, `/comparison`, and Data Entry now share registry-derived metric ids. Professional statistics now have a first shared boundary in `src/lib/performance-statistics.ts`, and Dashboard periodic comparison plus `/correlation` primary statistics consume it. PL-010 is now the current recommended next step: complete the local `performancelab.workspace.json` data-file layer so core measurements, import batches, settings, Admin definitions, and later dashboard queries can survive browser-cache clearing without relying on IndexedDB/localStorage as the authority.
+Dashboard periodic testing, `/comparison`, and Data Entry now share registry-derived metric ids. Professional statistics now have a first shared boundary in `src/lib/performance-statistics.ts`, and Dashboard periodic comparison plus `/correlation` primary statistics consume it. PL-010 remains the current recommended next step: continue the local `performancelab.workspace.json` data-file layer. Dashboard periodic testing and `/comparison` now read active workspace measurements; the next gaps are Admin definitions/action categories, remaining Settings persistence, other dashboard read paths, and cache-clear reopen verification.
 
 ## Analysis Workflow Direction
 

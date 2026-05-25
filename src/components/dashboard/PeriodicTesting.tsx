@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Calendar, GitCompare, Plus, Users, X } from 'lucide-react'
 import type { MetricDefinition } from '@/lib/domain-model'
 import { METRIC_DEFINITIONS } from '@/lib/metric-registry'
-import { mockMeasurementStore } from '@/lib/measurement-store'
+import type { MeasurementStore } from '@/lib/measurement-store'
 import { compareSummaries } from '@/lib/performance-statistics'
 import { selectMetricDataGroupSummary } from '@/lib/metric-surface-measurements'
 import type {
@@ -12,6 +12,8 @@ import type {
   MetricDataGroupConfig,
   MetricSurfaceConfig,
 } from '@/lib/metric-surface-config'
+import { workspaceToMeasurementStore } from '@/lib/workspace-measurement-store'
+import { useWorkspaceStore } from '@/lib/workspace-store'
 import DashboardCard from './DashboardCard'
 import {
   LAYER_COLORS,
@@ -44,14 +46,12 @@ interface PeriodicSurfaceData {
   defaultCrossLayers: ComparisonLayer[]
   athleteLayerOptions: ComparisonLayer[]
   referenceLayerOptions: ComparisonLayer[]
+  primaryLabel: string
+  baselineLabel: string
+  comparisonLabel: string
+  baselineDate: string
+  comparisonDate: string
 }
-
-const sortedSessions = [...mockMeasurementStore.sessions].sort((a, b) => a.date.localeCompare(b.date))
-const primaryAthlete = mockMeasurementStore.athletes[0]
-const primaryPosition = primaryAthlete?.position
-const primaryTeamId = primaryAthlete?.teamId ?? mockMeasurementStore.teams[0]?.id
-const baselineSession = sortedSessions[0]
-const comparisonSession = sortedSessions.at(-1) ?? baselineSession
 
 function anchorScore(value: number, target: number, direction: 'higher' | 'lower'): number {
   if (!Number.isFinite(value) || !Number.isFinite(target) || target === 0 || value === 0) return 0
@@ -89,8 +89,8 @@ function confidenceInterval(mean: number | null, sd: number | null, n: number): 
   return [formatMetricNumber(mean - margin), formatMetricNumber(mean + margin)]
 }
 
-function metricValues(metricId: string) {
-  return mockMeasurementStore.measurements
+function metricValues(metricId: string, store: MeasurementStore) {
+  return store.measurements
     .filter((measurement) => measurement.metricId === metricId)
     .map((measurement) => measurement.value)
 }
@@ -111,62 +111,6 @@ function buildDataGroup(
     ...options,
   }
 }
-
-const primaryAthleteGroup = buildDataGroup(
-  'primary-athlete-all',
-  primaryAthlete?.name ?? 'Primary athlete',
-  { kind: 'athlete', athleteIds: primaryAthlete ? [primaryAthlete.id] : [] },
-)
-
-const baselineGroup = buildDataGroup(
-  'primary-athlete-baseline',
-  '基准期',
-  primaryAthleteGroup.subject,
-  baselineSession ? { time: { kind: 'session', sessionIds: [baselineSession.id] } } : {},
-)
-
-const comparisonGroup = buildDataGroup(
-  'primary-athlete-current',
-  '对比期',
-  primaryAthleteGroup.subject,
-  comparisonSession ? { time: { kind: 'session', sessionIds: [comparisonSession.id] } } : {},
-)
-
-const teamDisplayGroup = buildDataGroup(
-  'team-periodic-display',
-  '全队展示',
-  primaryTeamId
-    ? { kind: 'team', teamIds: [primaryTeamId] }
-    : {
-        kind: 'custom-group',
-        id: 'all-athletes',
-        label: 'All athletes',
-        athleteIds: mockMeasurementStore.athletes.map((athlete) => athlete.id),
-      },
-)
-
-const positionReferenceGroup = buildDataGroup(
-  'position-reference',
-  '同位置均值',
-  {
-    kind: 'reference-group',
-    selector: {
-      scope: 'team',
-      label: '同位置均值',
-      teamIds: primaryTeamId ? [primaryTeamId] : undefined,
-      positions: primaryPosition ? [primaryPosition] : undefined,
-      statistic: 'mean',
-      status: 'active',
-    },
-  },
-)
-
-const teamBestGroup = buildDataGroup(
-  'team-best',
-  '队内最佳',
-  primaryTeamId ? { kind: 'team', teamIds: [primaryTeamId] } : teamDisplayGroup.subject,
-  { aggregation: 'best' },
-)
 
 function buildSurfaceConfig(
   metric: MetricDefinition,
@@ -207,6 +151,7 @@ function buildComparisonLayer(
   type: ComparisonLayer['type'],
   group: MetricDataGroupConfig,
   metrics: MetricDefinition[],
+  store: MeasurementStore,
 ): ComparisonLayer {
   return {
     id,
@@ -215,16 +160,79 @@ function buildComparisonLayer(
     type,
     values: Object.fromEntries(
       metrics.map((metric) => {
-        const summary = selectMetricDataGroupSummary(metric.id, group)
+        const summary = selectMetricDataGroupSummary(metric.id, group, store)
         return [metric.id, { mean: summary.value ?? summary.mean ?? 0, sd: summary.sd ?? 0, n: summary.n }]
       }),
     ),
   }
 }
 
-function buildPeriodicSurfaceData(): PeriodicSurfaceData {
+function buildPeriodicSurfaceData(store: MeasurementStore): PeriodicSurfaceData {
+  const sortedSessions = [...store.sessions].sort((a, b) => a.date.localeCompare(b.date))
+  const primaryAthlete = store.athletes[0]
+  const primaryPosition = primaryAthlete?.position
+  const primaryTeamId = primaryAthlete?.teamId ?? store.teams[0]?.id
+  const baselineSession = sortedSessions[0]
+  const comparisonSession = sortedSessions.at(-1) ?? baselineSession
+
+  const primaryAthleteGroup = buildDataGroup(
+    'primary-athlete-all',
+    primaryAthlete?.name ?? 'Primary athlete',
+    { kind: 'athlete', athleteIds: primaryAthlete ? [primaryAthlete.id] : [] },
+  )
+
+  const baselineGroup = buildDataGroup(
+    'primary-athlete-baseline',
+    '基准期',
+    primaryAthleteGroup.subject,
+    baselineSession ? { time: { kind: 'session', sessionIds: [baselineSession.id] } } : {},
+  )
+
+  const comparisonGroup = buildDataGroup(
+    'primary-athlete-current',
+    '对比期',
+    primaryAthleteGroup.subject,
+    comparisonSession ? { time: { kind: 'session', sessionIds: [comparisonSession.id] } } : {},
+  )
+
+  const teamDisplayGroup = buildDataGroup(
+    'team-periodic-display',
+    '全队展示',
+    primaryTeamId
+      ? { kind: 'team', teamIds: [primaryTeamId] }
+      : {
+          kind: 'custom-group',
+          id: 'all-athletes',
+          label: 'All athletes',
+          athleteIds: store.athletes.map((athlete) => athlete.id),
+        },
+  )
+
+  const positionReferenceGroup = buildDataGroup(
+    'position-reference',
+    '同位置均值',
+    {
+      kind: 'reference-group',
+      selector: {
+        scope: 'team',
+        label: '同位置均值',
+        teamIds: primaryTeamId ? [primaryTeamId] : undefined,
+        positions: primaryPosition ? [primaryPosition] : undefined,
+        statistic: 'mean',
+        status: 'active',
+      },
+    },
+  )
+
+  const teamBestGroup = buildDataGroup(
+    'team-best',
+    '队内最佳',
+    primaryTeamId ? { kind: 'team', teamIds: [primaryTeamId] } : teamDisplayGroup.subject,
+    { aggregation: 'best' },
+  )
+
   const periodicMetrics = METRIC_DEFINITIONS.filter((metric) =>
-    metric.supportedContexts.includes('periodic') && metricValues(metric.id).length > 0,
+    metric.supportedContexts.includes('periodic') && metricValues(metric.id, store).length > 0,
   )
 
   const surfaceConfigs = periodicMetrics.map((metric) =>
@@ -237,10 +245,10 @@ function buildPeriodicSurfaceData(): PeriodicSurfaceData {
 
   const indicators = periodicMetrics.flatMap((metric) => {
     const config = surfaceConfigs.find((surface) => surface.metricId === metric.id)
-    const baseline = config ? selectMetricDataGroupSummary(metric.id, config.primaryDataGroup) : null
+    const baseline = config ? selectMetricDataGroupSummary(metric.id, config.primaryDataGroup, store) : null
     const currentGroup = config?.comparisonDataGroups?.[0]
-    const current = currentGroup ? selectMetricDataGroupSummary(metric.id, currentGroup) : null
-    const values = metricValues(metric.id)
+    const current = currentGroup ? selectMetricDataGroupSummary(metric.id, currentGroup, store) : null
+    const values = metricValues(metric.id, store)
     if (!baseline || !current || baseline.value == null || current.value == null) return []
 
     return [{
@@ -261,8 +269,8 @@ function buildPeriodicSurfaceData(): PeriodicSurfaceData {
 
   const displayCategories = Object.values(
     periodicMetrics.reduce<Record<string, PeriodicCategory>>((groups, metric) => {
-      const values = metricValues(metric.id)
-      const summary = selectMetricDataGroupSummary(metric.id, teamDisplayGroup)
+      const values = metricValues(metric.id, store)
+      const summary = selectMetricDataGroupSummary(metric.id, teamDisplayGroup, store)
       if (summary.value == null && summary.mean == null) return groups
 
       const value = summary.value ?? summary.mean
@@ -300,11 +308,11 @@ function buildPeriodicSurfaceData(): PeriodicSurfaceData {
   }))
 
   const referenceLayerOptions = [
-    buildComparisonLayer('position-reference', positionReferenceGroup.label, '#3B82F6', 'group', positionReferenceGroup, periodicMetrics),
-    buildComparisonLayer('team-best', teamBestGroup.label, '#8B5CF6', 'group', teamBestGroup, periodicMetrics),
+    buildComparisonLayer('position-reference', positionReferenceGroup.label, '#3B82F6', 'group', positionReferenceGroup, periodicMetrics, store),
+    buildComparisonLayer('team-best', teamBestGroup.label, '#8B5CF6', 'group', teamBestGroup, periodicMetrics, store),
   ]
 
-  const athleteLayerOptions = mockMeasurementStore.athletes
+  const athleteLayerOptions = store.athletes
     .filter((athlete) => athlete.id !== primaryAthlete?.id)
     .slice(0, 6)
     .map((athlete, index) =>
@@ -315,6 +323,7 @@ function buildPeriodicSurfaceData(): PeriodicSurfaceData {
         'individual',
         buildDataGroup(`athlete-${athlete.id}`, athlete.name, { kind: 'athlete', athleteIds: [athlete.id] }),
         periodicMetrics,
+        store,
       ),
     )
 
@@ -330,10 +339,13 @@ function buildPeriodicSurfaceData(): PeriodicSurfaceData {
     defaultCrossLayers: referenceLayerOptions.slice(0, 1),
     athleteLayerOptions,
     referenceLayerOptions,
+    primaryLabel: primaryAthleteGroup.label,
+    baselineLabel: baselineGroup.label,
+    comparisonLabel: comparisonGroup.label,
+    baselineDate: baselineSession?.date ?? '2024-01-01',
+    comparisonDate: comparisonSession?.date ?? baselineSession?.date ?? '2024-03-31',
   }
 }
-
-const periodicSurfaceData = buildPeriodicSurfaceData()
 
 function RadarChartDisplay({ data }: { data: RadarCategoryScore[] }) {
   const option = useMemo(() => ({
@@ -507,15 +519,23 @@ function LongitudinalControlBar({
   setDateMode,
   aggregate,
   setAggregate,
+  baselineDate,
+  comparisonDate,
+  baselineLabel,
+  comparisonLabel,
 }: {
   dateMode: DateMode
   setDateMode: (value: DateMode) => void
   aggregate: AggregateMode
   setAggregate: (value: AggregateMode) => void
+  baselineDate: string
+  comparisonDate: string
+  baselineLabel: string
+  comparisonLabel: string
 }) {
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [dateStart, setDateStart] = useState(baselineSession?.date ?? '2024-01-01')
-  const [dateEnd, setDateEnd] = useState(comparisonSession?.date ?? '2024-03-31')
+  const [dateStart, setDateStart] = useState(baselineDate)
+  const [dateEnd, setDateEnd] = useState(comparisonDate)
   const dateLabel = dateMode === 'unlimited' ? '不限时间' : dateMode === 'single' ? dateStart : `${dateStart} ~ ${dateEnd}`
 
   return (
@@ -555,7 +575,7 @@ function LongitudinalControlBar({
       <AggregateSwitch aggregate={aggregate} setAggregate={setAggregate} />
       <div className="flex items-center gap-2 text-[12px]" style={{ color: 'var(--text-muted)' }}>
         <GitCompare size={14} />
-        <span>{baselineGroup.label} vs {comparisonGroup.label}</span>
+        <span>{baselineLabel} vs {comparisonLabel}</span>
       </div>
     </div>
   )
@@ -563,14 +583,16 @@ function LongitudinalControlBar({
 
 function CrossSectionalControlBar({
   layers,
-  setLayers,
+  selectedLayerIds,
+  setSelectedLayerIds,
   aggregate,
   setAggregate,
   athleteLayerOptions,
   referenceLayerOptions,
 }: {
   layers: ComparisonLayer[]
-  setLayers: (value: ComparisonLayer[]) => void
+  selectedLayerIds: string[]
+  setSelectedLayerIds: (value: string[]) => void
   aggregate: AggregateMode
   setAggregate: (value: AggregateMode) => void
   athleteLayerOptions: ComparisonLayer[]
@@ -579,13 +601,13 @@ function CrossSectionalControlBar({
   const [showAddLayer, setShowAddLayer] = useState(false)
 
   const addLayer = (preset: ComparisonLayer) => {
-    if (layers.length >= 3 || layers.some((layer) => layer.id === preset.id)) return
-    setLayers([...layers, preset])
+    if (selectedLayerIds.length >= 3 || selectedLayerIds.includes(preset.id)) return
+    setSelectedLayerIds([...selectedLayerIds, preset.id])
     setShowAddLayer(false)
   }
 
   const removeLayer = (id: string) => {
-    setLayers(layers.filter((layer) => layer.id !== id))
+    setSelectedLayerIds(selectedLayerIds.filter((layerId) => layerId !== id))
   }
 
   return (
@@ -613,7 +635,7 @@ function CrossSectionalControlBar({
               <motion.div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border p-3" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
                 <p className="mb-2 text-[12px] font-semibold" style={{ color: 'var(--accent-cyan)' }}>运动员</p>
                 {athleteLayerOptions.slice(0, 4).map((layer) => (
-                  <button key={layer.id} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--bg-hover)]" style={{ color: layers.some((item) => item.id === layer.id) ? 'var(--text-muted)' : 'var(--text-primary)' }} onClick={() => addLayer(layer)} disabled={layers.some((item) => item.id === layer.id)}>
+                  <button key={layer.id} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--bg-hover)]" style={{ color: selectedLayerIds.includes(layer.id) ? 'var(--text-muted)' : 'var(--text-primary)' }} onClick={() => addLayer(layer)} disabled={selectedLayerIds.includes(layer.id)}>
                     <Users size={12} style={{ color: layer.color }} />
                     {layer.name}
                   </button>
@@ -621,7 +643,7 @@ function CrossSectionalControlBar({
                 <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
                   <p className="mb-2 text-[12px] font-semibold" style={{ color: 'var(--accent-purple)' }}>参考群体</p>
                   {referenceLayerOptions.map((layer) => (
-                    <button key={layer.id} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--bg-hover)]" style={{ color: layers.some((item) => item.id === layer.id) ? 'var(--text-muted)' : 'var(--text-primary)' }} onClick={() => addLayer(layer)} disabled={layers.some((item) => item.id === layer.id)}>
+                    <button key={layer.id} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--bg-hover)]" style={{ color: selectedLayerIds.includes(layer.id) ? 'var(--text-muted)' : 'var(--text-primary)' }} onClick={() => addLayer(layer)} disabled={selectedLayerIds.includes(layer.id)}>
                       <Users size={12} style={{ color: layer.color }} />
                       {layer.name}
                     </button>
@@ -733,7 +755,19 @@ function ComparisonRadar({
   )
 }
 
-function LongitudinalCategorySection({ category, aggregate, indicators }: { category: string; aggregate: AggregateMode; indicators: ComparisonIndicator[] }) {
+function LongitudinalCategorySection({
+  category,
+  aggregate,
+  indicators,
+  baselineLabel,
+  comparisonLabel,
+}: {
+  category: string
+  aggregate: AggregateMode
+  indicators: ComparisonIndicator[]
+  baselineLabel: string
+  comparisonLabel: string
+}) {
   const categoryIndicators = useMemo(() => indicators.filter((indicator) => indicator.category === category), [category, indicators])
   const tableRows = useMemo(() => categoryIndicators.map((indicator) => {
     const vA = aggregate === 'mean' ? indicator.valueA : indicator.valueA + indicator.sdA
@@ -770,18 +804,18 @@ function LongitudinalCategorySection({ category, aggregate, indicators }: { cate
     const compareValues = categoryIndicators.map((indicator) => anchorScore(aggregate === 'mean' ? indicator.valueB : indicator.valueB + indicator.sdB, indicator.targetScore, indicator.direction))
     return {
       grid: { top: 30, right: 30, bottom: 24, left: 140 },
-      legend: { data: [baselineGroup.label, comparisonGroup.label], top: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
+      legend: { data: [baselineLabel, comparisonLabel], top: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
       xAxis: { type: 'value' as const, max: 100, axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(42,51,72,0.3)' } }, axisLabel: { color: '#5A6579', fontSize: 10, formatter: '{value}%' } },
       yAxis: { type: 'category' as const, data: names.reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#8B95A5', fontSize: 11, width: 130, overflow: 'truncate' as const } },
       tooltip: { trigger: 'axis' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 11 } },
       series: [
-        { name: baselineGroup.label, type: 'bar', data: baseValues.reverse().map((value) => ({ value, itemStyle: { color: '#5A6579', borderRadius: [0, 4, 4, 0] } })), barWidth: 12, barGap: '20%' },
-        { name: comparisonGroup.label, type: 'bar', data: compareValues.reverse().map((value) => ({ value, itemStyle: { color: '#00D4AA', borderRadius: [0, 4, 4, 0] } })), barWidth: 12 },
+        { name: baselineLabel, type: 'bar', data: baseValues.reverse().map((value) => ({ value, itemStyle: { color: '#5A6579', borderRadius: [0, 4, 4, 0] } })), barWidth: 12, barGap: '20%' },
+        { name: comparisonLabel, type: 'bar', data: compareValues.reverse().map((value) => ({ value, itemStyle: { color: '#00D4AA', borderRadius: [0, 4, 4, 0] } })), barWidth: 12 },
       ],
       animationDuration: 800,
       animationEasing: 'cubicOut' as const,
     }
-  }, [aggregate, categoryIndicators])
+  }, [aggregate, baselineLabel, categoryIndicators, comparisonLabel])
 
   if (!categoryIndicators.length) return null
 
@@ -836,7 +870,19 @@ function LongitudinalCategorySection({ category, aggregate, indicators }: { cate
   )
 }
 
-function CrossSectionalCategorySection({ category, aggregate, indicators, layers }: { category: string; aggregate: AggregateMode; indicators: ComparisonIndicator[]; layers: ComparisonLayer[] }) {
+function CrossSectionalCategorySection({
+  category,
+  aggregate,
+  indicators,
+  layers,
+  baseLabel,
+}: {
+  category: string
+  aggregate: AggregateMode
+  indicators: ComparisonIndicator[]
+  layers: ComparisonLayer[]
+  baseLabel: string
+}) {
   const categoryIndicators = useMemo(() => indicators.filter((indicator) => indicator.category === category), [category, indicators])
   const chartOption = useMemo(() => {
     const names = categoryIndicators.map((indicator) => indicator.name)
@@ -855,18 +901,18 @@ function CrossSectionalCategorySection({ category, aggregate, indicators, layers
 
     return {
       grid: { top: 30, right: 30, bottom: 24, left: 140 },
-      legend: { data: [primaryAthleteGroup.label, ...layers.map((layer) => layer.name)], top: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
+      legend: { data: [baseLabel, ...layers.map((layer) => layer.name)], top: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
       xAxis: { type: 'value' as const, max: 100, axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(42,51,72,0.3)' } }, axisLabel: { color: '#5A6579', fontSize: 10, formatter: '{value}%' } },
       yAxis: { type: 'category' as const, data: names.reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#8B95A5', fontSize: 11, width: 130, overflow: 'truncate' as const } },
       tooltip: { trigger: 'axis' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 11 } },
       series: [
-        { name: primaryAthleteGroup.label, type: 'bar', data: baseValues.reverse().map((value) => ({ value, itemStyle: { color: '#00D4AA', borderRadius: [0, 4, 4, 0] } })), barWidth: 12, barGap: '20%' },
+        { name: baseLabel, type: 'bar', data: baseValues.reverse().map((value) => ({ value, itemStyle: { color: '#00D4AA', borderRadius: [0, 4, 4, 0] } })), barWidth: 12, barGap: '20%' },
         ...layerSeries,
       ],
       animationDuration: 800,
       animationEasing: 'cubicOut' as const,
     }
-  }, [aggregate, categoryIndicators, layers])
+  }, [aggregate, baseLabel, categoryIndicators, layers])
 
   const tableRows = useMemo(() => categoryIndicators.map((indicator) => {
     const vBase = aggregate === 'mean' ? indicator.valueA : indicator.valueA + indicator.sdA
@@ -962,10 +1008,28 @@ function CrossSectionalCategorySection({ category, aggregate, indicators, layers
 }
 
 export default function PeriodicTesting({ mode = 'display' }: Props) {
+  const { workspace } = useWorkspaceStore()
+  const workspaceMeasurementStore = useMemo(() => workspaceToMeasurementStore(workspace), [workspace])
+  const periodicSurfaceData = useMemo(
+    () => buildPeriodicSurfaceData(workspaceMeasurementStore),
+    [workspaceMeasurementStore],
+  )
   const [longDateMode, setLongDateMode] = useState<DateMode>('range')
   const [longAggregate, setLongAggregate] = useState<AggregateMode>('mean')
-  const [layers, setLayers] = useState<ComparisonLayer[]>(periodicSurfaceData.defaultCrossLayers)
+  const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>(['position-reference'])
   const [crossAggregate, setCrossAggregate] = useState<AggregateMode>('mean')
+  const crossLayerOptions = useMemo(
+    () => [...periodicSurfaceData.referenceLayerOptions, ...periodicSurfaceData.athleteLayerOptions],
+    [periodicSurfaceData.athleteLayerOptions, periodicSurfaceData.referenceLayerOptions],
+  )
+  const layers = useMemo(() => {
+    const optionsById = new Map(crossLayerOptions.map((layer) => [layer.id, layer]))
+    const selectedLayers = selectedLayerIds.flatMap((id) => {
+      const layer = optionsById.get(id)
+      return layer ? [layer] : []
+    })
+    return selectedLayers.length ? selectedLayers : periodicSurfaceData.defaultCrossLayers
+  }, [crossLayerOptions, periodicSurfaceData.defaultCrossLayers, selectedLayerIds])
 
   const surfaceConfigCount = periodicSurfaceData.surfaceConfigs.length
 
@@ -987,17 +1051,33 @@ export default function PeriodicTesting({ mode = 'display' }: Props) {
   if (mode === 'longitudinal') {
     return (
       <div className="flex flex-col gap-6" data-surface-config-count={surfaceConfigCount}>
-        <LongitudinalControlBar dateMode={longDateMode} setDateMode={setLongDateMode} aggregate={longAggregate} setAggregate={setLongAggregate} />
+        <LongitudinalControlBar
+          dateMode={longDateMode}
+          setDateMode={setLongDateMode}
+          aggregate={longAggregate}
+          setAggregate={setLongAggregate}
+          baselineDate={periodicSurfaceData.baselineDate}
+          comparisonDate={periodicSurfaceData.comparisonDate}
+          baselineLabel={periodicSurfaceData.baselineLabel}
+          comparisonLabel={periodicSurfaceData.comparisonLabel}
+        />
         <div className="grid grid-cols-1 gap-6">
           <ComparisonRadar
             title="纵向能力对比（目标锚定）"
-            baseLabel={baselineGroup.label}
+            baseLabel={periodicSurfaceData.baselineLabel}
             indicators={periodicSurfaceData.indicators}
             categories={periodicSurfaceData.categories}
             aggregate={longAggregate}
           />
           {periodicSurfaceData.categories.map((category) => (
-            <LongitudinalCategorySection key={category} category={category} aggregate={longAggregate} indicators={periodicSurfaceData.indicators} />
+            <LongitudinalCategorySection
+              key={category}
+              category={category}
+              aggregate={longAggregate}
+              indicators={periodicSurfaceData.indicators}
+              baselineLabel={periodicSurfaceData.baselineLabel}
+              comparisonLabel={periodicSurfaceData.comparisonLabel}
+            />
           ))}
         </div>
       </div>
@@ -1008,7 +1088,8 @@ export default function PeriodicTesting({ mode = 'display' }: Props) {
     <div className="flex flex-col gap-6" data-surface-config-count={surfaceConfigCount}>
       <CrossSectionalControlBar
         layers={layers}
-        setLayers={setLayers}
+        selectedLayerIds={selectedLayerIds}
+        setSelectedLayerIds={setSelectedLayerIds}
         aggregate={crossAggregate}
         setAggregate={setCrossAggregate}
         athleteLayerOptions={periodicSurfaceData.athleteLayerOptions}
@@ -1017,14 +1098,21 @@ export default function PeriodicTesting({ mode = 'display' }: Props) {
       <div className="grid grid-cols-1 gap-6">
         <ComparisonRadar
           title="横向能力对比（目标锚定）"
-          baseLabel={primaryAthleteGroup.label}
+          baseLabel={periodicSurfaceData.primaryLabel}
           indicators={periodicSurfaceData.indicators}
           categories={periodicSurfaceData.categories}
           aggregate={crossAggregate}
           layers={layers}
         />
         {periodicSurfaceData.categories.map((category) => (
-          <CrossSectionalCategorySection key={category} category={category} aggregate={crossAggregate} indicators={periodicSurfaceData.indicators} layers={layers} />
+          <CrossSectionalCategorySection
+            key={category}
+            category={category}
+            aggregate={crossAggregate}
+            indicators={periodicSurfaceData.indicators}
+            layers={layers}
+            baseLabel={periodicSurfaceData.primaryLabel}
+          />
         ))}
       </div>
     </div>

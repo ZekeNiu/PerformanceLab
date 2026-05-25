@@ -474,3 +474,33 @@ Use this file as the session-by-session project journal.
 - GitHub Actions note: anonymous REST API check was rate-limited, and the GitHub connector did not return push workflow runs for the commit.
 - GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `5ab628c` with message `deploy: fad4170beb7c4b92bccb441574ffa998547d82d1`, confirming the PL-006 code commit deployed. The follow-up progress-log commit `b78f879` used `[skip ci]` and did not need a deployment run.
 - Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
+
+## 2026-05-25 PL-010 Workspace Selector Continuation
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: continue `PL-010`, local JSON workspace file persistence.
+- Read the required project context files and confirmed initial git status: `main...origin/main` with no local changes.
+- Read the React best-practices, frontend-testing-debugging, and karpathy-guidelines skills because this pass changes React dashboard data consumption and needs build plus rendered smoke validation.
+- `rg --files` still fails in this Windows environment with `Access is denied`; PowerShell `Get-Content` and `Select-String` were used for code inspection.
+- Inventory finding: Data Entry already appends manual/import measurements to the active workspace, but `src/components/dashboard/PeriodicTesting.tsx` still builds its periodic data from module-level `mockMeasurementStore`, so Dashboard and `/comparison` cannot reflect measurements restored from an opened workspace JSON file.
+- Working decision: keep this pass focused on the core selector/page read path by adding a workspace-to-measurement-store adapter and making `PeriodicTesting` derive its surface data from the active workspace. Admin definition-library persistence and the remaining Settings persistence gaps stay open for later PL-010 passes.
+- Added `src/lib/workspace-measurement-store.ts`, a thin adapter that converts `PerformanceLabWorkspace` into the existing `MeasurementStore` shape used by measurement selectors.
+- Updated `src/components/dashboard/PeriodicTesting.tsx` so periodic surface data is built from `useWorkspaceStore().workspace` through the new adapter instead of the module-level `mockMeasurementStore`.
+- Updated periodic comparison layer selection to store selected layer ids and derive layer objects from the latest workspace-backed options, so imported/opened workspace data does not leave stale comparison layer values in React state.
+- Verification: `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+- Verification: `npm run lint` passes with no warnings.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright smoke note: first workspace-import smoke failed because `getByText('本地数据文件')` matched both the file-bar title and status copy; reran with exact text matching. Second smoke waited for the imported filename, but the detached status copy intentionally does not display `fileName`, so the assertion was changed to the workspace-derived rendered data.
+- Playwright smoke on local `npm run preview` at `http://127.0.0.1:4173/#/comparison` passed:
+  - Imported a temporary `performancelab-workspace-smoke.json` through the global workspace file bar.
+  - Longitudinal comparison rendered the JSON-provided `cmj_height` value `88.0`, confirming `/comparison` consumed active workspace measurements.
+  - Switched to 横向比较, opened 添加对比数据, and saw the workspace-provided athlete `Workspace Athlete B`, confirming layer options derive from active workspace athletes.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
+- Cleanup note: one local Vite preview process remained listening on port 4173 after smoke testing and was stopped.
+- Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect that Dashboard periodic testing and `/comparison` now read active workspace measurements, while PL-010 remains `Doing`.
+- Final pre-commit git status: modified docs/context files, `src/components/dashboard/PeriodicTesting.tsx`, and new `src/lib/workspace-measurement-store.ts`.
+- Commit plan: create a local commit for this PL-010 continuation with message `Read periodic data from workspace`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `011c29d` with message `Read periodic data from workspace`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing.
+- Commit amend: updated the local commit to `e623d91` with the same message before push so the progress log stays in the same change.
