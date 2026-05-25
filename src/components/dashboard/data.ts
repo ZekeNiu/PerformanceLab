@@ -1,3 +1,5 @@
+import { compareSummaries } from '@/lib/performance-statistics'
+
 // Demo data for the SportPulse dashboard
 
 export interface AlertCard {
@@ -298,26 +300,38 @@ export const DEMO_LAYERS: ComparisonLayer[] = [
 // ── Statistical Utilities ──
 
 export function calcTE(sd1: number, sd2: number, n1: number, n2: number): number {
-  const pooledSD = Math.sqrt(((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2) / (n1 + n2 - 2))
-  return pooledSD * 0.35
+  return compareSummaries({
+    baseline: { mean: 0, sd: sd1, n: n1 },
+    comparison: { mean: 0, sd: sd2, n: n2 },
+  }).te.value
 }
 
 export function calcMDC(te: number): number {
-  return te * 1.96 * Math.sqrt(2)
+  return compareSummaries({
+    baseline: { mean: 0, sd: te / 0.35, n: 2 },
+    comparison: { mean: 0, sd: te / 0.35, n: 2 },
+  }).mdc.value
 }
 
 export function calcSWC(sd1: number, sd2: number, n1: number, n2: number): number {
-  const pooledSD = Math.sqrt(((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2) / (n1 + n2 - 2))
-  return pooledSD * 0.2
+  return compareSummaries({
+    baseline: { mean: 0, sd: sd1, n: n1 },
+    comparison: { mean: 0, sd: sd2, n: n2 },
+  }).swc.value
 }
 
 export function calcSNR(mean1: number, mean2: number, te: number): number {
-  return Math.abs(mean2 - mean1) / te
+  return compareSummaries({
+    baseline: { mean: mean1, sd: te / 0.35, n: 2 },
+    comparison: { mean: mean2, sd: te / 0.35, n: 2 },
+  }).snr.value
 }
 
 export function calcCohensD(mean1: number, mean2: number, sd1: number, sd2: number, n1: number, n2: number): number {
-  const pooledSD = Math.sqrt(((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2) / (n1 + n2 - 2))
-  return (mean2 - mean1) / pooledSD
+  return compareSummaries({
+    baseline: { mean: mean1, sd: sd1, n: n1 },
+    comparison: { mean: mean2, sd: sd2, n: n2 },
+  }).effectSize.value
 }
 
 export function cohensDLabel(d: number): { text: string; color: string } {
@@ -329,42 +343,10 @@ export function cohensDLabel(d: number): { text: string; color: string } {
 }
 
 export function calcPairedTTest(mean1: number, mean2: number, sd1: number, sd2: number, n: number): number {
-  const diff = mean2 - mean1
-  const sed = Math.sqrt((sd1 * sd1 + sd2 * sd2) / n)
-  const t = diff / sed
-  const df = n - 1
-  const p = 2 * (1 - studentTCDF(Math.abs(t), df))
-  return Math.max(0.001, Math.min(1, p))
-}
-
-function studentTCDF(t: number, df: number): number {
-  const x = df / (df + t * t)
-  return 1 - 0.5 * betaIncomplete(x, df / 2, 0.5)
-}
-
-function betaIncomplete(x: number, a: number, b: number): number {
-  if (x <= 0) return 0
-  if (x >= 1) return 1
-  return Math.pow(x, a) * Math.pow(1 - x, b) / (a * betaFunc(a, b))
-}
-
-function betaFunc(a: number, b: number): number {
-  return Math.exp(lgamma(a) + lgamma(b) - lgamma(a + b))
-}
-
-function lgamma(z: number): number {
-  const g = 7
-  const C = [
-    0.99999999999980993, 676.5203681218851, -1259.1392167224028,
-    771.32342877765313, -176.61502916214059, 12.507343278686905,
-    -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
-  ]
-  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z)
-  z -= 1
-  let x = C[0]
-  for (let i = 1; i < g + 2; i++) x += C[i] / (z + i)
-  const t = z + g + 0.5
-  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x)
+  return compareSummaries({
+    baseline: { mean: mean1, sd: sd1, n },
+    comparison: { mean: mean2, sd: sd2, n },
+  }).pValue.value
 }
 
 export function formatPValue(p: number): string {

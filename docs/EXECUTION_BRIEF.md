@@ -117,9 +117,10 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 - `src/components/data-entry/ValidationStagingArea.tsx` 已能做运动员、指标、重复次数、异常值的 staging validation。
 - `src/components/dashboard/PeriodicTesting.tsx` 已迁移为 registry + measurement selector 驱动：数据展示、纵向比较、横向比较共用 registry 指标、`MetricSurfaceConfig` 和 shared mock `Measurement[]` store。
 - `src/pages/Comparison.tsx` 已收敛为 `/comparison` 路由壳，纵向/横向比较复用 `PeriodicTesting` 的 registry + `MetricSurfaceConfig` + measurement selector 展示面，不再维护第二套 demo indicators、layers、统计函数和图表配置。
-- `src/pages/Correlation.tsx` 已从 metric registry 派生指标名称/类别，但数据仍来自 correlation demo generator。
-- `src/lib/measurement-store.ts` 已建立第一版共享 mock `Measurement[]` store 和 selector。Dashboard periodic testing 已开始消费它；Data Entry 手动录入、Excel 导入确认、Admin 页和其他 Dashboard 区块还没有迁移为它的消费者。
+- `src/pages/Correlation.tsx` 已从 metric registry 派生指标名称/类别，并已开始消费 `src/lib/performance-statistics.ts` 的相关性统计输出；数据仍来自 correlation demo generator。
+- `src/lib/measurement-store.ts` 已建立第一版共享 mock `Measurement[]` store 和 selector。Dashboard periodic testing 已开始消费它；Data Entry 手动录入和 Excel 导入确认已能生成 `Measurement[]` 形态但仍是页面级暂存；Admin 页和其他 Dashboard 区块还没有迁移为它的消费者。
 - `src/lib/metric-surface-config.ts` 已建立第一版可序列化指标展示面配置模型，包含主数据组、最多 3 组额外对比数据组、时间/主体选择、聚合方式、横向参照群组和统计注释配置。
+- `src/lib/performance-statistics.ts` 已建立第一版专业统计边界，集中 summary comparison、TE、MDC、SWC、SNR、Cohen's d、summary-level p-value、Pearson/Spearman correlation、CI、样本量、缺失值策略和数据质量 metadata。Dashboard periodic comparison 和 `/correlation` 的主统计表已开始消费该边界。
 
 ## 执行路线图
 
@@ -130,12 +131,12 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 | PL-003 | P0 | Done | 迁移 Dashboard periodic testing 到 registry + measurement selector | `PeriodicTesting` 不再依赖本地 `DEMO_INDICATORS` 作为指标真相；display/longitudinal/cross-sectional 使用 registry 指标、`MetricSurfaceConfig`、`metric-surface-measurements` adapter 和 shared measurement selector；横向运动员对比不再用 `Math.random()` | `src/components/dashboard/PeriodicTesting.tsx`, `src/lib/metric-surface-measurements.ts` |
 | PL-004 | P1 | Done | 收敛 `/comparison` 页面 | `src/pages/Comparison.tsx` 已替换为复用 `PeriodicTesting` 的路由壳；纵向/横向比较共用 Dashboard periodic testing 的 metric registry、metric surface config、measurement selector、统计和图表路径；不再维护第二套页面本地指标/统计/图表真相 | `src/pages/Comparison.tsx`, `src/components/dashboard/PeriodicTesting.tsx` |
 | PL-005 | P1 | Done | 统一 Data Entry 指标来源 | `IndicatorSelector` 已从 registry-backed test battery config 派生，不再消费本地 `m-*` 指标；手动录入保存和 Excel 暂存确认都会生成 domain-model `Measurement[]`；本轮仍只做前端页面级暂存，尚未接入持久化 store/backend | `src/components/data-entry/*`, `src/lib/data-entry-config.ts`, `src/lib/data-entry-measurements.ts`, `src/lib/metric-registry.ts` |
-| PL-006 | P1 | Todo | 统计模块专业化 | TE/MDC/SWC/effect size/correlation 等集中在一个模块；输出包含 method、assumptions、sampleSize、missingDataPolicy、dataQuality | `src/lib/statistics.ts`, `src/lib/performance-statistics.ts` |
+| PL-006 | P1 | Done | 统计模块专业化 | 已新增 `src/lib/performance-statistics.ts`，集中 summary comparison、TE、MDC、SWC、SNR、effect size、summary-level p-value 和 correlation 输出；结果包含 method、assumptions、sampleSize、missingDataPolicy、dataQuality。Dashboard periodic comparison 和 `/correlation` 主统计表已迁移到该边界；仍需后续用真实 paired/reliability 原始数据替换 summary-level 近似 | `src/lib/statistics.ts`, `src/lib/performance-statistics.ts`, `src/components/dashboard/PeriodicTesting.tsx`, `src/pages/Correlation.tsx` |
 | PL-007 | P2 | Todo | 稳定 mock 数据 | Dashboard daily data 和 correlation demo 数据不再使用未 seeded 的 `Math.random()`，刷新后数据稳定；`PeriodicTesting` 横向运动员对比已在 PL-003 中改为 measurement selector 汇总，`/comparison` 已在 PL-004 中复用该路径 | `src/components/dashboard/data.ts`, `src/pages/Correlation.tsx` |
 | PL-008 | P2 | Todo | 移动端比较视图 QA | 390px、768px、1440px 下 Dashboard 比较视图和 Comparison 页面无页面级横向溢出，关键文本不重叠 | Dashboard, Comparison, Playwright smoke |
 | PL-009 | P2 | Todo | 路由级性能优化 | ECharts-heavy 页面按路由 lazy load；build 仍可通过；bundle 警告有明确处理或记录 | `src/App.tsx`, Vite build output |
 
-如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始。当前默认下一步是 `PL-006`，因为 Data Entry 已能从 registry-backed test battery config 生成共享 `Measurement[]` 形态，后续应集中专业统计输出，避免 TE/MDC/SWC/effect size/correlation 等继续分散在页面和 demo helper 中。
+如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始；当前 P0/P1 已完成，所以下一轮默认进入第一个未完成的 P2 任务 `PL-007`。该任务应先稳定 Dashboard daily data 和 correlation demo 数据中的未 seeded 随机性，避免刷新后分析结果漂移。
 
 ## 高优先级问题详情
 
@@ -178,19 +179,19 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 
 若用户没有指定其他任务，下一次应执行：
 
-`PL-006`: 统计模块专业化。
+`PL-007`: 稳定 mock 数据。
 
 开始前应先确认：
 
 - 是否已有未提交改动。
 - 是否存在近期文档更新改变了优先级。
-- `src/lib/statistics.ts`、Dashboard periodic testing、`/comparison`、`src/pages/Correlation.tsx` 和 demo helper 当前分别实现了哪些统计逻辑。
-- 哪些统计输出只是 demo 近似，哪些可以先抽成带 metadata 的统一结果类型。
-- 是否先新增 `src/lib/performance-statistics.ts` 作为专业统计边界，再逐步迁移 UI 消费方，避免一次性重写相关性页面。
+- `src/components/dashboard/data.ts` 和 `src/pages/Correlation.tsx` 当前哪些 mock 数据仍使用未 seeded 的 `Math.random()` 或刷新即变化的数据生成逻辑。
+- 稳定随机数据时应优先保持现有 UI 形态和数值范围，只替换数据生成的随机源。
+- 如果发现 demo 数据已经稳定，先记录证据，再将 PL-007 判定为完成或调整下一步。
 
 完成后必须：
 
-- 更新本文档中 `PL-006` 状态。
+- 更新本文档中 `PL-007` 状态。
 - 更新 `progress.md` 记录具体改动和验证。
 - 如果发现数据模型不足，先记录到 `progress.md`；若该发现长期有效，补充到 `findings.md`；只有当它改变路线图、完成判据或默认下一步时，才同步更新本文档。
 - 如果改动代码，运行 `npm run build`。

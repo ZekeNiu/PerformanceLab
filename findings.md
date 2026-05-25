@@ -120,3 +120,11 @@ Use this file for durable discoveries that should survive across conversations.
 - `mockData.ts` still contains the older `m-*` action metric structure for other mock/admin contexts, but Data Entry no longer consumes it as metric truth.
 - The manual batch-entry UI applies one set of repeat values across all selected athletes. That matches the existing UI behavior but is a product/data-entry limitation to revisit before treating batch entry as production-grade.
 - PL-006 should start by inventorying existing statistics in `src/lib/statistics.ts`, `src/lib/performance-statistics.ts` if created, Dashboard periodic testing, and `src/pages/Correlation.tsx` before changing UI copy or statistical claims.
+
+## 2026-05-25 Statistics Module Findings
+
+- `src/lib/performance-statistics.ts` is now the first shared professional statistics boundary for summary comparison outputs, TE, MDC, SWC, SNR, Cohen's d, summary-level p-values, Pearson/Spearman correlation, confidence intervals, sample-size reporting, missing-data policy, assumptions, and data-quality metadata.
+- Dashboard periodic longitudinal and cross-sectional statistics now consume `compareSummaries` instead of calculating TE/MDC/SWC/effect size/p-values directly in the component path.
+- `/correlation` primary pairwise correlation results now consume `analyzeCorrelation` for r, p, r2, CI, N, and metadata. Other correlation modeling helpers such as regression, GAM smoothing, random-forest-like importance, VIF, and SHAP approximation still live in `src/lib/statistics.ts`.
+- The current TE and p-value outputs remain summary-level approximations because the UI tables currently pass aggregate mean/SD/N rather than raw paired repeated-measure observations. This is now explicit in metadata and should be replaced with raw paired/reliability calculations when the measurement model carries enough repeated-test context.
+- PL-007 should focus on stabilizing remaining unseeded mock randomness in Dashboard daily data and correlation demo data.

@@ -5,6 +5,7 @@ import { Calendar, GitCompare, Plus, Users, X } from 'lucide-react'
 import type { MetricDefinition } from '@/lib/domain-model'
 import { METRIC_DEFINITIONS } from '@/lib/metric-registry'
 import { mockMeasurementStore } from '@/lib/measurement-store'
+import { compareSummaries } from '@/lib/performance-statistics'
 import { selectMetricDataGroupSummary } from '@/lib/metric-surface-measurements'
 import type {
   ComparisonDataGroupConfig,
@@ -14,12 +15,6 @@ import type {
 import DashboardCard from './DashboardCard'
 import {
   LAYER_COLORS,
-  calcCohensD,
-  calcMDC,
-  calcPairedTTest,
-  calcSNR,
-  calcSWC,
-  calcTE,
   cohensDLabel,
   periodicCategories,
   ratingColors,
@@ -743,17 +738,30 @@ function LongitudinalCategorySection({ category, aggregate, indicators }: { cate
   const tableRows = useMemo(() => categoryIndicators.map((indicator) => {
     const vA = aggregate === 'mean' ? indicator.valueA : indicator.valueA + indicator.sdA
     const vB = aggregate === 'mean' ? indicator.valueB : indicator.valueB + indicator.sdB
-    const te = calcTE(indicator.sdA, indicator.sdB, indicator.nA, indicator.nB)
-    const mdc = calcMDC(te)
-    const swc = calcSWC(indicator.sdA, indicator.sdB, indicator.nA, indicator.nB)
-    const snr = calcSNR(vA, vB, te)
-    const cohensD = calcCohensD(vA, vB, indicator.sdA, indicator.sdB, indicator.nA, indicator.nB)
-    const pValue = calcPairedTTest(vA, vB, indicator.sdA, indicator.sdB, Math.min(indicator.nA, indicator.nB))
-    const diff = vB - vA
-    const pctChange = vA ? (diff / vA) * 100 : 0
+    const stats = compareSummaries({
+      baseline: { mean: vA, sd: indicator.sdA, n: indicator.nA },
+      comparison: { mean: vB, sd: indicator.sdB, n: indicator.nB },
+    })
+    const diff = stats.change.value
+    const pctChange = stats.percentChange.value
     const isGood = indicator.direction === 'higher' ? diff > 0 : diff < 0
-    const sig = significanceBadge(pValue)
-    return { ...indicator, vA, vB, te, mdc, swc, snr, cohensD, pValue, diff, pctChange, isGood, sig }
+    const sig = significanceBadge(stats.pValue.value)
+    return {
+      ...indicator,
+      vA,
+      vB,
+      te: stats.te.value,
+      mdc: stats.mdc.value,
+      swc: stats.swc.value,
+      snr: stats.snr.value,
+      cohensD: stats.effectSize.value,
+      pValue: stats.pValue.value,
+      diff,
+      pctChange,
+      isGood,
+      sig,
+      statisticsMetadata: stats.metadata,
+    }
   }), [aggregate, categoryIndicators])
 
   const chartOption = useMemo(() => {
@@ -801,7 +809,11 @@ function LongitudinalCategorySection({ category, aggregate, indicators }: { cate
             </thead>
             <tbody>
               {tableRows.map((row) => (
-                <tr key={row.id} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}>
+                <tr
+                  key={row.id}
+                  title={`${row.statisticsMetadata.method}; quality=${row.statisticsMetadata.dataQuality.status}; n=${row.statisticsMetadata.sampleSize.n}`}
+                  style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}
+                >
                   <td className="py-1.5 pr-2" style={{ color: 'var(--text-primary)' }}>{row.name}</td>
                   <td className="py-1.5 pr-2 text-right font-mono" style={{ color: '#5A6579' }}>{row.vA.toFixed(1)}</td>
                   <td className="py-1.5 pr-2 text-right font-mono" style={{ color: '#00D4AA' }}>{row.vB.toFixed(1)}</td>
@@ -863,16 +875,26 @@ function CrossSectionalCategorySection({ category, aggregate, indicators, layers
       const vLayer = layerValue ? (aggregate === 'mean' ? layerValue.mean : layerValue.mean + layerValue.sd) : indicator.valueB
       const sdLayer = layerValue?.sd ?? indicator.sdB
       const nLayer = layerValue?.n ?? indicator.nB
-      const te = calcTE(indicator.sdA, sdLayer, indicator.nA, nLayer)
-      const mdc = calcMDC(te)
-      const swc = calcSWC(indicator.sdA, sdLayer, indicator.nA, nLayer)
-      const snr = calcSNR(vBase, vLayer, te)
-      const cohensD = calcCohensD(vBase, vLayer, indicator.sdA, sdLayer, indicator.nA, nLayer)
-      const pValue = calcPairedTTest(vBase, vLayer, indicator.sdA, sdLayer, Math.min(indicator.nA, nLayer))
-      const diff = vLayer - vBase
-      const pct = vBase ? (diff / vBase) * 100 : 0
-      const sig = significanceBadge(pValue)
-      return { layerName: layer.name, layerColor: layer.color, vLayer, diff, pct, te, mdc, swc, snr, cohensD, pValue, sig }
+      const stats = compareSummaries({
+        baseline: { mean: vBase, sd: indicator.sdA, n: indicator.nA },
+        comparison: { mean: vLayer, sd: sdLayer, n: nLayer },
+      })
+      const sig = significanceBadge(stats.pValue.value)
+      return {
+        layerName: layer.name,
+        layerColor: layer.color,
+        vLayer,
+        diff: stats.change.value,
+        pct: stats.percentChange.value,
+        te: stats.te.value,
+        mdc: stats.mdc.value,
+        swc: stats.swc.value,
+        snr: stats.snr.value,
+        cohensD: stats.effectSize.value,
+        pValue: stats.pValue.value,
+        sig,
+        statisticsMetadata: stats.metadata,
+      }
     })
     return { ...indicator, vBase, layerStats }
   }), [aggregate, categoryIndicators, layers])
@@ -905,7 +927,11 @@ function CrossSectionalCategorySection({ category, aggregate, indicators, layers
               {tableRows.map((row) => {
                 const firstLayer = row.layerStats[0]
                 return (
-                  <tr key={row.id} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}>
+                  <tr
+                    key={row.id}
+                    title={firstLayer ? `${firstLayer.statisticsMetadata.method}; quality=${firstLayer.statisticsMetadata.dataQuality.status}; n=${firstLayer.statisticsMetadata.sampleSize.n}` : undefined}
+                    style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}
+                  >
                     <td className="py-1.5 pr-2" style={{ color: 'var(--text-primary)' }}>{row.name}</td>
                     <td className="py-1.5 pr-2 text-right font-mono" style={{ color: '#00D4AA' }}>{row.vBase.toFixed(1)}</td>
                     {row.layerStats.map((layerStat) => (

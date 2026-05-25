@@ -22,7 +22,6 @@ import {
   calculateAIC,
   calculateBIC,
   detectCollinearity,
-  confidenceIntervalR,
   interpretCorrelation,
   randomForestImportance,
   generateSHAPValues,
@@ -30,6 +29,7 @@ import {
   getAlgorithmName,
   calculateVIF,
 } from '@/lib/statistics';
+import { analyzeCorrelation } from '@/lib/performance-statistics';
 import {
   INDICATOR_CATEGORIES,
   generateDemoData,
@@ -165,22 +165,25 @@ export default function Correlation() {
 
     const results = effectiveXVars.map(xId => {
       const xVals = effectiveXArrays[xId];
-      const { r, p } = pearsonCorrelation(xVals, yValues);
-      const ci = confidenceIntervalR(r, sampleSize);
+      const correlationStats = analyzeCorrelation(xVals, yValues, 'pearson');
+      const r = correlationStats.r.value;
+      const p = correlationStats.p.value;
+      const ci = correlationStats.confidenceInterval.value;
       return {
         xId,
         xName: getIndicatorName(xId),
-        n: sampleSize,
+        n: correlationStats.metadata.sampleSize.n,
         r,
-        r2: r * r,
+        r2: correlationStats.r2.value,
         p,
         ci,
         interpretation: interpretCorrelation(r),
+        statisticsMetadata: correlationStats.metadata,
       };
     });
 
     return results.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
-  }, [effectiveXVars, effectiveXArrays, yValues, sampleSize]);
+  }, [effectiveXVars, effectiveXArrays, yValues]);
 
   /* ── Model computations (for single X) ── */
   const modelStats = useMemo(() => {
@@ -1409,6 +1412,7 @@ export default function Correlation() {
                     <tr
                       key={s.xId}
                       className="transition-colors"
+                      title={`${s.statisticsMetadata.method}; quality=${s.statisticsMetadata.dataQuality.status}; n=${s.statisticsMetadata.sampleSize.n}`}
                       style={{
                         backgroundColor: idx % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent',
                       }}

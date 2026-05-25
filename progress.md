@@ -1,4 +1,4 @@
-# PerformanceLab Progress Log
+﻿# PerformanceLab Progress Log
 
 Use this file as the session-by-session project journal.
 
@@ -370,3 +370,41 @@ Use this file as the session-by-session project journal.
 - Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages run.
 - Push: pushed follow-up progress-log commit `fb96a16` to `origin/main`.
 - GitHub Actions verification: `Deploy to GitHub Pages` run `26366648336` for commit `559d819` completed successfully.
+
+## 2026-05-25 PL-006 Statistics Module Professionalization
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: `PL-006`, centralize professional statistics outputs and metadata for TE/MDC/SWC/effect size/correlation.
+- Read the required project context files and confirmed initial git status: `main...origin/main` with no local changes.
+- Read the karpathy-guidelines skill because this task changes shared statistical code and should stay surgical: first inventory current statistics, then introduce a shared boundary with verifiable outputs before broader UI migration.
+- Inventory finding: `src/components/dashboard/data.ts` owns the current TE/MDC/SWC/SNR/Cohen's d/summary t-test helpers, while `src/components/dashboard/PeriodicTesting.tsx` consumes those helpers in both longitudinal and cross-sectional tables.
+- Inventory finding: `src/lib/statistics.ts` owns correlation/regression/demo-model helpers for `/correlation`, but correlation outputs are still returned as bare numeric values without method assumptions, missing-data policy, or data-quality metadata.
+- Working decision: add `src/lib/performance-statistics.ts` as the shared professional statistics boundary, keep existing UI structure stable, migrate Dashboard periodic comparison calculations and Correlation's primary pairwise correlation calculation to consume the new metadata-capable functions.
+- Added `src/lib/performance-statistics.ts` as the first professional statistics boundary with shared metadata types for method, assumptions, sampleSize, missingDataPolicy, and dataQuality.
+- Centralized summary comparison outputs in the new module: change, percent change, TE, MDC, SWC, SNR, Cohen's d, and summary-level p-value.
+- Centralized primary correlation output in the new module through `analyzeCorrelation`, returning r, p, r2, confidence interval, pairwise complete-case sample size, missing-value count, assumptions, and data-quality flags.
+- Updated `src/components/dashboard/data.ts` so legacy dashboard helper exports delegate to the shared statistics module instead of owning their own TE/MDC/SWC/effect-size/t-test implementations.
+- Updated `src/components/dashboard/PeriodicTesting.tsx` so longitudinal and cross-sectional statistics tables consume `compareSummaries`; table row titles now expose method, quality status, and sample size metadata.
+- Updated `src/pages/Correlation.tsx` so the primary detailed statistics table consumes `analyzeCorrelation`; row titles now expose method, quality status, and sample size metadata.
+- Verification: initial `npm run build` passed with the existing Vite >500 kB chunk warning; initial `npm run lint` produced one React hook warning for an unnecessary `sampleSize` dependency in `Correlation.tsx`.
+- Fixed the lint warning by removing the unnecessary dependency from the correlation statistics `useMemo`.
+- Verification: reran `npm run build`; it passes with the existing Vite >500 kB chunk warning.
+- Verification: reran `npm run lint`; it passes with no warnings.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly through the project `node_modules` path.
+- Playwright setup note: the first temporary script failed to resolve `playwright` because it ran from the system temp directory; reran with `NODE_PATH` pointed at the project `node_modules`.
+- Playwright selector note: the first comparison smoke waited for visible `MetricSurfaceConfig`, but that label is not visible in the current UI; reran with visible statistics-table text instead.
+- Playwright smoke on local `npm run preview` at `http://127.0.0.1:4173/` passed:
+  - `/comparison` loaded, rendered statistics tables, switched to 横向比较, and kept desktop document width at 1440px.
+  - `/correlation` loaded and rendered the detailed statistics table.
+  - Console errors, console warnings, and page errors were empty.
+  - Screenshots were saved to the system temp directory, not the repository.
+- Updated `docs/EXECUTION_BRIEF.md` so `PL-006` is `Done`, `PL-007` is the next default task, and current code facts mention the new statistics boundary.
+- Updated `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect PL-006 completion and PL-007 as the next default task.
+- Final verification after documentation updates: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Final verification after documentation updates: `npm run lint` passes with no warnings.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files, `src/components/dashboard/PeriodicTesting.tsx`, `src/components/dashboard/data.ts`, `src/pages/Correlation.tsx`; new `src/lib/performance-statistics.ts`.
+- Commit plan: create a local commit for PL-006 with message `Professionalize statistics module`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `e915cbf` with message `Professionalize statistics module`.
+- Commit amend: updated the PL-006 commit to include the commit log; the amended commit keeps message `Professionalize statistics module`.
+

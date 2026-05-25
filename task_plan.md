@@ -160,6 +160,17 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verification: Local Playwright smoke passed for `/data-entry` manual save and Excel confirmation. Manual entry generated 3 frontend-staged Measurement rows; Excel confirmation generated 6 more rows for a total of 9; console errors/warnings were empty and desktop width had no page-level overflow.
 - Next recommended architecture work: centralize professional statistics outputs and metadata (`PL-006`).
 
+## 2026-05-25 PL-006 Statistics Module Task
+
+- Completed: Added `src/lib/performance-statistics.ts` as the first professional statistics boundary.
+- Completed: Centralized summary comparison, TE, MDC, SWC, SNR, Cohen's d, summary-level p-value, Pearson/Spearman correlation, confidence interval, sample-size reporting, missing-data policy, assumptions, and data-quality metadata.
+- Completed: Migrated Dashboard periodic longitudinal/cross-sectional statistics to consume `compareSummaries`.
+- Completed: Migrated `/correlation` primary pairwise correlation table to consume `analyzeCorrelation`.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
+- Verification: `npm run lint` passes.
+- Verification: Local Playwright smoke passed for `/comparison` cross-sectional statistics and `/correlation` detailed statistics with no console errors/warnings and no desktop page-level overflow.
+- Next recommended architecture work: stabilize remaining unseeded mock data randomness (`PL-007`).
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.

@@ -80,7 +80,7 @@ Options when the project is ready:
 
 ## Current Recommended Next Step
 
-Dashboard periodic testing, `/comparison`, and Data Entry now share registry-derived metric ids. Data Entry's manual save and Excel confirmation paths generate domain-model `Measurement[]` rows in frontend state. Next, centralize professional statistics so TE/MDC/SWC/effect size/correlation outputs have shared method metadata, assumptions, sample-size reporting, missing-data policy, and data-quality flags.
+Dashboard periodic testing, `/comparison`, and Data Entry now share registry-derived metric ids. Data Entry's manual save and Excel confirmation paths generate domain-model `Measurement[]` rows in frontend state. Professional statistics now have a first shared boundary in `src/lib/performance-statistics.ts`, and Dashboard periodic comparison plus `/correlation` primary statistics consume it. Next, stabilize remaining mock data randomness in Dashboard daily data and correlation demo data so refreshes do not change analysis results.
 
 ## Analysis Workflow Direction
 
