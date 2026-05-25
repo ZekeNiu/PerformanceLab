@@ -540,6 +540,15 @@ Use this file as the session-by-session project journal.
   - Console errors, console warnings, and page errors were empty.
   - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
 - Cleanup note: stopped the local Vite preview process and its child process on port 4173.
+- Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/AI_CONTEXT.md`, `docs/ROADMAP.md`, `task_plan.md`, and `findings.md` to reflect that Admin definitions/actions now write to workspace and Data Entry consumes the active workspace definition adapter, while PL-010 remains `Doing`.
+- Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Final verification: `npm run lint` passes with no warnings.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files, `src/pages/Admin.tsx`, Data Entry components/adapters, `src/lib/domain-model.ts`; new `src/lib/workspace-definition-config.ts`.
+- Commit plan: create a local commit for this PL-010 continuation with message `Persist admin definitions in workspace`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `b0c7e21` with message `Persist admin definitions in workspace`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing.
 - Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/AI_CONTEXT.md`, `docs/ROADMAP.md`, `task_plan.md`, and `findings.md` to reflect that Settings main preferences now read/write the active workspace while PL-010 remains `Doing`.
 - Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
 - Final verification: `npm run lint` passes with no warnings.
@@ -556,3 +565,33 @@ Use this file as the session-by-session project journal.
 - GitHub Actions note: the GitHub connector did not return push workflow runs for commit `e47557c`.
 - GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `c81f5b0` with message `deploy: e47557c892a3cbf717631e15485ff3b4f0ad44d6`, confirming the PL-010 Settings workspace persistence commit deployed. The follow-up progress-log commit `6b51bc1` used `[skip ci]` and did not need a deployment run.
 - Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
+
+## 2026-05-25 PL-010 Admin Definition Workspace Continuation
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: continue `PL-010`, local JSON workspace file persistence.
+- Read the required project context files and confirmed initial git status: `main...origin/main` with no local changes.
+- Read the React best-practices, frontend-testing-debugging, and karpathy-guidelines skills because this pass changes React workspace consumers and needs rendered validation.
+- `rg --files` still fails in this Windows environment with `Access is denied`; PowerShell `Get-Content` and `Select-String` were used for code inspection.
+- Inventory finding: `src/pages/Admin.tsx` still initializes definition-library metrics from local `INITIAL_METRICS` and keeps edits/deletes only in component state.
+- Inventory finding: Data Entry's `IndicatorSelector`, import staging validation, and import measurement builder still resolve test actions from module-level `dataEntryActionCategories` instead of the active workspace, so Admin definition changes cannot yet affect data entry.
+- Working decision: keep this pass focused on Admin definition/action-category persistence and the Data Entry consumer path. Athlete profiles, test-session editing, other dashboard read paths, and cache-clear reopen verification remain separate PL-010 slices unless this pass exposes a small required adapter.
+- Added `src/lib/workspace-definition-config.ts` as a workspace-derived definition adapter for test action categories, test actions, metric lookup, and action-aware metric resolution.
+- Extended `MetricDefinition` with optional Admin-authored metadata fields for target value, target max score, phase, definition, and created/updated timestamps.
+- Updated Data Entry manual indicator selection, import staging validation, and import measurement generation to prefer active workspace definitions/actions/metrics while keeping registry/static fallbacks.
+- Updated `src/pages/Admin.tsx` definition library to render metrics from `workspace.metricDefinitions` and to save/delete definitions through `updateWorkspace`, including automatic creation of missing `testActionCategories` and `testActions`.
+- Verification note: first `npm run build` and `npm run lint` failed because migrating Admin to workspace left the old `INITIAL_METRICS` fixture unused.
+- Fix: retained `INITIAL_METRICS` only as an empty-workspace fallback for the Admin definition table.
+- Verification: `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+- Verification: `npm run lint` passes with no warnings.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright setup note: starting `npm run preview` through bare `npm` opened Windows Notepad in this shell; reran with the explicit `C:\Program Files\nodejs\npm.cmd` path and started local preview on `http://127.0.0.1:4173/`.
+- Playwright script note: the first Admin smoke script failed because it attempted to fill a radio input after selecting inputs by index; reran with `input:not([type="radio"])`.
+- Playwright smoke note: after adding the dialog description, one rerun failed because `getByText('保存')` also matched the new description text; reran with `getByRole('button', { name: '保存' })`.
+- Playwright smoke on local preview passed for Admin definition persistence into Data Entry:
+  - Opened `/admin`, created a custom metric `workspace_smoke_metric` under custom category `WorkspaceSmokeCategory` and custom action `WorkspaceSmokeAction`.
+  - Admin definition table rendered `Workspace Smoke Metric`, confirming the definition was written into active workspace state.
+  - Navigated to `/data-entry`, selected the custom category/action from the hierarchical indicator selector, and saw `Workspace Smoke Metric`, confirming Data Entry consumes active workspace definitions.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
+  - Screenshot was saved to the system temp directory, not the repository.
+- Cleanup note: stopped the local Vite preview process and its child process on port 4173.

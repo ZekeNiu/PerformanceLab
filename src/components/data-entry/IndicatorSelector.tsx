@@ -1,8 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ArrowUp, ArrowDown, ArrowLeftRight } from 'lucide-react'
 import type { MetricDefinition } from '@/lib/domain-model'
-import { dataEntryActionCategories, getDataEntryActionMetrics } from '@/lib/data-entry-config'
+import { useWorkspaceStore } from '@/lib/workspace-store'
+import {
+  buildWorkspaceDefinitionCategories,
+  getWorkspaceActionMetrics,
+} from '@/lib/workspace-definition-config'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface IndicatorSelectorProps {
@@ -41,11 +45,15 @@ export default function IndicatorSelector({
 }: IndicatorSelectorProps) {
   const [level1Id, setLevel1Id] = useState('')
   const [level2Id, setLevel2Id] = useState('')
+  const { workspace } = useWorkspaceStore()
+  const actionCategories = useMemo(() => buildWorkspaceDefinitionCategories(workspace), [workspace])
 
-  const selectedCategory = dataEntryActionCategories.find((c) => c.id === level1Id)
+  const selectedCategory = actionCategories.find((c) => c.id === level1Id)
   const selectedAction = selectedCategory?.actions.find((a) => a.id === level2Id)
 
-  const availableMetrics = selectedAction ? getDataEntryActionMetrics(selectedAction) : []
+  const availableMetrics = selectedAction
+    ? getWorkspaceActionMetrics(selectedAction, workspace.metricDefinitions)
+    : []
 
   const toggleMetric = (metric: MetricDefinition) => {
     const exists = selectedMetrics.find((m) => m.id === metric.id)
@@ -67,7 +75,7 @@ export default function IndicatorSelector({
     // Auto-select all metrics by default when action changes
     const action = selectedCategory?.actions.find((a) => a.id === id)
     if (action) {
-      onMetricsChange(getDataEntryActionMetrics(action))
+      onMetricsChange(getWorkspaceActionMetrics(action, workspace.metricDefinitions))
     } else {
       onMetricsChange([])
     }
@@ -105,7 +113,7 @@ export default function IndicatorSelector({
               <option value="" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                 请选择动作分类
               </option>
-              {dataEntryActionCategories.map((cat) => (
+              {actionCategories.map((cat) => (
                 <option key={cat.id} value={cat.id} style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                   {cat.name} ({cat.actions.length}项测试)
                 </option>

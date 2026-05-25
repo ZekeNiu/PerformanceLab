@@ -19,6 +19,9 @@ import { getMetricDefinition, resolveMetricDefinition } from '@/lib/metric-regis
 import type { Measurement } from '@/lib/domain-model'
 import { buildImportMeasurements } from '@/lib/data-entry-measurements'
 import { resolveDataEntryMetric } from '@/lib/data-entry-config'
+import { useWorkspaceStore } from '@/lib/workspace-store'
+import { resolveWorkspaceMetric } from '@/lib/workspace-definition-config'
+import type { PerformanceLabWorkspace } from '@/lib/workspace-file'
 
 interface ValidationItem {
   id: string
@@ -77,13 +80,17 @@ function StatusBadge({ status, text }: { status: ValidationStatus; text: string 
   )
 }
 
-function validateParsedRows(parsedRows: ParsedRow[]): ValidationItem[] {
+function validateParsedRows(parsedRows: ParsedRow[], workspace?: PerformanceLabWorkspace): ValidationItem[] {
   return parsedRows.map((row) => {
     let status: ValidationStatus = 'ok'
     let statusType = '正常'
     let errorMessage = ''
     let isResolved = true
-    const metric = row.metricId ? getMetricDefinition(row.metricId) : resolveDataEntryMetric(row.action, row.indicator) ?? resolveMetricDefinition(row.indicator)
+    const metric = workspace
+      ? row.metricId
+        ? workspace.metricDefinitions.find((definition) => definition.id === row.metricId) ?? getMetricDefinition(row.metricId)
+        : resolveWorkspaceMetric(workspace, row.action, row.indicator)
+      : row.metricId ? getMetricDefinition(row.metricId) : resolveDataEntryMetric(row.action, row.indicator) ?? resolveMetricDefinition(row.indicator)
 
     const knownAthlete = mockAthletes.find(
       (a) => a.name === row.athleteName || a.uuid === row.athleteUUID
@@ -143,8 +150,9 @@ export default function ValidationStagingArea({
   onCommit,
   onCancel,
 }: ValidationStagingAreaProps) {
+  const { workspace } = useWorkspaceStore()
   const [filter, setFilter] = useState<FilterType>('all')
-  const [items, setItems] = useState<ValidationItem[]>(() => validateParsedRows(parsedRows))
+  const [items, setItems] = useState<ValidationItem[]>(() => validateParsedRows(parsedRows, workspace))
 
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isCommitting, setIsCommitting] = useState(false)
@@ -220,7 +228,7 @@ export default function ValidationStagingArea({
       }))
     setIsCommitting(true)
     try {
-      await onCommit(validRows, buildImportMeasurements(validRows))
+      await onCommit(validRows, buildImportMeasurements(validRows, workspace))
       setConfirmOpen(false)
     } catch (error) {
       toast.error('导入写入失败', {

@@ -41,10 +41,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import type { MetricDefinition } from '@/lib/domain-model'
+import { useWorkspaceStore } from '@/lib/workspace-store'
+import type { TestActionCategory } from '@/lib/workspace-file'
 
 /* ─────────────────────── Types ─────────────────────── */
 
-type Category = '力量' | '速度' | '耐力' | '身体形态' | '身体机能' | '灵敏' | '柔韧'
+type Category = string
 type Direction = 1 | -1 | 0
 type Phase = '离心阶段' | '向心阶段' | '等长阶段' | '全阶段'
 type AthleteStatus = '现役' | '受伤' | '离队' | '退役'
@@ -98,7 +101,7 @@ const CATEGORIES: Category[] = ['力量', '速度', '耐力', '身体形态', '�
 const PHASES: Phase[] = ['离心阶段', '向心阶段', '等长阶段', '全阶段']
 const ATHLETE_STATUS: AthleteStatus[] = ['现役', '受伤', '离队', '退役']
 
-const CATEGORY_COLORS: Record<Category, string> = {
+const CATEGORY_COLORS: Record<string, string> = {
   '力量': 'var(--accent-red)',
   '速度': 'var(--accent-cyan)',
   '耐力': 'var(--accent-blue)',
@@ -107,6 +110,8 @@ const CATEGORY_COLORS: Record<Category, string> = {
   '灵敏': 'var(--accent-amber)',
   '柔韧': 'var(--text-secondary)',
 }
+
+const FALLBACK_CATEGORY_COLOR = 'var(--text-secondary)'
 
 const STATUS_CONFIG: Record<AthleteStatus, { color: string; bg: string; dot: string }> = {
   '现役': { color: 'var(--accent-green)', bg: 'rgba(16,185,129,0.15)', dot: 'var(--accent-green)' },
@@ -182,6 +187,99 @@ function stringToColor(name: string): string {
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   const colors = ['#00D4AA', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981', '#EC4899', '#06B6D4']
   return colors[Math.abs(hash) % colors.length]
+}
+
+function compactDefinitionId(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+function metricDirectionToAdmin(direction: MetricDefinition['direction']): Direction {
+  if (direction === 'lower') return -1
+  if (direction === 'range') return 0
+  return 1
+}
+
+function adminDirectionToMetric(direction: Direction): MetricDefinition['direction'] {
+  if (direction === -1) return 'lower'
+  if (direction === 0) return 'range'
+  return 'higher'
+}
+
+function buildCategoryId(category: string) {
+  return `category-${compactDefinitionId(category) || Date.now()}`
+}
+
+function buildActionId(category: string, action: string) {
+  return `action-${compactDefinitionId(category)}-${compactDefinitionId(action) || Date.now()}`
+}
+
+function metricDefinitionToAdminMetric(
+  metric: MetricDefinition,
+  actions: Array<{ name: string; categoryId: string; metricIds: string[] }>,
+  categories: TestActionCategory[],
+): Metric {
+  const action = actions.find((candidate) => candidate.metricIds.includes(metric.id))
+  const category = action
+    ? categories.find((candidate) => candidate.id === action.categoryId)?.name
+    : undefined
+  const direction = metricDirectionToAdmin(metric.direction)
+  const targetValue = metric.targetValue ?? (
+    metric.optimalRange ? (metric.optimalRange[0] + metric.optimalRange[1]) / 2 : 0
+  )
+
+  return {
+    id: metric.id,
+    category: category ?? metric.categoryName,
+    action: action?.name ?? '',
+    name: metric.name,
+    unit: metric.unit,
+    targetValue,
+    minValue: metric.optimalRange?.[0],
+    maxValue: metric.optimalRange?.[1],
+    phase: (metric.phase as Phase | undefined) ?? '全阶段',
+    direction,
+    targetMaxScore: metric.targetMaxScore ?? 100,
+    definition: metric.definition ?? '',
+    createdAt: metric.createdAt ?? new Date().toISOString().slice(0, 10),
+    updatedAt: metric.updatedAt ?? new Date().toISOString().slice(0, 10),
+  }
+}
+
+function adminMetricToMetricDefinition(metric: Metric, previous?: MetricDefinition): MetricDefinition {
+  const direction = adminDirectionToMetric(metric.direction)
+  const aliases = Array.from(new Set([
+    ...(previous?.aliases ?? []),
+    metric.id,
+    metric.name,
+    metric.action,
+  ].filter(Boolean)))
+
+  return {
+    ...previous,
+    id: metric.id,
+    name: metric.name,
+    kind: previous?.kind ?? 'raw',
+    categoryId: previous?.categoryId ?? (compactDefinitionId(metric.category) || buildCategoryId(metric.category)),
+    categoryName: metric.category,
+    unit: metric.unit,
+    direction,
+    aliases,
+    optimalRange: direction === 'range' && metric.minValue !== undefined && metric.maxValue !== undefined
+      ? [metric.minValue, metric.maxValue]
+      : previous?.optimalRange,
+    targetValue: metric.targetValue,
+    targetMaxScore: metric.targetMaxScore,
+    phase: metric.phase,
+    definition: metric.definition,
+    createdAt: previous?.createdAt ?? metric.createdAt,
+    updatedAt: metric.updatedAt,
+    supportedContexts: previous?.supportedContexts ?? ['periodic', 'comparison', 'import'],
+  }
 }
 
 const tabEase = [0.45, 0, 0.55, 1] as [number, number, number, number]
@@ -272,13 +370,31 @@ export default function Admin() {
 /* ══════════════════ DEFINITION LIBRARY TAB ══════════════════ */
 
 function DefinitionLibrary() {
-  const [metrics, setMetrics] = useState<Metric[]>(INITIAL_METRICS)
+  const { workspace, updateWorkspace } = useWorkspaceStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('全部')
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingMetric, setEditingMetric] = useState<Metric | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
+  const metrics = useMemo(
+    () => workspace.metricDefinitions.length
+      ? workspace.metricDefinitions.map((metric) =>
+          metricDefinitionToAdminMetric(metric, workspace.testActions, workspace.testActionCategories),
+        )
+      : INITIAL_METRICS,
+    [workspace.metricDefinitions, workspace.testActions, workspace.testActionCategories],
+  )
+
+  const categories = useMemo(() => {
+    const values = new Set([
+      ...CATEGORIES,
+      ...workspace.testActionCategories.map((category) => category.name),
+      ...workspace.metricDefinitions.map((metric) => metric.categoryName),
+    ])
+    return Array.from(values).filter(Boolean)
+  }, [workspace.metricDefinitions, workspace.testActionCategories])
 
   const filteredMetrics = useMemo(() => {
     return metrics.filter((m) => {
@@ -292,20 +408,70 @@ function DefinitionLibrary() {
     })
   }, [metrics, searchQuery, categoryFilter])
 
-  const handleSaveMetric = useCallback((metric: Metric) => {
-    setMetrics((prev) => {
-      const exists = prev.find((m) => m.id === metric.id)
-      if (exists) return prev.map((m) => (m.id === metric.id ? metric : m))
-      return [...prev, metric]
+  const handleSaveMetric = useCallback(async (metric: Metric) => {
+    await updateWorkspace((current) => {
+      const existingCategory = current.testActionCategories.find((category) => category.name === metric.category)
+      const category = existingCategory ?? { id: buildCategoryId(metric.category), name: metric.category }
+      const existingAction = current.testActions.find(
+        (action) => action.categoryId === category.id && action.name === metric.action,
+      )
+      const actionId = existingAction?.id ?? buildActionId(metric.category, metric.action)
+      const previousMetric = current.metricDefinitions.find((definition) => definition.id === metric.id)
+      const nextMetric = {
+        ...adminMetricToMetricDefinition(metric, previousMetric),
+        categoryId: category.id,
+      }
+
+      return {
+        ...current,
+        testActionCategories: existingCategory
+          ? current.testActionCategories
+          : [...current.testActionCategories, category],
+        testActions: existingAction
+          ? current.testActions.map((action) => {
+              if (action.id === actionId) {
+                return {
+                  ...action,
+                  metricIds: Array.from(new Set([...action.metricIds, metric.id])),
+                }
+              }
+              return {
+                ...action,
+                metricIds: action.metricIds.filter((metricId) => metricId !== metric.id),
+              }
+            })
+          : [
+              ...current.testActions.map((action) => ({
+                ...action,
+                metricIds: action.metricIds.filter((metricId) => metricId !== metric.id),
+              })),
+              {
+                id: actionId,
+                categoryId: category.id,
+                name: metric.action,
+                metricIds: [metric.id],
+              },
+            ],
+        metricDefinitions: previousMetric
+          ? current.metricDefinitions.map((definition) => (definition.id === metric.id ? nextMetric : definition))
+          : [...current.metricDefinitions, nextMetric],
+      }
     })
     setModalOpen(false)
     setEditingMetric(null)
-  }, [])
+  }, [updateWorkspace])
 
-  const handleDelete = useCallback((id: string) => {
-    setMetrics((prev) => prev.filter((m) => m.id !== id))
+  const handleDelete = useCallback(async (id: string) => {
+    await updateWorkspace((current) => ({
+      ...current,
+      metricDefinitions: current.metricDefinitions.filter((metric) => metric.id !== id),
+      testActions: current.testActions.map((action) => ({
+        ...action,
+        metricIds: action.metricIds.filter((metricId) => metricId !== id),
+      })),
+    }))
     setDeleteConfirmId(null)
-  }, [])
+  }, [updateWorkspace])
 
   const openEdit = useCallback((metric: Metric) => {
     setEditingMetric(metric)
@@ -340,7 +506,7 @@ function DefinitionLibrary() {
           </SelectTrigger>
           <SelectContent style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
             <SelectItem value="全部">全部分类</SelectItem>
-            {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <button
@@ -376,6 +542,10 @@ function DefinitionLibrary() {
             <tbody>
               {filteredMetrics.map((metric) => (
                 <React.Fragment key={metric.id}>
+                  {(() => {
+                    const categoryColor = CATEGORY_COLORS[metric.category] ?? FALLBACK_CATEGORY_COLOR
+                    return (
+                      <>
                   <tr
                     className="cursor-pointer border-t transition-colors duration-100"
                     style={{
@@ -390,7 +560,7 @@ function DefinitionLibrary() {
                     <td className="px-4 py-3">
                       <Badge
                         className="text-[11px]"
-                        style={{ backgroundColor: CATEGORY_COLORS[metric.category] + '26', color: CATEGORY_COLORS[metric.category], borderColor: CATEGORY_COLORS[metric.category] + '40' }}
+                        style={{ backgroundColor: `${categoryColor}26`, color: categoryColor, borderColor: `${categoryColor}40` }}
                         variant="outline"
                       >
                         {metric.category}
@@ -466,6 +636,9 @@ function DefinitionLibrary() {
                       </motion.tr>
                     )}
                   </AnimatePresence>
+                      </>
+                    )
+                  })()}
                 </React.Fragment>
               ))}
               {filteredMetrics.length === 0 && (
@@ -487,6 +660,10 @@ function DefinitionLibrary() {
         onClose={() => { setModalOpen(false); setEditingMetric(null) }}
         onSave={handleSaveMetric}
         initialData={editingMetric}
+        categories={categories}
+        actions={workspace.testActions}
+        actionCategories={workspace.testActionCategories}
+        key={`${modalOpen}-${editingMetric?.id ?? 'create'}`}
       />
 
       {/* Delete Confirm */}
@@ -522,11 +699,14 @@ function DefinitionLibrary() {
 
 /* ═════════════ Metric Create/Edit Modal ═════════════ */
 
-function MetricModal({ open, onClose, onSave, initialData }: {
+function MetricModal({ open, onClose, onSave, initialData, categories, actions, actionCategories }: {
   open: boolean
   onClose: () => void
-  onSave: (m: Metric) => void
+  onSave: (m: Metric) => void | Promise<void>
   initialData: Metric | null
+  categories: string[]
+  actions: Array<{ name: string; categoryId: string }>
+  actionCategories: TestActionCategory[]
 }) {
   const [form, setForm] = useState<Partial<Metric>>({
     category: '力量', action: '', name: '', unit: '', targetValue: 0,
@@ -535,17 +715,11 @@ function MetricModal({ open, onClose, onSave, initialData }: {
   })
 
   const actionsForCategory = useMemo(() => {
-    const allActions: Record<string, string[]> = {
-      '力量': ['下蹲跳CMJ', '深蹲1RM', '卧推1RM', '硬拉1RM', '纵跳', '等长大腿中段拉'],
-      '速度': ['30米冲刺', '60米冲刺', '100米冲刺', '10码加速', '变向跑'],
-      '耐力': ['YO-YO间歇恢复测试', '12分钟跑', '台阶试验', '乳酸阈测试'],
-      '身体形态': ['皮褶厚度测量', '身高体重', '臂展', '坐高'],
-      '身体机能': ['递增负荷跑', '台阶指数', '血乳酸测试', '无创血红蛋白'],
-      '灵敏': ['Pro敏捷测试', 'T型测试', ' Illinois敏捷测试', '方形跑'],
-      '柔韧': ['坐位体前屈', '肩关节活动度', '髋关节活动度', '踝关节背屈'],
-    }
-    return allActions[form.category || '力量'] || []
-  }, [form.category])
+    const categoryId = actionCategories.find((category) => category.name === form.category)?.id
+    return actions
+      .filter((action) => action.categoryId === categoryId)
+      .map((action) => action.name)
+  }, [actionCategories, actions, form.category])
 
   // Reset form when opened
   useState(() => {
@@ -562,7 +736,7 @@ function MetricModal({ open, onClose, onSave, initialData }: {
     }
   })
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (!form.name || !form.action || !form.unit) return
     const id = initialData?.id || `${form.action}_${form.name}`.replace(/\s+/g, '_').toLowerCase()
     const metric: Metric = {
@@ -581,7 +755,7 @@ function MetricModal({ open, onClose, onSave, initialData }: {
       createdAt: initialData?.createdAt || new Date().toISOString().slice(0, 10),
       updatedAt: new Date().toISOString().slice(0, 10),
     }
-    onSave(metric)
+    await onSave(metric)
   }, [form, initialData, onSave])
 
   const update = (field: string, value: unknown) => {
@@ -593,6 +767,9 @@ function MetricModal({ open, onClose, onSave, initialData }: {
       <DialogContent className="max-w-[640px] max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
         <DialogHeader>
           <DialogTitle style={{ color: 'var(--text-primary)' }}>{initialData ? '编辑指标' : '新增指标'}</DialogTitle>
+          <DialogDescription style={{ color: 'var(--text-secondary)' }}>
+            配置指标、动作分类和测试动作；保存后会写入当前工作区文件。
+          </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 flex flex-col gap-4">
@@ -611,27 +788,33 @@ function MetricModal({ open, onClose, onSave, initialData }: {
           {/* Category */}
           <div>
             <Label style={{ color: 'var(--text-primary)' }}>动作分类 *</Label>
-            <Select value={form.category} onValueChange={(v) => update('category', v)}>
-              <SelectTrigger className="mt-1.5" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
-                {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Input
+              value={form.category || ''}
+              onChange={(e) => update('category', e.target.value)}
+              list="admin-metric-category-options"
+              className="mt-1.5"
+              placeholder="如：爆发力"
+              style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+            />
+            <datalist id="admin-metric-category-options">
+              {categories.map((category) => <option key={category} value={category} />)}
+            </datalist>
           </div>
 
           {/* Action */}
           <div>
             <Label style={{ color: 'var(--text-primary)' }}>测试动作 *</Label>
-            <Select value={form.action} onValueChange={(v) => update('action', v)}>
-              <SelectTrigger className="mt-1.5" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
-                <SelectValue placeholder="选择动作" />
-              </SelectTrigger>
-              <SelectContent style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
-                {actionsForCategory.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Input
+              value={form.action || ''}
+              onChange={(e) => update('action', e.target.value)}
+              list="admin-metric-action-options"
+              className="mt-1.5"
+              placeholder="如：下蹲跳 CMJ"
+              style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+            />
+            <datalist id="admin-metric-action-options">
+              {actionsForCategory.map((action) => <option key={action} value={action} />)}
+            </datalist>
           </div>
 
           {/* Name */}

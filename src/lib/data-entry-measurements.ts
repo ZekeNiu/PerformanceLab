@@ -4,6 +4,8 @@ import type { ParsedImportRow } from './import-parser'
 import type { Measurement, MetricDefinition } from './domain-model'
 import { getMetricDefinition, resolveMetricDefinition } from './metric-registry'
 import { resolveDataEntryMetric } from './data-entry-config'
+import type { PerformanceLabWorkspace } from './workspace-file'
+import { resolveWorkspaceMetric } from './workspace-definition-config'
 
 export interface ManualMetricData {
   metricId: string
@@ -69,7 +71,13 @@ function findImportAthlete(row: ParsedImportRow) {
   return mockAthletes.find((athlete) => athlete.uuid === row.athleteUUID || athlete.name === row.athleteName)
 }
 
-function findImportMetric(row: ParsedImportRow) {
+function findImportMetric(row: ParsedImportRow, workspace?: PerformanceLabWorkspace) {
+  if (workspace) {
+    return row.metricId
+      ? workspace.metricDefinitions.find((metric) => metric.id === row.metricId) ?? getMetricDefinition(row.metricId)
+      : resolveWorkspaceMetric(workspace, row.action, row.indicator)
+  }
+
   return row.metricId ? getMetricDefinition(row.metricId) : resolveDataEntryMetric(row.action, row.indicator) ?? resolveMetricDefinition(row.indicator)
 }
 
@@ -77,10 +85,10 @@ function findImportSession(row: ParsedImportRow) {
   return mockTestSessions.find((session) => session.date === row.date)
 }
 
-export function buildImportMeasurements(rows: ParsedImportRow[]): Measurement[] {
+export function buildImportMeasurements(rows: ParsedImportRow[], workspace?: PerformanceLabWorkspace): Measurement[] {
   return rows.flatMap((row) => {
     const athlete = findImportAthlete(row)
-    const metric = findImportMetric(row)
+    const metric = findImportMetric(row, workspace)
     const session = findImportSession(row)
 
     if (!athlete || !metric) return []

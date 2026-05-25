@@ -90,6 +90,12 @@ export interface MetricDefinition {
   dependsOnMetricIds?: string[]
   dimensions?: MetricDimensionDefinition[]
   optimalRange?: [number, number]
+  targetValue?: number
+  targetMaxScore?: number
+  phase?: string
+  definition?: string
+  createdAt?: string
+  updatedAt?: string
   supportedContexts: Array<'daily' | 'periodic' | 'comparison' | 'correlation' | 'import'>
 }
 
