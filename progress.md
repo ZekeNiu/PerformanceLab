@@ -507,3 +507,7 @@ Use this file as the session-by-session project journal.
 - Commit amend: final pre-push local commit became `ae59f58` with message `Read periodic data from workspace`.
 - Push: pushed commit `ae59f58` to `origin/main`.
 - Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages deployment run.
+- Push: pushed follow-up progress-log commit `93a27cd` to `origin/main`.
+- GitHub Actions note: the GitHub connector did not return push workflow runs for commit `ae59f58`.
+- GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `b27fc4f` with message `deploy: ae59f58c6c644b993eb8bc9ea4bbae5f072a66af`, confirming the PL-010 workspace periodic read-path commit deployed. The follow-up progress-log commit `93a27cd` used `[skip ci]` and did not need a deployment run.
+- Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
