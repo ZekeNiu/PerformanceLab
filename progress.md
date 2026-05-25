@@ -552,6 +552,10 @@ Use this file as the session-by-session project journal.
 - Commit amend: updated the local commit to `2fd3f22` with the same message before push so the progress log stays in the same change.
 - Push: pushed commit `2fd3f22` to `origin/main`.
 - Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages deployment run.
+- Push: pushed follow-up progress-log commit `52f0432` to `origin/main`.
+- GitHub Actions note: the GitHub connector did not return push workflow runs for commit `2fd3f22`.
+- GitHub Pages deployment verification: first `git fetch origin gh-pages` hit a transient TLS EOF and still showed the previous deployment; retry succeeded. Latest `origin/gh-pages` commit is `1f6c107` with message `deploy: 2fd3f22ef29605e8a699d3151732228be42f9e55`, confirming the Admin definition workspace commit deployed. The follow-up progress-log commit `52f0432` used `[skip ci]` and did not need a deployment run.
+- Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
 - Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/AI_CONTEXT.md`, `docs/ROADMAP.md`, `task_plan.md`, and `findings.md` to reflect that Settings main preferences now read/write the active workspace while PL-010 remains `Doing`.
 - Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
 - Final verification: `npm run lint` passes with no warnings.
