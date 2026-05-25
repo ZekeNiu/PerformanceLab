@@ -267,6 +267,10 @@ Use this file as the session-by-session project journal.
 - Commit: created local commit with message `Add local workspace file layer`, then amended it to include the commit log entry before push.
 - Push: pushed commit `a3f905d` to `origin/main`.
 - Follow-up log note: recording the successful push in this progress-only update, then pushing it as a `[skip ci]` commit so it does not start another Pages run.
+- Push: pushed follow-up progress-log commit `52cf634` to `origin/main`.
+- GitHub Actions note: the GitHub connector returned no workflow runs for `a3f905d`, and anonymous GitHub REST API was rate-limited.
+- GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `ee90b2a` with message `deploy: a3f905d5cba7e183a6359f44841b5a829e6b5bcc`, confirming the PL-010 code commit deployed. The follow-up progress-log commit `52cf634` used `[skip ci]` and did not need deployment.
+- Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
 
 ## 2026-05-24 PL-003 Dashboard Periodic Testing Migration
 
