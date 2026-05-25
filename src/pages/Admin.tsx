@@ -41,7 +41,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import type { MetricDefinition } from '@/lib/domain-model'
+import type {
+  Athlete as DomainAthlete,
+  MetricDefinition,
+  Team,
+  TestSession as DomainTestSession,
+} from '@/lib/domain-model'
 import { useWorkspaceStore } from '@/lib/workspace-store'
 import type { TestActionCategory } from '@/lib/workspace-file'
 
@@ -70,6 +75,7 @@ interface Metric {
 }
 
 interface Athlete {
+  id?: string
   uuid: string
   name: string
   gender: '男' | '女'
@@ -93,6 +99,20 @@ interface TestSession {
   warmupMethod: string
   notes: string
   athleteCount: number
+}
+
+const DOMAIN_STATUS_TO_ADMIN: Record<NonNullable<DomainAthlete['status']>, AthleteStatus> = {
+  active: '现役',
+  injured: '受伤',
+  inactive: '离队',
+  retired: '退役',
+}
+
+const ADMIN_STATUS_TO_DOMAIN: Record<AthleteStatus, NonNullable<DomainAthlete['status']>> = {
+  '现役': 'active',
+  '受伤': 'injured',
+  '离队': 'inactive',
+  '退役': 'retired',
 }
 
 /* ─────────────────────── Constants ─────────────────────── */
@@ -147,35 +167,10 @@ const INITIAL_METRICS: Metric[] = [
   { id: 'sit_reach', category: '柔韧', action: '坐位体前屈', name: '前伸距离', unit: 'cm', targetValue: 25, phase: '全阶段', direction: 1, targetMaxScore: 100, definition: '坐位体前屈测试中指尖达到的最大距离，评估腘绳肌和下背柔韧性。', createdAt: '2024-02-15', updatedAt: '2024-03-12' },
 ]
 
-const INITIAL_ATHLETES: Athlete[] = [
-  { uuid: 'ath-550e8400-e29b-41d4-a716-446655440001', name: '张伟', gender: '男', birthDate: '1998-03-15', height: 182, weight: 75, sport: '足球', team: '一队', position: '前锋', status: '现役', createdAt: '2023-01-10' },
-  { uuid: 'ath-550e8400-e29b-41d4-a716-446655440002', name: '李娜', gender: '女', birthDate: '2000-07-22', height: 168, weight: 58, sport: '游泳', team: '二队', position: '自由泳', status: '现役', createdAt: '2023-02-05' },
-  { uuid: 'ath-550e8400-e29b-41d4-a716-446655440003', name: '王强', gender: '男', birthDate: '1997-11-08', height: 190, weight: 85, sport: '篮球', team: '一队', position: '中锋', status: '受伤', createdAt: '2023-01-15' },
-  { uuid: 'ath-550e8400-e29b-41d4-a716-446655440004', name: '刘敏', gender: '女', birthDate: '1999-05-30', height: 175, weight: 62, sport: '排球', team: '一队', position: '主攻手', status: '现役', createdAt: '2023-03-01' },
-  { uuid: 'ath-550e8400-e29b-41d4-a716-446655440005', name: '陈浩', gender: '男', birthDate: '1996-09-12', height: 178, weight: 70, sport: '足球', team: '二队', position: '中场', status: '离队', createdAt: '2023-01-20' },
-  { uuid: 'ath-550e8400-e29b-41d4-a716-446655440006', name: '赵磊', gender: '男', birthDate: '1995-01-25', height: 185, weight: 80, sport: '田径', team: '一队', position: '短跑', status: '退役', createdAt: '2023-02-10' },
-]
-
-const INITIAL_SESSIONS: TestSession[] = [
-  { id: 'ses-001', name: '2024夏训期初测', date: '2024-06-15', location: '田径场B', temperature: '28°C', humidity: '65%', warmupMethod: '动态拉伸15分钟 + 慢跑800米', notes: '天气良好，运动员状态普遍较好', athleteCount: 23 },
-  { id: 'ses-002', name: '2024春训期末测', date: '2024-05-01', location: '综合训练馆', temperature: '22°C', humidity: '55%', warmupMethod: '静态拉伸10分钟 + 跳绳5分钟', notes: '部分运动员因赛程冲突未参加全部项目', athleteCount: 19 },
-  { id: 'ses-003', name: '冬训中期评估', date: '2024-02-20', location: '室内场馆A', temperature: '20°C', humidity: '50%', warmupMethod: '慢跑10分钟 + 动态拉伸', notes: '室内测试，环境控制良好', athleteCount: 25 },
-  { id: 'ses-004', name: '2023年终总测', date: '2023-12-10', location: '田径场A', temperature: '15°C', humidity: '70%', warmupMethod: '慢跑800米 + 动态拉伸', notes: '年末收官测试，全员参与', athleteCount: 28 },
-]
-
 /* ─────────────────────── Utility Functions ─────────────────────── */
 
 function generateUUID(): string {
   return 'ath-' + crypto.randomUUID()
-}
-
-function getAge(birthDate: string): number {
-  const today = new Date()
-  const birth = new Date(birthDate)
-  let age = today.getFullYear() - birth.getFullYear()
-  const m = today.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
-  return age
 }
 
 function getInitials(name: string): string {
@@ -216,6 +211,94 @@ function buildCategoryId(category: string) {
 
 function buildActionId(category: string, action: string) {
   return `action-${compactDefinitionId(category)}-${compactDefinitionId(action) || Date.now()}`
+}
+
+function buildTeamId(teamName: string) {
+  return `team-${compactDefinitionId(teamName) || Date.now()}`
+}
+
+function getAge(birthDate: string): number {
+  const birth = new Date(`${birthDate}T00:00:00`)
+  if (!birthDate || Number.isNaN(birth.getTime())) return 0
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+  return age
+}
+
+function domainAthleteToAdminAthlete(athlete: DomainAthlete, teams: Team[]): Athlete {
+  const team = teams.find((candidate) => candidate.id === athlete.teamId)
+  return {
+    id: athlete.id,
+    uuid: athlete.uuid,
+    name: athlete.name,
+    gender: athlete.gender ?? '男',
+    birthDate: athlete.birthDate ?? '',
+    height: athlete.height ?? 0,
+    weight: athlete.weight ?? 0,
+    sport: athlete.sport ?? team?.sport ?? '',
+    team: team?.name ?? '',
+    position: athlete.position ?? '',
+    status: DOMAIN_STATUS_TO_ADMIN[athlete.status ?? 'active'],
+    createdAt: athlete.createdAt ?? '',
+  }
+}
+
+function adminAthleteToDomainAthlete(athlete: Athlete, previous: DomainAthlete | undefined, teamId?: string): DomainAthlete {
+  return {
+    ...previous,
+    id: previous?.id ?? athlete.id ?? athlete.uuid,
+    uuid: athlete.uuid,
+    name: athlete.name,
+    teamId,
+    position: athlete.position,
+    status: ADMIN_STATUS_TO_DOMAIN[athlete.status],
+    gender: athlete.gender,
+    birthDate: athlete.birthDate,
+    height: athlete.height,
+    weight: athlete.weight,
+    sport: athlete.sport,
+    createdAt: previous?.createdAt ?? athlete.createdAt,
+  }
+}
+
+function domainSessionToAdminSession(
+  session: DomainTestSession,
+  measurements: Array<{ sessionId?: string; athleteId: string }>,
+): TestSession {
+  const measuredAthleteCount = new Set(
+    measurements
+      .filter((measurement) => measurement.sessionId === session.id)
+      .map((measurement) => measurement.athleteId),
+  ).size
+
+  return {
+    id: session.id,
+    name: session.name,
+    date: session.date,
+    location: session.location ?? '',
+    temperature: session.temperature ?? '',
+    humidity: session.humidity ?? '',
+    warmupMethod: session.warmupMethod ?? '',
+    notes: session.notes ?? '',
+    athleteCount: session.athleteCount ?? measuredAthleteCount,
+  }
+}
+
+function adminSessionToDomainSession(session: TestSession, previous?: DomainTestSession): DomainTestSession {
+  return {
+    ...previous,
+    id: session.id,
+    name: session.name,
+    date: session.date,
+    location: session.location,
+    temperature: session.temperature,
+    humidity: session.humidity,
+    warmupMethod: session.warmupMethod,
+    notes: session.notes,
+    athleteCount: session.athleteCount,
+  }
 }
 
 function metricDefinitionToAdminMetric(
@@ -982,7 +1065,7 @@ function MetricModal({ open, onClose, onSave, initialData, categories, actions, 
 /* ══════════════════ ATHLETE PROFILES TAB ══════════════════ */
 
 function AthleteProfiles() {
-  const [athletes, setAthletes] = useState<Athlete[]>(INITIAL_ATHLETES)
+  const { workspace, updateWorkspace } = useWorkspaceStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [teamFilter, setTeamFilter] = useState('全部')
   const [statusFilter, setStatusFilter] = useState<AthleteStatus | '全部'>('全部')
@@ -991,9 +1074,14 @@ function AthleteProfiles() {
   const [detailDrawer, setDetailDrawer] = useState<Athlete | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
+  const athletes = useMemo(
+    () => workspace.athletes.map((athlete) => domainAthleteToAdminAthlete(athlete, workspace.teams)),
+    [workspace.athletes, workspace.teams],
+  )
+
   const teams = useMemo(() => {
     const set = new Set(athletes.map((a) => a.team))
-    return ['全部', ...Array.from(set)]
+    return ['全部', ...Array.from(set).filter(Boolean)]
   }, [athletes])
 
   const filteredAthletes = useMemo(() => {
@@ -1005,21 +1093,40 @@ function AthleteProfiles() {
     })
   }, [athletes, searchQuery, teamFilter, statusFilter])
 
-  const handleSaveAthlete = useCallback((athlete: Athlete) => {
-    setAthletes((prev) => {
-      const exists = prev.find((a) => a.uuid === athlete.uuid)
-      if (exists) return prev.map((a) => (a.uuid === athlete.uuid ? athlete : a))
-      return [...prev, athlete]
+  const handleSaveAthlete = useCallback(async (athlete: Athlete) => {
+    await updateWorkspace((current) => {
+      const previous = current.athletes.find((candidate) => candidate.id === athlete.id || candidate.uuid === athlete.uuid)
+      const existingTeam = current.teams.find((team) => team.name === athlete.team)
+      const team = existingTeam ?? { id: buildTeamId(athlete.team), name: athlete.team, sport: athlete.sport }
+      const nextTeams = existingTeam
+        ? current.teams.map((candidate) =>
+            candidate.id === existingTeam.id
+              ? { ...candidate, sport: athlete.sport || candidate.sport }
+              : candidate,
+          )
+        : [...current.teams, team]
+      const nextAthlete = adminAthleteToDomainAthlete(athlete, previous, team.id)
+
+      return {
+        ...current,
+        teams: nextTeams,
+        athletes: previous
+          ? current.athletes.map((candidate) => (candidate.id === previous.id ? nextAthlete : candidate))
+          : [...current.athletes, nextAthlete],
+      }
     })
     setModalOpen(false)
     setEditingAthlete(null)
-  }, [])
+  }, [updateWorkspace])
 
-  const handleDelete = useCallback((uuid: string) => {
-    setAthletes((prev) => prev.filter((a) => a.uuid !== uuid))
+  const handleDelete = useCallback(async (uuid: string) => {
+    await updateWorkspace((current) => ({
+      ...current,
+      athletes: current.athletes.filter((athlete) => athlete.uuid !== uuid),
+    }))
     setDeleteConfirmId(null)
     if (detailDrawer?.uuid === uuid) setDetailDrawer(null)
-  }, [detailDrawer])
+  }, [detailDrawer, updateWorkspace])
 
   return (
     <div>
@@ -1086,6 +1193,7 @@ function AthleteProfiles() {
 
       {/* Athlete Modal */}
       <AthleteModal
+        key={modalOpen ? (editingAthlete?.uuid ?? 'new-athlete') : 'closed-athlete'}
         open={modalOpen}
         onClose={() => { setModalOpen(false); setEditingAthlete(null) }}
         onSave={handleSaveAthlete}
@@ -1241,20 +1349,24 @@ function AthleteCard({ athlete, onEdit, onView, onDelete }: {
 function AthleteModal({ open, onClose, onSave, initialData }: {
   open: boolean
   onClose: () => void
-  onSave: (a: Athlete) => void
+  onSave: (a: Athlete) => void | Promise<void>
   initialData: Athlete | null
 }) {
-  const [form, setForm] = useState<Partial<Athlete>>({
-    gender: '男', sport: '', team: '', position: '', status: '现役',
-    height: 0, weight: 0, birthDate: '', name: '',
-  })
-
-  useState(() => {
-    if (open) {
-      if (initialData) setForm({ ...initialData })
-      else setForm({ uuid: generateUUID(), gender: '男', sport: '', team: '', position: '', status: '现役', height: 0, weight: 0, birthDate: '', name: '', createdAt: new Date().toISOString().slice(0, 10) })
-    }
-  })
+  const [form, setForm] = useState<Partial<Athlete>>(() => ({
+    ...(initialData ?? {
+      uuid: generateUUID(),
+      gender: '男',
+      sport: '',
+      team: '',
+      position: '',
+      status: '现役',
+      height: 0,
+      weight: 0,
+      birthDate: '',
+      name: '',
+      createdAt: new Date().toISOString().slice(0, 10),
+    }),
+  }))
 
   const positionOptions = useMemo(() => {
     return SPORTS_POSITIONS[form.sport || ''] || []
@@ -1265,6 +1377,7 @@ function AthleteModal({ open, onClose, onSave, initialData }: {
   const handleSubmit = useCallback(() => {
     if (!form.name || !form.birthDate || !form.sport || !form.team) return
     const athlete: Athlete = {
+      id: form.id,
       uuid: form.uuid || generateUUID(),
       name: form.name || '',
       gender: (form.gender as '男' | '女') || '男',
@@ -1277,7 +1390,7 @@ function AthleteModal({ open, onClose, onSave, initialData }: {
       status: (form.status as AthleteStatus) || '现役',
       createdAt: form.createdAt || new Date().toISOString().slice(0, 10),
     }
-    onSave(athlete)
+    void onSave(athlete)
   }, [form, onSave])
 
   return (
@@ -1285,6 +1398,9 @@ function AthleteModal({ open, onClose, onSave, initialData }: {
       <DialogContent className="max-w-[560px] max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
         <DialogHeader>
           <DialogTitle style={{ color: 'var(--text-primary)' }}>{initialData ? '编辑运动员' : '新增运动员'}</DialogTitle>
+          <DialogDescription style={{ color: 'var(--text-secondary)' }}>
+            维护会写入当前 workspace JSON 的运动员档案信息。
+          </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 flex flex-col gap-4">
@@ -1591,13 +1707,18 @@ function AthleteDrawer({ athlete, onClose, onEdit, onDelete }: {
 /* ══════════════════ TEST SESSIONS TAB ══════════════════ */
 
 function TestSessions() {
-  const [sessions, setSessions] = useState<TestSession[]>(INITIAL_SESSIONS)
+  const { workspace, updateWorkspace } = useWorkspaceStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [yearFilter, setYearFilter] = useState('全部')
   const [expandedSession, setExpandedSession] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingSession, setEditingSession] = useState<TestSession | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
+  const sessions = useMemo(
+    () => workspace.testSessions.map((session) => domainSessionToAdminSession(session, workspace.measurements)),
+    [workspace.measurements, workspace.testSessions],
+  )
 
   const years = useMemo(() => {
     const set = new Set(sessions.map((s) => s.date.slice(0, 4)))
@@ -1614,20 +1735,30 @@ function TestSessions() {
       .sort((a, b) => b.date.localeCompare(a.date))
   }, [sessions, searchQuery, yearFilter])
 
-  const handleSave = useCallback((session: TestSession) => {
-    setSessions((prev) => {
-      const exists = prev.find((s) => s.id === session.id)
-      if (exists) return prev.map((s) => (s.id === session.id ? session : s))
-      return [session, ...prev]
+  const handleSave = useCallback(async (session: TestSession) => {
+    await updateWorkspace((current) => {
+      const previous = current.testSessions.find((candidate) => candidate.id === session.id)
+      const nextSession = adminSessionToDomainSession(session, previous)
+
+      return {
+        ...current,
+        testSessions: previous
+          ? current.testSessions.map((candidate) => (candidate.id === previous.id ? nextSession : candidate))
+          : [nextSession, ...current.testSessions],
+      }
     })
     setModalOpen(false)
     setEditingSession(null)
-  }, [])
+  }, [updateWorkspace])
 
-  const handleDelete = useCallback((id: string) => {
-    setSessions((prev) => prev.filter((s) => s.id !== id))
+  const handleDelete = useCallback(async (id: string) => {
+    await updateWorkspace((current) => ({
+      ...current,
+      testSessions: current.testSessions.filter((session) => session.id !== id),
+      sessionBatteryAssignments: current.sessionBatteryAssignments.filter((assignment) => assignment.sessionId !== id),
+    }))
     setDeleteConfirmId(null)
-  }, [])
+  }, [updateWorkspace])
 
   return (
     <div>
@@ -1815,6 +1946,7 @@ function TestSessions() {
 
       {/* Session Modal */}
       <SessionModal
+        key={modalOpen ? (editingSession?.id ?? 'new-session') : 'closed-session'}
         open={modalOpen}
         onClose={() => { setModalOpen(false); setEditingSession(null) }}
         onSave={handleSave}
@@ -1857,25 +1989,18 @@ function TestSessions() {
 function SessionModal({ open, onClose, onSave, initialData }: {
   open: boolean
   onClose: () => void
-  onSave: (s: TestSession) => void
+  onSave: (s: TestSession) => void | Promise<void>
   initialData: TestSession | null
 }) {
-  const [form, setForm] = useState<Partial<TestSession>>({
-    name: '', date: '', location: '', temperature: '', humidity: '', warmupMethod: '', notes: '', athleteCount: 0,
-  })
-
-  useState(() => {
-    if (open) {
-      if (initialData) setForm({ ...initialData })
-      else setForm({ name: '', date: '', location: '', temperature: '', humidity: '', warmupMethod: '', notes: '', athleteCount: 0 })
-    }
-  })
+  const [form, setForm] = useState<Partial<TestSession>>(() => (
+    initialData ?? { name: '', date: '', location: '', temperature: '', humidity: '', warmupMethod: '', notes: '', athleteCount: 0 }
+  ))
 
   const update = (field: string, value: unknown) => setForm((prev) => ({ ...prev, [field]: value }))
 
   const handleSubmit = useCallback(() => {
     if (!form.name || !form.date) return
-    onSave({
+    void onSave({
       id: initialData?.id || 'ses-' + Date.now(),
       name: form.name || '',
       date: form.date || '',
@@ -1893,6 +2018,9 @@ function SessionModal({ open, onClose, onSave, initialData }: {
       <DialogContent className="max-w-[560px] max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
         <DialogHeader>
           <DialogTitle style={{ color: 'var(--text-primary)' }}>{initialData ? '编辑测试批次' : '新建测试批次'}</DialogTitle>
+          <DialogDescription style={{ color: 'var(--text-secondary)' }}>
+            维护会写入当前 workspace JSON 的测试批次信息。
+          </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 flex flex-col gap-4">

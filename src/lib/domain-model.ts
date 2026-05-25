@@ -13,7 +13,13 @@ export interface Athlete {
   name: string
   teamId?: EntityId
   position?: string
-  status?: 'active' | 'inactive' | 'injured'
+  status?: 'active' | 'inactive' | 'injured' | 'retired'
+  gender?: '男' | '女'
+  birthDate?: string
+  height?: number
+  weight?: number
+  sport?: string
+  createdAt?: string
 }
 
 export interface TestSession {
@@ -24,6 +30,10 @@ export interface TestSession {
   batteryIds?: EntityId[]
   phase?: string
   location?: string
+  temperature?: string
+  humidity?: string
+  warmupMethod?: string
+  athleteCount?: number
   notes?: string
 }
 

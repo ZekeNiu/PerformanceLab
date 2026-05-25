@@ -80,7 +80,7 @@ Options when the project is ready:
 
 ## Current Recommended Next Step
 
-Dashboard periodic testing, `/comparison`, Admin definition editing, and Data Entry now share workspace-derived metric/action definitions. Professional statistics now have a first shared boundary in `src/lib/performance-statistics.ts`, and Dashboard periodic comparison plus `/correlation` primary statistics consume it. PL-010 remains the current recommended next step: continue the local `performancelab.workspace.json` data-file layer. Dashboard periodic testing and `/comparison` now read active workspace measurements, Settings main preferences now read/write the active workspace, and Admin definition changes flow into Data Entry; the next gaps are other dashboard read paths, Admin athlete/session persistence, import-history consumption, and cache-clear reopen verification.
+Dashboard periodic testing, `/comparison`, Admin definition editing, and Data Entry now share workspace-derived metric/action definitions. Professional statistics now have a first shared boundary in `src/lib/performance-statistics.ts`, and Dashboard periodic comparison plus `/correlation` primary statistics consume it. PL-010 remains the current recommended next step: continue the local `performancelab.workspace.json` data-file layer. Dashboard periodic testing and `/comparison` now read active workspace measurements, Settings main preferences now read/write the active workspace, Admin definition changes flow into Data Entry, and Admin athlete/session edits write workspace data; the next gaps are other dashboard read paths, import-history consumption, and cache-clear reopen verification.
 
 ## Analysis Workflow Direction
 

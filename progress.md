@@ -602,3 +602,40 @@ Use this file as the session-by-session project journal.
   - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
   - Screenshot was saved to the system temp directory, not the repository.
 - Cleanup note: stopped the local Vite preview process and its child process on port 4173.
+
+## 2026-05-25 PL-010 Admin Athlete Session Workspace Continuation
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: continue `PL-010`, local JSON workspace file persistence.
+- Read the required project context files and confirmed initial git status: `main...origin/main` with no local changes.
+- Read the karpathy-guidelines, React best-practices, and frontend-testing-debugging skills because this pass changes React workspace consumers and needs rendered validation.
+- Inventory finding: Admin definition-library edits already write to workspace definitions, but Admin athlete profiles and test sessions still initialize from `INITIAL_ATHLETES` / `INITIAL_SESSIONS` and keep edits/deletes only in component state.
+- Working decision: keep this pass focused on Admin athlete/session persistence and recovery from an imported workspace JSON. Import-history consumption and other Dashboard read paths remain separate PL-010 slices.
+- Extended `src/lib/domain-model.ts` so workspace `Athlete` can carry profile fields used by Admin (`gender`, `birthDate`, `height`, `weight`, `sport`, `createdAt`, and `retired` status) and workspace `TestSession` can carry Admin batch metadata (`temperature`, `humidity`, `warmupMethod`, and `athleteCount`).
+- Updated `src/pages/Admin.tsx` so the athlete profiles tab derives rows from `workspace.athletes` + `workspace.teams`, and save/delete writes through `updateWorkspace` instead of component-local state.
+- Updated `src/pages/Admin.tsx` so the test sessions tab derives rows from `workspace.testSessions` and workspace measurements, and save/delete writes through `updateWorkspace` instead of component-local state.
+- Fixed the Admin athlete/session modal form reset path by keying modal instances and using lazy `useState` initializers rather than synchronous `setState` inside effects, which the React hooks lint rule rejects.
+- Added Dialog descriptions to the Admin athlete/session modals to remove the rendered Radix accessibility warning.
+- Verification note: first `npm run build` passed with the existing Vite >500 kB chunk warning, but first `npm run lint` failed on `react-hooks/set-state-in-effect` after the initial modal reset implementation.
+- Verification: reran `npm run build`; it passes with the existing Vite >500 kB chunk warning.
+- Verification: reran `npm run lint`; it passes with no warnings.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright smoke note: first Admin workspace smoke failed because the script asserted athlete text while still on the default Definition Library tab; reran after switching to the athlete tab.
+- Playwright smoke note: second Admin workspace smoke opened the new-session modal but clicked the dialog close button because the close button is the last button in the dialog DOM; reran by clicking the save button by dialog-local index.
+- Playwright smoke on local `npm run preview` at `http://127.0.0.1:4173/#/admin` passed:
+  - Imported a temporary `performancelab-admin-smoke.json` through the global workspace file bar.
+  - Admin athlete profiles rendered workspace-provided `AdminSmokeAthlete` and `Admin Smoke Team`.
+  - Admin test sessions rendered workspace-provided `AdminSmokeSession`, `Admin Arena`, and `Admin warmup`.
+  - Created `AdminCreatedSession` from the Admin test-session modal, confirming the tab updates from workspace state after `updateWorkspace`.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
+  - Screenshot was saved to the system temp directory, not the repository.
+- Cleanup note: stopped the local Vite preview process on port 4173.
+- Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect that Admin athlete profiles and test sessions now read/write active workspace data while PL-010 remains `Doing`.
+- Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Final verification: `npm run lint` passes with no warnings.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files, `src/lib/domain-model.ts`, and `src/pages/Admin.tsx`.
+- Commit plan: create a local commit for this PL-010 continuation with message `Persist admin athletes and sessions`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `683e86d` with message `Persist admin athletes and sessions`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing.
