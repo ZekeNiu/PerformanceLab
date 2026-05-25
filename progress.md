@@ -642,3 +642,6 @@ Use this file as the session-by-session project journal.
 - Commit amend: updated the local commit to `1f51b3b` with the same message before push so the progress log stays in the same change.
 - Push: pushed commit `1f51b3b` to `origin/main`.
 - Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages deployment run.
+- Push: pushed follow-up progress-log commit `3514744` to `origin/main`.
+- GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `eeb8615` with message `deploy: 1f51b3bc3c1bcc8f326675c5663b3f62ac429e0c`, confirming the PL-010 Admin athlete/session workspace commit deployed. The follow-up progress-log commit `3514744` used `[skip ci]` and did not need a deployment run.
+- Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
