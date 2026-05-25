@@ -169,7 +169,21 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
 - Verification: `npm run lint` passes.
 - Verification: Local Playwright smoke passed for `/comparison` cross-sectional statistics and `/correlation` detailed statistics with no console errors/warnings and no desktop page-level overflow.
-- Next recommended architecture work: stabilize remaining unseeded mock data randomness (`PL-007`).
+- Next recommended architecture work: local JSON workspace file persistence (`PL-010`), because the user clears browser cache and core data must survive outside IndexedDB/localStorage.
+
+## 2026-05-25 PL-010 Local Workspace File Task
+
+- In progress: Added the first local JSON workspace file layer around `performancelab.workspace.json`.
+- Completed this pass: Extended domain-model types for test actions, test batteries, session-battery assignments, derived metrics, measurement dimensions, quality flags, import batch metadata, device/equipment/operator/notes fields.
+- Completed this pass: Added `src/lib/workspace-file.ts` for workspace schema, initial workspace seeding, File System Access API open/save, and JSON import/export fallback.
+- Completed this pass: Added `src/lib/workspace-store.tsx` and mounted `WorkspaceProvider` globally.
+- Completed this pass: Added `src/components/WorkspaceFileBar.tsx` with create/open/save/save-as/export/import controls.
+- Completed this pass: Connected Data Entry manual save and Excel import confirmation to workspace measurements and import batches.
+- Completed this pass: Connected Settings display thresholds and notification settings to workspace settings.
+- Completed this pass: Added `src/lib/derived-metric-formulas.ts` as the first formula registry skeleton.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
+- Still open before PL-010 can be marked Done: Admin definition/action-category persistence, full Settings persistence, workspace-powered selector/page consumers, and browser/manual verification that clearing cache then reopening the same JSON restores core data.
+- Next recommended architecture work: continue PL-010, then proceed to PL-011/PL-012 for availability matrix and derived metric computation.
 
 ## 2026-05-22 Active Task
 

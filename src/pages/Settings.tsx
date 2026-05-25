@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import {
   Settings as SettingsIcon,
   Palette,
@@ -34,6 +35,7 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { useAppTheme } from '@/lib/theme'
+import { useWorkspaceStore } from '@/lib/workspace-store'
 
 /* ─────────────────────── Types ─────────────────────── */
 
@@ -56,6 +58,28 @@ interface NotificationRule {
 interface ColorScheme {
   name: string
   colors: string[]
+}
+
+const DEFAULT_DISPLAY_THRESHOLDS = {
+  hrvDeviation: 1.5,
+  rhrDeviation: 1.5,
+  subjectiveDeviation: 1.0,
+  acwrWarning: 1.3,
+  acwrDanger: 1.5,
+  acwrBaselineDays: 28,
+}
+
+type DisplayThresholds = typeof DEFAULT_DISPLAY_THRESHOLDS
+
+function readWorkspaceThresholds(value: unknown): DisplayThresholds {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return DEFAULT_DISPLAY_THRESHOLDS
+
+  const thresholds = { ...DEFAULT_DISPLAY_THRESHOLDS }
+  ;(Object.keys(DEFAULT_DISPLAY_THRESHOLDS) as Array<keyof DisplayThresholds>).forEach((key) => {
+    const candidate = (value as Record<string, unknown>)[key]
+    thresholds[key] = typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : DEFAULT_DISPLAY_THRESHOLDS[key]
+  })
+  return thresholds
 }
 
 /* ─────────────────────── Constants ─────────────────────── */
@@ -791,17 +815,24 @@ function BodyMapSection() {
 /* ═══════════════ Section 3: Display Preferences ═══════════════ */
 
 function DisplayPreferencesSection() {
-  const [thresholds, setThresholds] = useState({
-    hrvDeviation: 1.5,
-    rhrDeviation: 1.5,
-    subjectiveDeviation: 1.0,
-    acwrWarning: 1.3,
-    acwrDanger: 1.5,
-    acwrBaselineDays: 28,
-  })
+  const { workspace, updateSettings } = useWorkspaceStore()
+  const [thresholds, setThresholds] = useState<DisplayThresholds>(() =>
+    readWorkspaceThresholds(workspace.settings.thresholds),
+  )
 
   const update = (field: string, value: number) => {
     setThresholds((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const saveThresholds = async () => {
+    try {
+      await updateSettings({ thresholds })
+      toast.success('阈值设置已保存到本地工作区')
+    } catch (error) {
+      toast.error('阈值设置保存失败', {
+        description: error instanceof Error ? error.message : '请重新授权本地文件或导出备份。',
+      })
+    }
   }
 
   return (
@@ -859,17 +890,14 @@ function DisplayPreferencesSection() {
 
       <div className="mt-5 flex gap-3">
         <button
-          onClick={() => setThresholds({
-            hrvDeviation: 1.5, rhrDeviation: 1.5, subjectiveDeviation: 1.0,
-            acwrWarning: 1.3, acwrDanger: 1.5, acwrBaselineDays: 28,
-          })}
+          onClick={() => setThresholds(DEFAULT_DISPLAY_THRESHOLDS)}
           className="flex items-center gap-2 rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors"
           style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
         >
           <RotateCcw size={14} /> 恢复默认
         </button>
         <button
-          onClick={() => alert('阈值设置已保存')}
+          onClick={saveThresholds}
           className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--accent-cyan)' }}
         >
@@ -883,6 +911,7 @@ function DisplayPreferencesSection() {
 /* ═══════════════ Section 4: Notification Settings ═══════════════ */
 
 function NotificationSection() {
+  const { updateSettings } = useWorkspaceStore()
   const [enabled, setEnabled] = useState(true)
   const [rules, setRules] = useState<NotificationRule[]>([
     { id: 'hrv-severe', label: 'HRV 偏离阈值且连续', enabled: true, threshold: 1.5, days: 2 },
@@ -899,6 +928,23 @@ function NotificationSection() {
 
   const toggleRule = (id: string) => {
     setRules((prev) => prev.map((r) => r.id === id ? { ...r, enabled: !r.enabled } : r))
+  }
+
+  const saveNotificationRules = async () => {
+    try {
+      await updateSettings({
+        notificationRules: {
+          enabled,
+          rules,
+          maxDisplay,
+        },
+      })
+      toast.success('通知设置已保存到本地工作区')
+    } catch (error) {
+      toast.error('通知设置保存失败', {
+        description: error instanceof Error ? error.message : '请重新授权本地文件或导出备份。',
+      })
+    }
   }
 
   const severeRules = rules.filter((r) => r.id.includes('severe') || r.id === 'acwr-danger')
@@ -983,7 +1029,7 @@ function NotificationSection() {
               <RotateCcw size={14} /> 恢复默认
             </button>
             <button
-              onClick={() => alert('通知设置已保存')}
+              onClick={saveNotificationRules}
               className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: 'var(--accent-cyan)' }}
             >

@@ -3,17 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, FileInput } from 'lucide-react'
 import ManualEntryTab from '@/components/data-entry/ManualEntryTab'
 import ExcelImportTab from '@/components/data-entry/ExcelImportTab'
-import type { Measurement } from '@/lib/domain-model'
+import type { ImportBatch, Measurement } from '@/lib/domain-model'
+import { useWorkspaceStore } from '@/lib/workspace-store'
 
 type SubTab = 'manual' | 'excel'
 
 export default function DataEntry() {
   const [activeTab, setActiveTab] = useState<SubTab>('manual')
   const [committedMeasurements, setCommittedMeasurements] = useState<Measurement[]>([])
+  const { appendMeasurements, isDirty, fileName } = useWorkspaceStore()
 
-  const handleMeasurementsCommitted = useCallback((measurements: Measurement[]) => {
+  const handleMeasurementsCommitted = useCallback(async (measurements: Measurement[], importBatch?: ImportBatch) => {
+    await appendMeasurements(measurements, importBatch)
     setCommittedMeasurements((prev) => [...measurements, ...prev])
-  }, [])
+  }, [appendMeasurements])
 
   const tabs = [
     { id: 'manual' as SubTab, label: '手动录入', icon: FileInput },
@@ -81,6 +84,14 @@ export default function DataEntry() {
           当前页面已暂存 <strong style={{ color: 'var(--accent-cyan)' }}>{committedMeasurements.length}</strong> 条测量记录。
         </div>
       )}
+
+      <div
+        className="border-b px-6 py-2 text-xs"
+        style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+      >
+        工作区数据源：<strong style={{ color: 'var(--accent-cyan)' }}>{fileName ?? '尚未连接本地 JSON 文件'}</strong>
+        {isDirty ? ' · 有未保存更改' : ''}
+      </div>
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto p-6">

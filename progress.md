@@ -211,6 +211,61 @@ Use this file as the session-by-session project journal.
 - Updated `findings.md` and `task_plan.md` with the clarified boundary.
 - Verification: `npm run build` passes. Existing Vite >500 kB chunk warning remains.
 
+## 2026-05-25 PL-010 Local Workspace File
+
+- Started implementation of the architecture-first local JSON workspace plan.
+- Target: make `performancelab.workspace.json` the first-stage user-visible authoritative data file instead of relying on browser cache/IndexedDB for core data.
+- Implementation order for this pass:
+  - Extend domain types for test actions, session battery assignments, derived metric metadata, measurement dimensions, quality flags, and import/settings/display workspace payloads.
+  - Add File System Access API helpers plus download/import fallback utilities.
+  - Add a React workspace provider and a global workspace file bar.
+  - Connect Data Entry manual save and Excel import confirmation to the workspace document.
+  - Update execution docs so PL-010 to PL-015 supersede PL-007 as the current default path.
+- Added `src/lib/derived-metric-formulas.ts` with the first formula registry boundary for asymmetry, ratio, relative-to-bodyweight, difference, and mean formulas. This is a registry skeleton only; it is not yet wired into measurement queries/UI.
+- Extended `src/lib/domain-model.ts` with `TestAction`, `SessionBatteryAssignment`, `MetricKind`, `DerivedMetricDefinition`, measurement dimensions, quality flags, and optional action/battery/import/device/equipment/operator/notes fields.
+- Added `src/lib/workspace-file.ts`:
+  - Defines the first `PerformanceLabWorkspace` JSON schema with `schemaVersion`, `updatedAt`, teams, athletes, test sessions, test batteries, test action categories, test actions, metric definitions, derived metric definitions, measurements, import batches, settings, and display presets.
+  - Seeds a new workspace from current registry-backed mock domain data.
+  - Supports File System Access API open/save handles and manual JSON import/export fallback.
+- Added `src/lib/workspace-store.tsx`:
+  - Provides a React workspace provider with in-memory workspace state, dirty state, file name, save status, error state, create/open/save/save-as/export/import actions, generic workspace updates, measurement append, and settings update helpers.
+  - Auto-saves to the connected JSON file when a file handle is available; otherwise it preserves the in-memory state and marks it dirty.
+- Added `src/components/WorkspaceFileBar.tsx` and mounted it globally through `src/App.tsx` + `src/components/Layout.tsx`.
+  - The bar exposes 创建数据文件、打开数据文件、保存、另存为、导出备份、导入 JSON.
+  - Unsupported browsers show a direct-write warning and can still import/export JSON manually.
+- Updated Data Entry persistence:
+  - `src/pages/DataEntry.tsx` now uses `useWorkspaceStore()` and appends committed measurements/import batches to workspace.
+  - `ManualEntryTab` awaits the async commit callback and reports local-file write failures instead of showing success before persistence.
+  - `ExcelImportTab` maps a confirmed import into domain `ImportBatch`, including measurement ids and ISO import time.
+  - `ValidationStagingArea` now awaits async import commit and keeps the confirmation modal open if persistence fails.
+- Updated `src/pages/Settings.tsx` so display thresholds and notification settings save to workspace via `updateSettings()` instead of only using `alert`. Theme/accent localStorage remains UI preference state, not core data.
+- Updated `docs/EXECUTION_BRIEF.md`:
+  - Added File System Access/local JSON persistence as a core architecture principle.
+  - Inserted PL-010 to PL-016 into the execution roadmap.
+  - Marked PL-010 as `Doing` because the foundational file layer and Data Entry/Settings writes are implemented, but Admin, action-category CRUD, workspace-powered selectors, dashboard consumers, and cache-clear reconnection verification are not finished.
+  - Changed the default next task from PL-007 to PL-010.
+- Updated `docs/NEXT_CHAT_PROMPT.md` so the fallback current-status summary points to PL-010 and the local JSON workspace direction.
+- Updated `findings.md` with durable local workspace decisions.
+- Verification: `npm run build` passes. Existing Vite >500 kB chunk warning remains.
+- Verification: first `npm run lint` failed on `src/pages/Settings.tsx` because syncing workspace thresholds into local state inside `useEffect` violated `react-hooks/set-state-in-effect`.
+- Fix: removed that effect and treated Settings thresholds as an edit draft initialized from workspace when the Settings page mounts; saving writes the draft back to workspace.
+- Verification: reran `npm run lint`; it passes.
+- Verification: reran `npm run build`; it passes with the existing Vite >500 kB chunk warning.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly. File picker save/open dialogs were not fully automated; this smoke verifies rendered routes and console/page health.
+- Playwright smoke on local `npm run preview` at `http://127.0.0.1:4174/` passed:
+  - `#/`, `#/data-entry`, and `#/settings` all rendered the new 本地数据文件 bar.
+  - Desktop document width matched viewport width (`1440`) on all three routes.
+  - Console errors, console warnings, and page errors were empty.
+- Review fix: changed workspace file write failures so `workspace-store` keeps the updated in-memory dirty state but rethrows the write error. This prevents Save/Data Entry/Settings success toasts from falsely reporting success when a connected JSON file cannot be written.
+- Verification after write-error propagation fix: `npm run lint` passes.
+- Verification after write-error propagation fix: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Playwright smoke rerun after the fix passed again for `#/`, `#/data-entry`, and `#/settings` with the workspace file bar visible, no desktop overflow, and empty console/page errors.
+- Verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Commit plan: create a local commit with message `Add local workspace file layer`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit command error: first attempt used `git add -A && git commit ...`; this PowerShell version does not support `&&`, so no git operation ran. Retrying as separate commands.
+- Commit: created local commit with message `Add local workspace file layer`, then amended it to include the commit log entry before push.
+
 ## 2026-05-24 PL-003 Dashboard Periodic Testing Migration
 
 - Started from the default next task in `docs/EXECUTION_BRIEF.md`: `PL-003`, migrate Dashboard periodic testing to registry-derived metrics, metric surface configuration, and measurement selectors.

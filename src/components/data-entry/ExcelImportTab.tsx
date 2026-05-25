@@ -5,10 +5,10 @@ import UploadZone, { type ParsedRow } from './UploadZone'
 import ValidationStagingArea from './ValidationStagingArea'
 import ImportHistory from './ImportHistory'
 import type { ImportHistoryEntry } from '@/data/mockData'
-import type { Measurement } from '@/lib/domain-model'
+import type { ImportBatch, Measurement } from '@/lib/domain-model'
 
 interface ExcelImportTabProps {
-  onMeasurementsCommitted?: (measurements: Measurement[]) => void
+  onMeasurementsCommitted?: (measurements: Measurement[], importBatch?: ImportBatch) => void | Promise<void>
 }
 
 export default function ExcelImportTab({ onMeasurementsCommitted }: ExcelImportTabProps) {
@@ -24,12 +24,11 @@ export default function ExcelImportTab({ onMeasurementsCommitted }: ExcelImportT
     })
   }, [])
 
-  const handleCommit = useCallback((validRows: ParsedRow[], measurements: Measurement[]) => {
-    setParsedRows(null)
-    onMeasurementsCommitted?.(measurements)
+  const handleCommit = useCallback(async (validRows: ParsedRow[], measurements: Measurement[]) => {
+    const importedAt = new Date()
     const newEntry: ImportHistoryEntry = {
       id: `ih-${Date.now()}`,
-      time: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+      time: importedAt.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
       filename: currentFilename,
       totalRows: validRows.length,
       successCount: validRows.length,
@@ -37,6 +36,19 @@ export default function ExcelImportTab({ onMeasurementsCommitted }: ExcelImportT
       operator: '管理员',
       status: 'success',
     }
+    const importBatch: ImportBatch = {
+      id: newEntry.id,
+      filename: newEntry.filename,
+      importedAt: importedAt.toISOString(),
+      totalRows: newEntry.totalRows,
+      acceptedRows: newEntry.successCount,
+      rejectedRows: newEntry.failCount,
+      measurementIds: measurements.map((measurement) => measurement.id),
+      operator: newEntry.operator,
+    }
+
+    await onMeasurementsCommitted?.(measurements, importBatch)
+    setParsedRows(null)
     setImportHistory((prev) => [newEntry, ...prev])
     toast.success('数据导入成功', {
       description: `已生成 ${measurements.length} 条测量记录。`,

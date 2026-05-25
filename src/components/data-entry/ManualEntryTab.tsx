@@ -16,7 +16,7 @@ interface MetricData {
 }
 
 interface ManualEntryTabProps {
-  onMeasurementsCommitted?: (measurements: Measurement[]) => void
+  onMeasurementsCommitted?: (measurements: Measurement[]) => void | Promise<void>
 }
 
 export default function ManualEntryTab({ onMeasurementsCommitted }: ManualEntryTabProps) {
@@ -38,16 +38,21 @@ export default function ManualEntryTab({ onMeasurementsCommitted }: ManualEntryT
       metrics: selectedMetrics,
       metricData,
     })
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsSaving(false)
-    onMeasurementsCommitted?.(measurements)
-    toast.success('数据已保存', {
-      description: `已生成 ${measurements.length} 条测量记录`,
-    })
-    // Reset form for next entry
-    setMetricData([])
-    setSelectedAthletes([])
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      await onMeasurementsCommitted?.(measurements)
+      toast.success('数据已保存', {
+        description: `已生成 ${measurements.length} 条测量记录`,
+      })
+      setMetricData([])
+      setSelectedAthletes([])
+    } catch (error) {
+      toast.error('数据保存失败', {
+        description: error instanceof Error ? error.message : '请重新授权本地文件或导出备份。',
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleSaveDraft = () => {

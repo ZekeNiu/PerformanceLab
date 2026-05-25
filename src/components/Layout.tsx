@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import Navbar from './Navbar'
 import Footer from './Footer'
+import WorkspaceFileBar from './WorkspaceFileBar'
 
 interface LayoutProps {
   children: ReactNode
@@ -38,6 +39,7 @@ export default function Layout({ children }: LayoutProps) {
         style={{ marginLeft: contentOffset }}
       >
         <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
+          <WorkspaceFileBar />
           {children}
         </main>
         <Footer />

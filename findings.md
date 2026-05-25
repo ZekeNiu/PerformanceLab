@@ -128,3 +128,11 @@ Use this file for durable discoveries that should survive across conversations.
 - `/correlation` primary pairwise correlation results now consume `analyzeCorrelation` for r, p, r2, CI, N, and metadata. Other correlation modeling helpers such as regression, GAM smoothing, random-forest-like importance, VIF, and SHAP approximation still live in `src/lib/statistics.ts`.
 - The current TE and p-value outputs remain summary-level approximations because the UI tables currently pass aggregate mean/SD/N rather than raw paired repeated-measure observations. This is now explicit in metadata and should be replaced with raw paired/reliability calculations when the measurement model carries enough repeated-test context.
 - PL-007 should focus on stabilizing remaining unseeded mock randomness in Dashboard daily data and correlation demo data.
+
+## 2026-05-25 Local Workspace File Findings
+
+- Core user data should not rely on IndexedDB or localStorage as the authoritative source because the user regularly clears browser cache. The first-stage local authority is a user-visible `performancelab.workspace.json` file.
+- File System Access API is suitable for the preferred desktop Chromium/GitHub Pages workflow, but permission must be treated as revocable. The app must always support reconnecting to the same JSON file and exporting a manual backup.
+- The initial workspace schema now needs to carry domain data beyond raw measurements: teams, athletes, test sessions, test batteries, test actions, metric definitions, derived metric definitions, measurements, import batches, settings, and display presets.
+- Data Entry can now append manual/imported measurements to the workspace file layer, but Dashboard and Admin still need to become consumers/producers of that same workspace source before the system can be treated as data-persistent end to end.
+- Derived metric formulas should be registered centrally and then consumed by measurement queries. The registry alone is not enough; it must handle dependencies, dimensions, missing data, and quality flags before derived metrics appear as production-grade values.

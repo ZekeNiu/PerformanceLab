@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import {
   AlertTriangle,
   CheckCircle,
@@ -39,7 +40,7 @@ interface ValidationItem {
 
 interface ValidationStagingAreaProps {
   parsedRows: ParsedRow[]
-  onCommit: (validRows: ParsedRow[], measurements: Measurement[]) => void
+  onCommit: (validRows: ParsedRow[], measurements: Measurement[]) => void | Promise<void>
   onCancel: () => void
 }
 
@@ -146,6 +147,7 @@ export default function ValidationStagingArea({
   const [items, setItems] = useState<ValidationItem[]>(() => validateParsedRows(parsedRows))
 
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [isCommitting, setIsCommitting] = useState(false)
 
   const summary = useMemo(() => {
     const ok = items.filter((i) => i.status === 'ok').length
@@ -201,7 +203,7 @@ export default function ValidationStagingArea({
     )
   }
 
-  const handleCommit = () => {
+  const handleCommit = async () => {
     const validRows = items
       .filter((i) => i.isResolved || i.status === 'ok')
       .map((i) => ({
@@ -216,8 +218,17 @@ export default function ValidationStagingArea({
         unit: i.unit,
         repeats: i.repeats,
       }))
-    onCommit(validRows, buildImportMeasurements(validRows))
-    setConfirmOpen(false)
+    setIsCommitting(true)
+    try {
+      await onCommit(validRows, buildImportMeasurements(validRows))
+      setConfirmOpen(false)
+    } catch (error) {
+      toast.error('导入写入失败', {
+        description: error instanceof Error ? error.message : '请重新授权本地文件或导出备份。',
+      })
+    } finally {
+      setIsCommitting(false)
+    }
   }
 
   return (
@@ -538,10 +549,11 @@ export default function ValidationStagingArea({
               </button>
               <button
                 onClick={handleCommit}
-                className="rounded-lg px-4 py-2 text-xs font-medium transition-colors"
+                disabled={isCommitting}
+                className="rounded-lg px-4 py-2 text-xs font-medium transition-colors disabled:opacity-60"
                 style={{ backgroundColor: 'var(--accent-cyan)', color: 'var(--bg-primary)' }}
               >
-                确认导入
+                {isCommitting ? '写入中...' : '确认导入'}
               </button>
             </div>
           </motion.div>

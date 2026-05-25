@@ -6,18 +6,21 @@ import Correlation from './pages/Correlation'
 import DataEntry from './pages/DataEntry'
 import Admin from './pages/Admin'
 import Settings from './pages/Settings'
+import { WorkspaceProvider } from './lib/workspace-store'
 
 export default function App() {
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/comparison" element={<Comparison />} />
-        <Route path="/correlation" element={<Correlation />} />
-        <Route path="/data-entry" element={<DataEntry />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/settings" element={<Settings />} />
-      </Routes>
-    </Layout>
+    <WorkspaceProvider>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/comparison" element={<Comparison />} />
+          <Route path="/correlation" element={<Correlation />} />
+          <Route path="/data-entry" element={<DataEntry />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </Layout>
+    </WorkspaceProvider>
   )
 }
