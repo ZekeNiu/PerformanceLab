@@ -837,3 +837,7 @@ Use this file as the session-by-session project journal.
 - GitHub Pages deployment check: fetched `origin/gh-pages` for 4 minutes, but it still pointed at the previous deploy commit `36662a7` with message `deploy: 7379a5722ce9098b59cb95ffd62c3138840b5a8e`.
 - Deployment diagnostics note: the GitHub app workflow-run helper returned no workflow runs for commit `01dbb7d`. Local build, lint, and Playwright validation passed; the remaining issue appears to be GitHub Actions/Pages execution visibility or triggering rather than a local build failure.
 - Deployment recovery plan: push this progress update as a normal non-`[skip ci]` commit so the Pages workflow is triggered for the current `main` contents, including the Dashboard global filter workspace change.
+- Commit: created and pushed deployment-status commit `99eb107` to `origin/main`.
+- GitHub Pages deployment retry check: fetched `origin/gh-pages` for nearly 5 minutes, but it still pointed at the previous deploy commit `36662a7` with message `deploy: 7379a5722ce9098b59cb95ffd62c3138840b5a8e`; the final fetch attempt also hit a transient TLS EOF from GitHub.
+- Deployment remains unverified for `01dbb7d` / `99eb107`. Local build, lint, Dashboard Playwright smoke, and `/comparison` Playwright smoke passed; the remaining issue is remote GitHub Actions/Pages triggering or visibility.
+- Commit/push plan: record this deployment result in a progress-only `[skip ci]` commit so it does not create another deployment retry loop.
