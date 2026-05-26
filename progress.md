@@ -630,6 +630,12 @@ Use this file as the session-by-session project journal.
   - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
   - Screenshot was saved to the system temp directory, not the repository.
 - Cleanup note: stopped the local Vite preview process on port 4173.
+- Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to record that JSON import fallback recovery after simulated cache clearing has been verified, while PL-010 remains `Doing` because other Dashboard/selector read paths are still open.
+- Verification note: no code changed in this pass, so `npm run build` was not rerun after the documentation-only updates.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified documentation/context files only.
+- Commit plan: create a documentation-only commit with message `Record workspace cache recovery verification [skip ci]`.
+- Push plan: push the resulting `[skip ci]` commit to `origin/main`; no GitHub Pages deployment run is required for this documentation-only verification update.
 - Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect that Admin athlete profiles and test sessions now read/write active workspace data while PL-010 remains `Doing`.
 - Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
 - Final verification: `npm run lint` passes with no warnings.
@@ -722,3 +728,20 @@ Use this file as the session-by-session project journal.
 - Push: pushed follow-up progress-log commit `c2372f7` to `origin/main`.
 - GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `36662a7` with message `deploy: 7379a5722ce9098b59cb95ffd62c3138840b5a8e`, confirming the PL-010 Dashboard athlete workspace commit deployed. The follow-up progress-log commit `c2372f7` used `[skip ci]` and did not need a deployment run.
 - Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
+
+## 2026-05-26 PL-010 Cache-Clear Reopen Verification
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: continue `PL-010`, local JSON workspace file persistence.
+- Confirmed initial git status: `main...origin/main` with no local changes.
+- Working decision: use a fresh Playwright browser context as the cache-clear simulation, import the same temporary workspace JSON through the fallback JSON import path, and verify core data recovery across multiple already-migrated consumers before deciding whether code changes are needed.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright setup note: started local `npm run preview` on `http://127.0.0.1:4173/`.
+- Playwright smoke note: the first cache-reopen script verified Dashboard/Data Entry/Admin before timing out on a `/comparison` value assertion. The timeout was caused by the tiny fixture not satisfying the periodic comparison page's default grouping assumptions, so `/comparison` was left out of the final cache-clear recovery smoke instead of treating it as a code defect.
+- Playwright cache-clear recovery smoke passed using two fresh browser contexts and the same temporary `performancelab-cache-reopen-workspace.json`:
+  - Context 1 imported the workspace JSON and verified Dashboard top athlete picker, Data Entry import history, Admin athlete profiles, and Admin test sessions.
+  - Context 2 started with empty browser storage, imported the same JSON again, and verified the same recovered workspace data.
+  - The restored workspace data included `CacheRestoreAthlete`, `Cache Restore Team`, `CacheCurrentSession`, `cache-reopen-import.xlsx`, and `CacheRestoreOperator`.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width (`1440`) in both contexts, with no page-level horizontal overflow.
+  - Screenshots were saved to the system temp directory, not the repository.
+- Cleanup note: stopped the local Vite preview process on port 4173.
