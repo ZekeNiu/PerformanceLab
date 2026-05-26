@@ -681,3 +681,6 @@ Use this file as the session-by-session project journal.
 - Commit amend: final pre-push local commit became `2425a47` with message `Read import history from workspace`.
 - Push: pushed commit `2425a47` to `origin/main`.
 - Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages deployment run.
+- Push: pushed follow-up progress-log commit `1a306dd` to `origin/main`.
+- GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `dfcfcb5` with message `deploy: 2425a47b0b7041a04d4f9e871b9435e787a52e07`, confirming the PL-010 import-history workspace commit deployed. The follow-up progress-log commit `1a306dd` used `[skip ci]` and did not need a deployment run.
+- Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
