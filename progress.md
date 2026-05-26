@@ -784,3 +784,7 @@ Use this file as the session-by-session project journal.
 - Commit amend: updated the local commit to `b27a266` with the same message before push so the progress log stays in the same change.
 - Push: pushed commit `b27a266` to `origin/main`.
 - Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages deployment run.
+- Push: pushed follow-up progress-log commit `9a7f5e4` to `origin/main`.
+- GitHub Pages deployment check: fetched `origin/gh-pages` for 4 minutes, but it still pointed at the previous deploy commit for `7379a5722ce9098b59cb95ffd62c3138840b5a8e` instead of the Dashboard daily workspace commit `b27a266`.
+- Deployment diagnostics note: local `gh` CLI is not installed, unauthenticated GitHub REST Actions lookup hit the API rate limit, and the GitHub app workflow-run helper returned no push workflow runs for `b27a266` or `9a7f5e4`.
+- Deployment recovery plan: push this progress update as a normal non-`[skip ci]` commit so the Pages workflow is triggered for the current `main` contents, including the Dashboard daily workspace change.
