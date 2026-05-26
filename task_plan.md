@@ -186,6 +186,7 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed this continuation pass: Added `src/lib/workspace-definition-config.ts`, migrated Admin definition library edits/deletes to workspace `metricDefinitions`/`testActionCategories`/`testActions`, and updated Data Entry indicator selection plus import metric resolution to prefer active workspace definitions.
 - Completed this continuation pass: Migrated Admin athlete profiles and test sessions to read/write active workspace `athletes`, `teams`, and `testSessions` instead of component-local `INITIAL_ATHLETES` / `INITIAL_SESSIONS`.
 - Completed this continuation pass: Migrated Data Entry import history to read and clear workspace `importBatches` instead of page-local state plus `mockImportHistory`.
+- Completed this continuation pass: Migrated the Dashboard top athlete selector to read active workspace `athletes` before falling back to the legacy dashboard mock athlete list.
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
 - Verification: `npm run lint` passes.
 - Verification: Playwright workspace import smoke passed for `/comparison`; after importing a temporary JSON workspace, the longitudinal table displayed the JSON-provided `88.0` value and the cross-sectional add-comparison menu listed a workspace-provided athlete.
@@ -193,6 +194,7 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verification: Playwright Admin/Data Entry smoke passed; a custom Admin metric/category/action appeared in Data Entry's hierarchical indicator selector with no console errors/warnings or desktop page overflow.
 - Verification: Playwright Admin workspace smoke passed; after importing a temporary JSON workspace, Admin rendered workspace-provided athlete/session data, and creating a new test session updated the workspace-derived session list with no console errors/warnings or desktop page overflow.
 - Verification: Playwright Data Entry import-history smoke passed; after importing a temporary JSON workspace, Excel import history rendered workspace-provided batch metadata, and clearing history updated the workspace-derived empty state with no console errors/warnings or desktop page overflow.
+- Verification: Playwright Dashboard Control Center smoke passed; after importing a temporary JSON workspace, the top athlete picker rendered and selected a workspace-provided athlete with no console errors/warnings or desktop page overflow.
 - Still open before PL-010 can be marked Done: remaining workspace-powered selector/page consumers and browser/manual verification that clearing cache then reopening the same JSON restores core data.
 - Next recommended architecture work: continue PL-010, then proceed to PL-011/PL-012 for availability matrix and derived metric computation.
 

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, User, X, Check } from 'lucide-react'
 import { athletes } from './data'
+import { useWorkspaceStore } from '@/lib/workspace-store'
 
 interface FilterState {
   dateMode: 'single' | 'range' | 'unlimited'
@@ -12,6 +13,7 @@ interface FilterState {
 }
 
 export default function ControlCenter() {
+  const { workspace } = useWorkspaceStore()
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showAthletePicker, setShowAthletePicker] = useState(false)
   const [filters, setFilters] = useState<FilterState>({
@@ -21,6 +23,10 @@ export default function ControlCenter() {
     athleteType: 'real',
     athlete: '张伟',
   })
+  const athleteOptions = useMemo(() => {
+    const workspaceAthletes = workspace.athletes.map((athlete) => athlete.name).filter(Boolean)
+    return workspaceAthletes.length > 0 ? workspaceAthletes : athletes
+  }, [workspace.athletes])
 
   const dateSummary =
     filters.dateMode === 'unlimited'
@@ -213,7 +219,7 @@ export default function ControlCenter() {
                   <p className="mb-2 text-[12px] font-semibold" style={{ color: 'var(--accent-cyan)' }}>
                     真实运动员
                   </p>
-                  {athletes.map((name) => (
+                  {athleteOptions.map((name) => (
                     <button
                       key={name}
                       className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors"
@@ -317,7 +323,7 @@ export default function ControlCenter() {
               dateStart: '2024-01-01',
               dateEnd: '2024-01-30',
               athleteType: 'real',
-              athlete: athletes[0],
+              athlete: athleteOptions[0] ?? '',
             })
           }
         >

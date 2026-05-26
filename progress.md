@@ -684,3 +684,35 @@ Use this file as the session-by-session project journal.
 - Push: pushed follow-up progress-log commit `1a306dd` to `origin/main`.
 - GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `dfcfcb5` with message `deploy: 2425a47b0b7041a04d4f9e871b9435e787a52e07`, confirming the PL-010 import-history workspace commit deployed. The follow-up progress-log commit `1a306dd` used `[skip ci]` and did not need a deployment run.
 - Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
+
+## 2026-05-26 PL-010 Dashboard Control Center Workspace Continuation
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: continue `PL-010`, local JSON workspace file persistence.
+- Read the relevant execution-brief section and confirmed initial git status: `main...origin/main` with no local changes.
+- Read the karpathy-guidelines, React best-practices, and frontend-testing-debugging skills because this pass changes a React dashboard consumer and needs rendered validation.
+- Inventory finding: Dashboard `PeriodicTesting` already reads workspace measurements, but `ControlCenter` still imports the fixed `athletes` list from `src/components/dashboard/data.ts`, so opening a JSON workspace cannot populate the top athlete selector with workspace athletes.
+- Working decision: keep this pass focused on the Dashboard top athlete selector. Date/session filter behavior, DailyMonitoring data, and broader dashboard filter plumbing remain separate PL-010/PL-013 slices.
+- Updated `src/components/dashboard/ControlCenter.tsx` so the athlete picker derives athlete names from `workspace.athletes` first and falls back to the existing dashboard mock list only when the active workspace has no athletes.
+- Verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Verification: `npm run lint` passes with no warnings.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright setup note: started local `npm run preview` on `http://127.0.0.1:4173/`.
+- Playwright smoke note: the first two Dashboard scripts proved the workspace athlete text rendered, but the assertions were too broad and matched multiple visible/animating elements; reran with a final assertion scoped to the top athlete filter button.
+- Playwright smoke on local preview passed for Dashboard Control Center:
+  - Imported a temporary `performancelab-control-center-smoke.json` through the global workspace file bar.
+  - Opened the Dashboard top athlete picker and confirmed the workspace-provided `DashboardSmokeAthlete` appeared as a selectable option.
+  - Selected `DashboardSmokeAthlete` and confirmed the top athlete filter button displayed that athlete.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
+  - Screenshot was saved to the system temp directory, not the repository.
+- Cleanup note: stopped the local Vite preview process on port 4173.
+- Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect that the Dashboard top athlete selector now consumes workspace `athletes` while PL-010 remains `Doing`.
+- Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Final verification: `npm run lint` passes with no warnings.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files and `src/components/dashboard/ControlCenter.tsx`.
+- Commit plan: create a local commit for this PL-010 continuation with message `Read dashboard athletes from workspace`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `4c51919` with message `Read dashboard athletes from workspace`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing.
+- Commit amend: updated the local commit to `f8e1c97` with the same message before push so the progress log stays in the same change.
