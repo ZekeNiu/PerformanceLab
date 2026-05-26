@@ -1,7 +1,71 @@
 import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import DashboardCard from './DashboardCard'
-import { dailyData, bodyParts, calculateEMA } from './data'
+import { dailyData, bodyParts, calculateEMA, type DailyData } from './data'
+import { selectMeasurementSeries } from '@/lib/measurement-store'
+import { useWorkspaceStore } from '@/lib/workspace-store'
+import { workspaceToMeasurementStore } from '@/lib/workspace-measurement-store'
+import type { PerformanceLabWorkspace } from '@/lib/workspace-file'
+
+type DailyMetricKey = keyof Omit<DailyData, 'date'>
+
+const dailyWorkspaceMetricMap: Partial<Record<DailyMetricKey, string>> = {
+  hrv: 'hrv_rmssd',
+  rhr: 'hr_resting',
+  sleep: 'sleep_score',
+  stress: 'rpe',
+}
+
+function mean(values: number[]) {
+  return values.reduce((total, value) => total + value, 0) / values.length
+}
+
+function standardDeviation(values: number[]) {
+  if (values.length < 2) return 0
+  const average = mean(values)
+  return Math.sqrt(values.reduce((total, value) => total + (value - average) ** 2, 0) / values.length)
+}
+
+function toTenPointScore(value: number) {
+  return Math.round((value / 10) * 10) / 10
+}
+
+function buildWorkspaceDailyData(workspace: PerformanceLabWorkspace, fallback: DailyData[]): DailyData[] {
+  const store = workspaceToMeasurementStore(workspace)
+  const seriesByKey = new Map<DailyMetricKey, Map<string, number>>()
+  const dates = new Set<string>()
+
+  Object.entries(dailyWorkspaceMetricMap).forEach(([dailyKey, metricId]) => {
+    if (!metricId) return
+    const points = selectMeasurementSeries(metricId, {}, { aggregation: 'mean', groupBy: 'date' }, store)
+      .filter((point) => point.value !== null)
+    if (!points.length) return
+
+    const valueByDate = new Map<string, number>()
+    points.forEach((point) => {
+      const value = dailyKey === 'sleep' ? toTenPointScore(point.value ?? 0) : point.value ?? 0
+      valueByDate.set(point.key, value)
+      dates.add(point.key)
+    })
+    seriesByKey.set(dailyKey as DailyMetricKey, valueByDate)
+  })
+
+  if (!dates.size) return fallback
+
+  return Array.from(dates)
+    .sort()
+    .map((date, index) => {
+      const baseline = fallback[index % fallback.length]
+      return {
+        ...baseline,
+        date,
+        hrv: seriesByKey.get('hrv')?.get(date) ?? baseline.hrv,
+        rhr: seriesByKey.get('rhr')?.get(date) ?? baseline.rhr,
+        sleep: seriesByKey.get('sleep')?.get(date) ?? baseline.sleep,
+        stress: seriesByKey.get('stress')?.get(date) ?? baseline.stress,
+      }
+    })
+}
 
 /* ─── Injury Body Map ─── */
 function InjuryBodyMap() {
@@ -131,26 +195,25 @@ function LineCard({
   dataKey,
   color,
   unit,
+  data,
 }: {
   title: string
   dataKey: 'hrv' | 'rhr'
   color: string
   unit: string
+  data: DailyData[]
 }) {
   const option = useMemo(() => {
-    const values = dailyData.map((d) => d[dataKey])
+    const values = data.map((d) => d[dataKey])
     const ema = calculateEMA(values, 7)
-    const sd = Math.sqrt(
-      values.reduce((sq, n) => sq + Math.pow(n - values.reduce((a, b) => a + b, 0) / values.length, 2), 0) /
-        values.length,
-    )
+    const sd = standardDeviation(values)
     const emaMean = ema[ema.length - 1]
 
     return {
       grid: { top: 20, right: 16, bottom: 48, left: 48 },
       xAxis: {
         type: 'category' as const,
-        data: dailyData.map((d) => d.date.slice(5)),
+        data: data.map((d) => d.date.slice(5)),
         axisLine: { lineStyle: { color: '#2A3348' } },
         axisLabel: { color: '#5A6579', fontSize: 10, rotate: 45 },
         axisTick: { show: false },
@@ -207,7 +270,7 @@ function LineCard({
       animationDuration: 800,
       animationEasing: 'cubicOut',
     }
-  }, [dataKey, title, color, unit])
+  }, [data, dataKey, title, color, unit])
 
   return (
     <DashboardCard
@@ -225,13 +288,13 @@ function LineCard({
 }
 
 /* ─── Readiness Card ─── */
-function ReadinessCard() {
+function ReadinessCard({ data }: { data: DailyData[] }) {
   const option = useMemo(() => {
     return {
       grid: { top: 20, right: 16, bottom: 56, left: 40 },
       xAxis: {
         type: 'category' as const,
-        data: dailyData.map((d) => d.date.slice(5)),
+        data: data.map((d) => d.date.slice(5)),
         axisLine: { lineStyle: { color: '#2A3348' } },
         axisLabel: { color: '#5A6579', fontSize: 10, rotate: 45 },
         axisTick: { show: false },
@@ -257,16 +320,16 @@ function ReadinessCard() {
         itemHeight: 6,
       },
       series: [
-        { name: '压力', type: 'bar', stack: 'readiness', data: dailyData.map((d) => d.stress), itemStyle: { color: 'rgba(239,68,68,0.5)' } },
-        { name: '睡眠', type: 'bar', stack: 'readiness', data: dailyData.map((d) => d.sleep), itemStyle: { color: 'rgba(59,130,246,0.5)' } },
-        { name: '能量', type: 'bar', stack: 'readiness', data: dailyData.map((d) => d.energy), itemStyle: { color: 'rgba(16,185,129,0.5)' } },
-        { name: '酸痛', type: 'bar', stack: 'readiness', data: dailyData.map((d) => d.soreness), itemStyle: { color: 'rgba(245,158,11,0.5)' } },
-        { name: '信心', type: 'bar', stack: 'readiness', data: dailyData.map((d) => d.confidence), itemStyle: { color: 'rgba(139,92,246,0.5)' } },
-        { name: '综合', type: 'line', data: dailyData.map((d) => d.readiness), smooth: true, lineStyle: { color: '#00D4AA', width: 2 }, itemStyle: { color: '#00D4AA' }, symbol: 'diamond', symbolSize: 5 },
+        { name: '压力', type: 'bar', stack: 'readiness', data: data.map((d) => d.stress), itemStyle: { color: 'rgba(239,68,68,0.5)' } },
+        { name: '睡眠', type: 'bar', stack: 'readiness', data: data.map((d) => d.sleep), itemStyle: { color: 'rgba(59,130,246,0.5)' } },
+        { name: '能量', type: 'bar', stack: 'readiness', data: data.map((d) => d.energy), itemStyle: { color: 'rgba(16,185,129,0.5)' } },
+        { name: '酸痛', type: 'bar', stack: 'readiness', data: data.map((d) => d.soreness), itemStyle: { color: 'rgba(245,158,11,0.5)' } },
+        { name: '信心', type: 'bar', stack: 'readiness', data: data.map((d) => d.confidence), itemStyle: { color: 'rgba(139,92,246,0.5)' } },
+        { name: '综合', type: 'line', data: data.map((d) => d.readiness), smooth: true, lineStyle: { color: '#00D4AA', width: 2 }, itemStyle: { color: '#00D4AA' }, symbol: 'diamond', symbolSize: 5 },
       ],
       animationDuration: 800,
     }
-  }, [])
+  }, [data])
 
   return (
     <DashboardCard
@@ -284,17 +347,17 @@ function ReadinessCard() {
 }
 
 /* ─── ACWR Card ─── */
-function ACWRCard() {
-  const hasEnoughData = dailyData.length >= 28
+function ACWRCard({ data }: { data: DailyData[] }) {
+  const hasEnoughData = data.length >= 28
 
   const option = useMemo(() => {
-    const dataPoints = dailyData.map((d) => d.acwr)
+    const dataPoints = data.map((d) => d.acwr)
 
     return {
       grid: { top: 20, right: 16, bottom: 48, left: 44 },
       xAxis: {
         type: 'category' as const,
-        data: dailyData.map((d) => d.date.slice(5)),
+        data: data.map((d) => d.date.slice(5)),
         axisLine: { lineStyle: { color: '#2A3348' } },
         axisLabel: { color: '#5A6579', fontSize: 10, rotate: 45 },
         axisTick: { show: false },
@@ -344,7 +407,7 @@ function ACWRCard() {
       ],
       animationDuration: 800,
     }
-  }, [])
+  }, [data])
 
   return (
     <DashboardCard
@@ -363,7 +426,7 @@ function ACWRCard() {
             style={{ backgroundColor: 'rgba(11,14,20,0.7)' }}
           >
             <p className="text-h3" style={{ color: 'var(--text-secondary)' }}>
-              基线数据积累中（目前 {dailyData.length}/28 天）
+              基线数据积累中（目前 {data.length}/28 天）
             </p>
             <div
               className="mt-3 h-2 w-48 overflow-hidden rounded-full"
@@ -372,7 +435,7 @@ function ACWRCard() {
               <div
                 className="h-full rounded-full transition-all"
                 style={{
-                  width: `${(dailyData.length / 28) * 100}%`,
+                  width: `${(data.length / 28) * 100}%`,
                   backgroundColor: 'var(--accent-cyan)',
                 }}
               />
@@ -398,23 +461,22 @@ function ACWRCard() {
 function SubjectiveCard({
   title,
   dataKey,
+  data,
 }: {
   title: string
   dataKey: 'sleep' | 'stress' | 'energy' | 'soreness' | 'confidence'
+  data: DailyData[]
 }) {
   const option = useMemo(() => {
-    const values = dailyData.map((d) => d[dataKey])
+    const values = data.map((d) => d[dataKey])
     const ema = calculateEMA(values, 7)
-    const sd = Math.sqrt(
-      values.reduce((sq, n) => sq + Math.pow(n - values.reduce((a, b) => a + b, 0) / values.length, 2), 0) /
-        values.length,
-    )
+    const sd = standardDeviation(values)
 
     return {
       grid: { top: 12, right: 12, bottom: 24, left: 32 },
       xAxis: {
         type: 'category' as const,
-        data: dailyData.map((d) => d.date.slice(5)),
+        data: data.map((d) => d.date.slice(5)),
         show: false,
       },
       yAxis: {
@@ -454,7 +516,7 @@ function SubjectiveCard({
       ],
       animationDuration: 800,
     }
-  }, [dataKey, title])
+  }, [data, dataKey, title])
 
   return (
     <DashboardCard title={title}>
@@ -464,13 +526,13 @@ function SubjectiveCard({
 }
 
 /* ─── Training Load Details Card ─── */
-function TrainingLoadCard() {
+function TrainingLoadCard({ data }: { data: DailyData[] }) {
   const option = useMemo(() => {
     return {
       grid: { top: 16, right: 16, bottom: 40, left: 40 },
       xAxis: {
         type: 'category' as const,
-        data: dailyData.map((d) => d.date.slice(5)),
+        data: data.map((d) => d.date.slice(5)),
         axisLine: { lineStyle: { color: '#2A3348' } },
         axisLabel: { color: '#5A6579', fontSize: 9, rotate: 45 },
         axisTick: { show: false },
@@ -499,27 +561,27 @@ function TrainingLoadCard() {
           name: '低强度',
           type: 'bar',
           stack: 'load',
-          data: dailyData.map((d) => Math.round(d.load * 0.4)),
+          data: data.map((d) => Math.round(d.load * 0.4)),
           itemStyle: { color: 'rgba(16,185,129,0.5)' },
         },
         {
           name: '中强度',
           type: 'bar',
           stack: 'load',
-          data: dailyData.map((d) => Math.round(d.load * 0.35)),
+          data: data.map((d) => Math.round(d.load * 0.35)),
           itemStyle: { color: 'rgba(245,158,11,0.5)' },
         },
         {
           name: '高强度',
           type: 'bar',
           stack: 'load',
-          data: dailyData.map((d) => Math.round(d.load * 0.25)),
+          data: data.map((d) => Math.round(d.load * 0.25)),
           itemStyle: { color: 'rgba(239,68,68,0.5)' },
         },
         {
           name: 'sRPE',
           type: 'line',
-          data: dailyData.map((d) => d.sRPE),
+          data: data.map((d) => d.sRPE),
           smooth: true,
           lineStyle: { color: '#8B5CF6', width: 2 },
           itemStyle: { color: '#8B5CF6' },
@@ -529,7 +591,7 @@ function TrainingLoadCard() {
       ],
       animationDuration: 800,
     }
-  }, [])
+  }, [data])
 
   return (
     <DashboardCard title="训练负荷明细">
@@ -556,13 +618,13 @@ function MetricBlock({ label, value, alert }: { label: string; value: string; al
 }
 
 /* ─── Training Monotony Card ─── */
-function MonotonyCard() {
+function MonotonyCard({ data }: { data: DailyData[] }) {
   const option = useMemo(() => {
     return {
       grid: { top: 12, right: 12, bottom: 24, left: 32 },
       xAxis: {
         type: 'category' as const,
-        data: dailyData.map((d) => d.date.slice(5)),
+        data: data.map((d) => d.date.slice(5)),
         show: false,
       },
       yAxis: {
@@ -581,7 +643,7 @@ function MonotonyCard() {
         {
           name: '训练单调性',
           type: 'line',
-          data: dailyData.map((d) => d.monotony),
+          data: data.map((d) => d.monotony),
           smooth: true,
           symbol: 'circle',
           symbolSize: (val: number) => (val > 2 ? 6 : 3),
@@ -599,7 +661,7 @@ function MonotonyCard() {
       ],
       animationDuration: 800,
     }
-  }, [])
+  }, [data])
 
   return (
     <DashboardCard title="训练单调性">
@@ -610,13 +672,16 @@ function MonotonyCard() {
 
 /* ─── Main Daily Monitoring Component ─── */
 export default function DailyMonitoring() {
+  const { workspace } = useWorkspaceStore()
+  const workspaceDailyData = useMemo(() => buildWorkspaceDailyData(workspace, dailyData), [workspace])
+
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
       {/* Row 1: Primary metrics */}
-      <LineCard title="HRV (心率变异性)" dataKey="hrv" color="#00D4AA" unit="ms" />
-      <LineCard title="RHR (静息心率)" dataKey="rhr" color="#3B82F6" unit="bpm" />
-      <ReadinessCard />
-      <ACWRCard />
+      <LineCard title="HRV (心率变异性)" dataKey="hrv" color="#00D4AA" unit="ms" data={workspaceDailyData} />
+      <LineCard title="RHR (静息心率)" dataKey="rhr" color="#3B82F6" unit="bpm" data={workspaceDailyData} />
+      <ReadinessCard data={workspaceDailyData} />
+      <ACWRCard data={workspaceDailyData} />
 
       {/* Row 2: Injury body map - full width */}
       <div className="col-span-1 sm:col-span-2 xl:col-span-4">
@@ -626,17 +691,17 @@ export default function DailyMonitoring() {
       </div>
 
       {/* Row 3: Subjective metrics */}
-      <SubjectiveCard title="睡眠质量" dataKey="sleep" />
-      <SubjectiveCard title="压力水平" dataKey="stress" />
-      <SubjectiveCard title="能量水平" dataKey="energy" />
-      <SubjectiveCard title="肌肉酸痛" dataKey="soreness" />
+      <SubjectiveCard title="睡眠质量" dataKey="sleep" data={workspaceDailyData} />
+      <SubjectiveCard title="压力水平" dataKey="stress" data={workspaceDailyData} />
+      <SubjectiveCard title="能量水平" dataKey="energy" data={workspaceDailyData} />
+      <SubjectiveCard title="肌肉酸痛" dataKey="soreness" data={workspaceDailyData} />
 
       {/* Row 4: More cards */}
-      <SubjectiveCard title="信心指数" dataKey="confidence" />
+      <SubjectiveCard title="信心指数" dataKey="confidence" data={workspaceDailyData} />
       <div className="col-span-1 sm:col-span-2">
-        <TrainingLoadCard />
+        <TrainingLoadCard data={workspaceDailyData} />
       </div>
-      <MonotonyCard />
+      <MonotonyCard data={workspaceDailyData} />
     </div>
   )
 }
