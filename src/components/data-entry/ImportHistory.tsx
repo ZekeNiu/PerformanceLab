@@ -1,19 +1,53 @@
-import { useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import type { ImportHistoryEntry } from '@/data/mockData'
-import { mockImportHistory } from '@/data/mockData'
+import type { ImportBatch } from '@/lib/domain-model'
+import { useWorkspaceStore } from '@/lib/workspace-store'
 
-interface ImportHistoryProps {
-  newEntries?: ImportHistoryEntry[]
+function formatImportedAt(importedAt: string) {
+  const date = new Date(importedAt)
+  if (Number.isNaN(date.getTime())) return importedAt
+
+  return date.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
 }
 
-export default function ImportHistory({ newEntries = [] }: ImportHistoryProps) {
-  const [entries, setEntries] = useState<ImportHistoryEntry[]>([...newEntries, ...mockImportHistory])
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+function mapBatchToHistoryEntry(batch: ImportBatch): ImportHistoryEntry {
+  const failCount = batch.rejectedRows
 
-  const handleClear = () => {
+  return {
+    id: batch.id,
+    time: formatImportedAt(batch.importedAt),
+    filename: batch.filename,
+    totalRows: batch.totalRows,
+    successCount: batch.acceptedRows,
+    failCount,
+    operator: batch.operator ?? '管理员',
+    status: failCount === 0 ? 'success' : batch.acceptedRows > 0 ? 'partial' : 'failed',
+  }
+}
+
+export default function ImportHistory() {
+  const { workspace, updateWorkspace } = useWorkspaceStore()
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const entries = useMemo(
+    () =>
+      [...workspace.importBatches]
+        .sort((a, b) => new Date(b.importedAt).getTime() - new Date(a.importedAt).getTime())
+        .map(mapBatchToHistoryEntry),
+    [workspace.importBatches],
+  )
+
+  const handleClear = async () => {
     if (window.confirm('确定要清除所有导入记录吗？')) {
-      setEntries([])
+      try {
+        await updateWorkspace((current) => ({
+          ...current,
+          importBatches: [],
+        }))
+        setExpandedId(null)
+      } catch (error) {
+        window.alert(error instanceof Error ? error.message : '清除导入历史失败，请重试。')
+      }
     }
   }
 
@@ -71,9 +105,8 @@ export default function ImportHistory({ newEntries = [] }: ImportHistoryProps) {
             </thead>
             <tbody>
               {entries.map((entry, idx) => (
-                <>
+                <Fragment key={entry.id}>
                   <tr
-                    key={entry.id}
                     className="cursor-pointer transition-colors hover:opacity-80"
                     style={{
                       backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
@@ -111,16 +144,14 @@ export default function ImportHistory({ newEntries = [] }: ImportHistoryProps) {
                         <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                           <p className="mb-1 font-medium" style={{ color: 'var(--text-secondary)' }}>失败详情:</p>
                           <ul className="list-disc space-y-0.5 pl-4">
-                            <li>第 4 行: 运动员姓名未找到匹配</li>
-                            <li>第 7 行: 数据格式不正确 (重复1应为数值)</li>
-                            <li>第 12 行: 动作名称不在定义库中</li>
-                            {entry.failCount > 3 && <li>... 共 {entry.failCount} 行失败</li>}
+                            <li>{entry.failCount} 行未写入 workspace。</li>
+                            <li>当前历史记录只保存批次级摘要，行级错误详情仍保留在本次导入校验流程中。</li>
                           </ul>
                         </div>
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

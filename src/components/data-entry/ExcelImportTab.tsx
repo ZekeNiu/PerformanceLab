@@ -4,7 +4,6 @@ import { toast } from 'sonner'
 import UploadZone, { type ParsedRow } from './UploadZone'
 import ValidationStagingArea from './ValidationStagingArea'
 import ImportHistory from './ImportHistory'
-import type { ImportHistoryEntry } from '@/data/mockData'
 import type { ImportBatch, Measurement } from '@/lib/domain-model'
 
 interface ExcelImportTabProps {
@@ -13,7 +12,6 @@ interface ExcelImportTabProps {
 
 export default function ExcelImportTab({ onMeasurementsCommitted }: ExcelImportTabProps) {
   const [parsedRows, setParsedRows] = useState<ParsedRow[] | null>(null)
-  const [importHistory, setImportHistory] = useState<ImportHistoryEntry[]>([])
   const [currentFilename, setCurrentFilename] = useState('imported_data.xlsx')
 
   const handleFileParsed = useCallback((rows: ParsedRow[], filename: string) => {
@@ -26,30 +24,19 @@ export default function ExcelImportTab({ onMeasurementsCommitted }: ExcelImportT
 
   const handleCommit = useCallback(async (validRows: ParsedRow[], measurements: Measurement[]) => {
     const importedAt = new Date()
-    const newEntry: ImportHistoryEntry = {
+    const importBatch: ImportBatch = {
       id: `ih-${Date.now()}`,
-      time: importedAt.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
       filename: currentFilename,
       totalRows: validRows.length,
-      successCount: validRows.length,
-      failCount: 0,
-      operator: '管理员',
-      status: 'success',
-    }
-    const importBatch: ImportBatch = {
-      id: newEntry.id,
-      filename: newEntry.filename,
+      acceptedRows: validRows.length,
+      rejectedRows: 0,
       importedAt: importedAt.toISOString(),
-      totalRows: newEntry.totalRows,
-      acceptedRows: newEntry.successCount,
-      rejectedRows: newEntry.failCount,
       measurementIds: measurements.map((measurement) => measurement.id),
-      operator: newEntry.operator,
+      operator: '管理员',
     }
 
     await onMeasurementsCommitted?.(measurements, importBatch)
     setParsedRows(null)
-    setImportHistory((prev) => [newEntry, ...prev])
     toast.success('数据导入成功', {
       description: `已生成 ${measurements.length} 条测量记录。`,
     })
@@ -82,7 +69,7 @@ export default function ExcelImportTab({ onMeasurementsCommitted }: ExcelImportT
         )}
       </AnimatePresence>
 
-      <ImportHistory newEntries={importHistory} />
+      <ImportHistory />
     </div>
   )
 }

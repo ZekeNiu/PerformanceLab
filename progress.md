@@ -645,3 +645,36 @@ Use this file as the session-by-session project journal.
 - Push: pushed follow-up progress-log commit `3514744` to `origin/main`.
 - GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `eeb8615` with message `deploy: 1f51b3bc3c1bcc8f326675c5663b3f62ac429e0c`, confirming the PL-010 Admin athlete/session workspace commit deployed. The follow-up progress-log commit `3514744` used `[skip ci]` and did not need a deployment run.
 - Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
+
+## 2026-05-26 PL-010 Import History Workspace Continuation
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: continue `PL-010`, local JSON workspace file persistence.
+- Read the required project context files and confirmed initial git status: `main...origin/main` with no local changes.
+- Read the karpathy-guidelines, React best-practices, and frontend-testing-debugging skills because this pass changes React workspace consumers and needs rendered validation.
+- Inventory finding: Excel import confirmation already writes an `ImportBatch` into `workspace.importBatches`, but `ImportHistory` still initializes from page-local `newEntries` plus `mockImportHistory`, so importing/opening a JSON workspace does not restore the import history UI.
+- Working decision: keep this pass focused on Data Entry import-history consumption and clearing behavior. Other Dashboard read paths and broader cache-clear/manual File System Access verification remain separate PL-010 slices.
+- Updated `src/components/data-entry/ExcelImportTab.tsx` to stop maintaining page-local import-history state after confirmation; it now creates an `ImportBatch` and lets the workspace write path remain the source of truth.
+- Updated `src/components/data-entry/ImportHistory.tsx` to derive table rows from `workspace.importBatches` instead of `mockImportHistory`, and to clear history by writing `importBatches: []` back to the active workspace without deleting measurements.
+- Verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Verification: `npm run lint` passes with no warnings.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright setup note: started local `npm run preview` on `http://127.0.0.1:4173/`.
+- Playwright script note: first inline script failed before browser interaction because PowerShell pipe encoding corrupted Chinese regex literals; reran with ASCII-only Unicode escapes.
+- Playwright smoke on local preview passed for `/data-entry` import history:
+  - Imported a temporary `performancelab-import-history-smoke.json` through the global workspace file bar.
+  - Switched to the Excel import tab and confirmed the import-history table rendered the workspace-provided `workspace-history-smoke.xlsx`, `WorkspaceSmokeOperator`, total rows `3`, success rows `2`, and failed rows `1`.
+  - Clicked clear history, accepted the confirmation dialog, and confirmed the table rendered the empty-history state.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width (`1440`), with no page-level horizontal overflow.
+  - Screenshot was saved to the system temp directory, not the repository.
+- Cleanup note: stopped the local Vite preview process on port 4173.
+- Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect that Data Entry import history now consumes workspace `importBatches` while PL-010 remains `Doing`.
+- Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Final verification: `npm run lint` passes with no warnings.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files, `src/components/data-entry/ExcelImportTab.tsx`, and `src/components/data-entry/ImportHistory.tsx`.
+- Commit plan: create a local commit for this PL-010 continuation with message `Read import history from workspace`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `45c3683` with message `Read import history from workspace`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing.
+- Commit amend: updated the local commit to `b2b08da` with the same message before push so the progress log stays in the same change.
