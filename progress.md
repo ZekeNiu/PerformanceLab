@@ -678,3 +678,6 @@ Use this file as the session-by-session project journal.
 - Commit: created local commit `45c3683` with message `Read import history from workspace`.
 - Commit amend plan: amend the commit to include this commit log entry before pushing.
 - Commit amend: updated the local commit to `b2b08da` with the same message before push so the progress log stays in the same change.
+- Commit amend: final pre-push local commit became `2425a47` with message `Read import history from workspace`.
+- Push: pushed commit `2425a47` to `origin/main`.
+- Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages deployment run.
