@@ -716,3 +716,6 @@ Use this file as the session-by-session project journal.
 - Commit: created local commit `4c51919` with message `Read dashboard athletes from workspace`.
 - Commit amend plan: amend the commit to include this commit log entry before pushing.
 - Commit amend: updated the local commit to `f8e1c97` with the same message before push so the progress log stays in the same change.
+- Commit amend: final pre-push local commit became `7379a57` with message `Read dashboard athletes from workspace`.
+- Push: pushed commit `7379a57` to `origin/main`.
+- Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages deployment run.
