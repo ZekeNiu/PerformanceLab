@@ -832,3 +832,8 @@ Use this file as the session-by-session project journal.
 - Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
 - Commit: created local commit `6d30ee0` with message `Wire dashboard filters into workspace queries`.
 - Commit amend plan: amend the commit to include this commit log entry before pushing so the progress log stays in the same change.
+- Commit amend: updated the local commit to `01dbb7d` with the same message before push.
+- Push: pushed commit `01dbb7d` to `origin/main`.
+- GitHub Pages deployment check: fetched `origin/gh-pages` for 4 minutes, but it still pointed at the previous deploy commit `36662a7` with message `deploy: 7379a5722ce9098b59cb95ffd62c3138840b5a8e`.
+- Deployment diagnostics note: the GitHub app workflow-run helper returned no workflow runs for commit `01dbb7d`. Local build, lint, and Playwright validation passed; the remaining issue appears to be GitHub Actions/Pages execution visibility or triggering rather than a local build failure.
+- Deployment recovery plan: push this progress update as a normal non-`[skip ci]` commit so the Pages workflow is triggered for the current `main` contents, including the Dashboard global filter workspace change.
