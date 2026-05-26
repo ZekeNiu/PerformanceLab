@@ -636,6 +636,8 @@ Use this file as the session-by-session project journal.
 - Final pre-commit git status: modified documentation/context files only.
 - Commit plan: create a documentation-only commit with message `Record workspace cache recovery verification [skip ci]`.
 - Push plan: push the resulting `[skip ci]` commit to `origin/main`; no GitHub Pages deployment run is required for this documentation-only verification update.
+- Commit: created and pushed documentation-only commit `eb3500f` with message `Record workspace cache recovery verification [skip ci]`.
+- Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as another `[skip ci]` commit.
 - Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect that Admin athlete profiles and test sessions now read/write active workspace data while PL-010 remains `Doing`.
 - Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
 - Final verification: `npm run lint` passes with no warnings.
