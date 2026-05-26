@@ -788,3 +788,6 @@ Use this file as the session-by-session project journal.
 - GitHub Pages deployment check: fetched `origin/gh-pages` for 4 minutes, but it still pointed at the previous deploy commit for `7379a5722ce9098b59cb95ffd62c3138840b5a8e` instead of the Dashboard daily workspace commit `b27a266`.
 - Deployment diagnostics note: local `gh` CLI is not installed, unauthenticated GitHub REST Actions lookup hit the API rate limit, and the GitHub app workflow-run helper returned no push workflow runs for `b27a266` or `9a7f5e4`.
 - Deployment recovery plan: push this progress update as a normal non-`[skip ci]` commit so the Pages workflow is triggered for the current `main` contents, including the Dashboard daily workspace change.
+- Commit: created and pushed deployment-retry progress commit `c555e7e` to `origin/main`.
+- GitHub Pages deployment retry check: fetched `origin/gh-pages` for another 8 minutes, but it still pointed at the previous deploy commit `36662a7` with message `deploy: 7379a5722ce9098b59cb95ffd62c3138840b5a8e`.
+- Deployment remains unverified for `b27a266` / current `main` after the retry. Local build, lint, and Playwright validation passed; the remaining issue appears to be GitHub Actions/Pages execution visibility or triggering rather than a local build failure.
