@@ -791,3 +791,44 @@ Use this file as the session-by-session project journal.
 - Commit: created and pushed deployment-retry progress commit `c555e7e` to `origin/main`.
 - GitHub Pages deployment retry check: fetched `origin/gh-pages` for another 8 minutes, but it still pointed at the previous deploy commit `36662a7` with message `deploy: 7379a5722ce9098b59cb95ffd62c3138840b5a8e`.
 - Deployment remains unverified for `b27a266` / current `main` after the retry. Local build, lint, and Playwright validation passed; the remaining issue appears to be GitHub Actions/Pages execution visibility or triggering rather than a local build failure.
+
+## 2026-05-26 PL-010 Dashboard Global Filter Workspace Continuation
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: continue `PL-010`, local JSON workspace file persistence.
+- Read the required project context files and confirmed initial git status: `main...origin/main` with no local changes.
+- Read the karpathy-guidelines, React best-practices, and frontend-testing-debugging skills because this pass changes React dashboard consumers and needs rendered validation.
+- Inventory finding: Dashboard top athlete options now read workspace athletes, Dashboard daily monitoring reads some workspace measurements, and periodic testing reads workspace measurements, but the top date/athlete filters remain local to `ControlCenter` and do not drive `DailyMonitoring` or `PeriodicTesting`.
+- Working decision: keep this pass focused on Dashboard global filter plumbing. Lift date/athlete filter state to `Dashboard.tsx`, pass it into `ControlCenter`, `DailyMonitoring`, and Dashboard-owned `PeriodicTesting`, and leave broader daily derived metrics plus `/comparison` route defaults as separate PL-010/PL-013 work.
+- Added `src/components/dashboard/filter-types.ts` with shared Dashboard filter state and a conversion helper for measurement queries.
+- Updated `src/pages/Dashboard.tsx` to own the top date/athlete filter state and pass a derived measurement filter to `DailyMonitoring` and Dashboard-owned `PeriodicTesting`.
+- Reworked `src/components/dashboard/ControlCenter.tsx` as a controlled filter bar whose athlete options still prefer workspace `athletes`.
+- Updated `src/components/dashboard/DailyMonitoring.tsx` so workspace HRV/RHR/sleep/RPE daily measurement series are filtered by selected athlete and date range.
+- Updated `src/components/dashboard/PeriodicTesting.tsx` so Dashboard-owned periodic display/comparison surfaces choose the selected athlete, date-filtered sessions, and date-filtered measurement groups when a Dashboard filter is provided; `/comparison` remains unbound because it does not pass that filter prop.
+- Verification: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Verification: `npm run lint` passes with no warnings.
+- Updated `docs/EXECUTION_BRIEF.md`, `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md` to reflect that Dashboard date/athlete filters now drive Dashboard daily and Dashboard periodic measurement queries while PL-010 remains `Doing`.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright setup note: started local `npm run preview`; ports 4173 and 4174 were already occupied, so Vite preview used `http://127.0.0.1:4175/`.
+- Playwright smoke note: first script attempts exposed two test-script issues and one real interaction issue:
+  - Broad accessible-name matches for date/athlete buttons also matched remove-filter pill buttons; the smoke script was narrowed.
+  - Hovering an ECharts canvas was not a reliable way to assert tooltip values in this app shell, so the smoke assertion was changed to visible daily baseline and periodic table values.
+  - Real issue: selecting the date popover's `不限时间` option left the popover overlay open, which blocked the top-level `应用` button. Updated `ControlCenter` so choosing `不限时间` closes the date popover.
+- Verification after the interaction fix: `npm run build` passes with the existing Vite >500 kB chunk warning.
+- Verification after the interaction fix: `npm run lint` passes with no warnings.
+- Playwright smoke on local preview passed for Dashboard global filters:
+  - Imported a temporary `performancelab-dashboard-filter-smoke.json` workspace through the global workspace file bar.
+  - Selected `Filter Alpha`, cleared the date filter to unlimited, and confirmed daily monitoring used the two-date workspace daily series (`2/28` baseline indicator).
+  - Switched to periodic testing and confirmed the selected athlete produced the workspace CMJ mean `17.5`.
+  - Changed the top athlete filter to `Filter Beta` and confirmed periodic testing updated to the workspace CMJ mean `87.5`.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width (`1440`), and mobile document width matched viewport width (`390`), with no page-level horizontal overflow.
+  - Screenshots were saved to the system temp directory, not the repository.
+- Cleanup note: stopped the local Vite preview process on port 4175.
+- Additional Playwright smoke passed for `/comparison`; the route rendered the reused `PeriodicTesting` path, switched to cross-sectional comparison, had no console errors/warnings or page errors, and desktop document width matched viewport width (`1440`).
+- Cleanup note: stopped the second local Vite preview process on port 4175.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files, `src/pages/Dashboard.tsx`, `src/components/dashboard/ControlCenter.tsx`, `src/components/dashboard/DailyMonitoring.tsx`, `src/components/dashboard/PeriodicTesting.tsx`, and new `src/components/dashboard/filter-types.ts`.
+- Commit plan: create a local commit for this PL-010 continuation with message `Wire dashboard filters into workspace queries`.
+- Push plan: push the resulting `main` commit to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `6d30ee0` with message `Wire dashboard filters into workspace queries`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing so the progress log stays in the same change.

@@ -15,6 +15,7 @@ import type {
 import { workspaceToMeasurementStore } from '@/lib/workspace-measurement-store'
 import { useWorkspaceStore } from '@/lib/workspace-store'
 import DashboardCard from './DashboardCard'
+import type { DashboardMeasurementFilter } from './filter-types'
 import {
   LAYER_COLORS,
   cohensDLabel,
@@ -30,6 +31,7 @@ type DateMode = 'single' | 'range' | 'unlimited'
 
 interface Props {
   mode?: DisplayMode
+  filter?: DashboardMeasurementFilter
 }
 
 interface RadarCategoryScore {
@@ -107,7 +109,6 @@ function buildDataGroup(
     subject,
     time: { kind: 'all' },
     aggregation: 'mean',
-    sources: ['manual'],
     ...options,
   }
 }
@@ -167,9 +168,31 @@ function buildComparisonLayer(
   }
 }
 
-function buildPeriodicSurfaceData(store: MeasurementStore): PeriodicSurfaceData {
-  const sortedSessions = [...store.sessions].sort((a, b) => a.date.localeCompare(b.date))
-  const primaryAthlete = store.athletes[0]
+function dateInFilter(date: string, filter: DashboardMeasurementFilter = {}) {
+  if (filter.from && date < filter.from) return false
+  if (filter.to && date > filter.to) return false
+  return true
+}
+
+function filterTimeSelection(filter: DashboardMeasurementFilter = {}): MetricDataGroupConfig['time'] {
+  if (filter.from && filter.to && filter.from === filter.to) return { kind: 'single-date', date: filter.from }
+  if (filter.from || filter.to) {
+    return {
+      kind: 'date-range',
+      from: filter.from ?? '0000-01-01',
+      to: filter.to ?? '9999-12-31',
+    }
+  }
+  return { kind: 'all' }
+}
+
+function buildPeriodicSurfaceData(store: MeasurementStore, filter: DashboardMeasurementFilter = {}): PeriodicSurfaceData {
+  const sortedSessions = [...store.sessions]
+    .filter((session) => dateInFilter(session.date, filter))
+    .sort((a, b) => a.date.localeCompare(b.date))
+  const primaryAthlete =
+    (filter.athleteId ? store.athletes.find((athlete) => athlete.id === filter.athleteId) : undefined) ??
+    store.athletes[0]
   const primaryPosition = primaryAthlete?.position
   const primaryTeamId = primaryAthlete?.teamId ?? store.teams[0]?.id
   const baselineSession = sortedSessions[0]
@@ -179,33 +202,37 @@ function buildPeriodicSurfaceData(store: MeasurementStore): PeriodicSurfaceData 
     'primary-athlete-all',
     primaryAthlete?.name ?? 'Primary athlete',
     { kind: 'athlete', athleteIds: primaryAthlete ? [primaryAthlete.id] : [] },
+    { time: filterTimeSelection(filter) },
   )
 
   const baselineGroup = buildDataGroup(
     'primary-athlete-baseline',
     '基准期',
     primaryAthleteGroup.subject,
-    baselineSession ? { time: { kind: 'session', sessionIds: [baselineSession.id] } } : {},
+    baselineSession ? { time: { kind: 'session', sessionIds: [baselineSession.id] } } : { time: filterTimeSelection(filter) },
   )
 
   const comparisonGroup = buildDataGroup(
     'primary-athlete-current',
     '对比期',
     primaryAthleteGroup.subject,
-    comparisonSession ? { time: { kind: 'session', sessionIds: [comparisonSession.id] } } : {},
+    comparisonSession ? { time: { kind: 'session', sessionIds: [comparisonSession.id] } } : { time: filterTimeSelection(filter) },
   )
 
   const teamDisplayGroup = buildDataGroup(
     'team-periodic-display',
-    '全队展示',
-    primaryTeamId
-      ? { kind: 'team', teamIds: [primaryTeamId] }
-      : {
-          kind: 'custom-group',
-          id: 'all-athletes',
-          label: 'All athletes',
-          athleteIds: store.athletes.map((athlete) => athlete.id),
-        },
+    filter.athleteId && primaryAthlete ? primaryAthlete.name : '全队展示',
+    filter.athleteId && primaryAthlete
+      ? { kind: 'athlete', athleteIds: [primaryAthlete.id] }
+      : primaryTeamId
+        ? { kind: 'team', teamIds: [primaryTeamId] }
+        : {
+            kind: 'custom-group',
+            id: 'all-athletes',
+            label: 'All athletes',
+            athleteIds: store.athletes.map((athlete) => athlete.id),
+          },
+    { time: filterTimeSelection(filter) },
   )
 
   const positionReferenceGroup = buildDataGroup(
@@ -222,13 +249,14 @@ function buildPeriodicSurfaceData(store: MeasurementStore): PeriodicSurfaceData 
         status: 'active',
       },
     },
+    { time: filterTimeSelection(filter) },
   )
 
   const teamBestGroup = buildDataGroup(
     'team-best',
     '队内最佳',
     primaryTeamId ? { kind: 'team', teamIds: [primaryTeamId] } : teamDisplayGroup.subject,
-    { aggregation: 'best' },
+    { aggregation: 'best', time: filterTimeSelection(filter) },
   )
 
   const periodicMetrics = METRIC_DEFINITIONS.filter((metric) =>
@@ -1007,12 +1035,12 @@ function CrossSectionalCategorySection({
   )
 }
 
-export default function PeriodicTesting({ mode = 'display' }: Props) {
+export default function PeriodicTesting({ mode = 'display', filter }: Props) {
   const { workspace } = useWorkspaceStore()
   const workspaceMeasurementStore = useMemo(() => workspaceToMeasurementStore(workspace), [workspace])
   const periodicSurfaceData = useMemo(
-    () => buildPeriodicSurfaceData(workspaceMeasurementStore),
-    [workspaceMeasurementStore],
+    () => buildPeriodicSurfaceData(workspaceMeasurementStore, filter),
+    [filter, workspaceMeasurementStore],
   )
   const [longDateMode, setLongDateMode] = useState<DateMode>('range')
   const [longAggregate, setLongAggregate] = useState<AggregateMode>('mean')

@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import QuickOverview from '@/components/dashboard/QuickOverview'
 import ControlCenter from '@/components/dashboard/ControlCenter'
 import DailyMonitoring from '@/components/dashboard/DailyMonitoring'
 import PeriodicTesting from '@/components/dashboard/PeriodicTesting'
+import { defaultDashboardFilters, dashboardFiltersToMeasurementFilter } from '@/components/dashboard/filter-types'
 
 type DashboardTab = 'daily' | 'periodic'
 type ComparisonMode = 'display' | 'longitudinal' | 'cross-sectional'
@@ -11,6 +12,8 @@ type ComparisonMode = 'display' | 'longitudinal' | 'cross-sectional'
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<DashboardTab>('daily')
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('display')
+  const [filters, setFilters] = useState(defaultDashboardFilters)
+  const measurementFilter = useMemo(() => dashboardFiltersToMeasurementFilter(filters), [filters])
 
   const tabs = [
     { key: 'daily' as const, label: '日常监控' },
@@ -29,7 +32,7 @@ export default function Dashboard() {
       <QuickOverview />
 
       {/* Section 2: Control Center Bar */}
-      <ControlCenter />
+      <ControlCenter filters={filters} onFiltersChange={setFilters} />
 
       {/* Section 3: Tab Bar */}
       <div
@@ -91,7 +94,7 @@ export default function Dashboard() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
             >
-              <DailyMonitoring />
+              <DailyMonitoring filter={measurementFilter} />
             </motion.div>
           ) : (
             <motion.div
@@ -101,7 +104,7 @@ export default function Dashboard() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
             >
-              <PeriodicTesting mode={comparisonMode} />
+              <PeriodicTesting mode={comparisonMode} filter={measurementFilter} />
             </motion.div>
           )}
         </AnimatePresence>

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import DashboardCard from './DashboardCard'
 import { dailyData, bodyParts, calculateEMA, type DailyData } from './data'
+import type { DashboardMeasurementFilter } from './filter-types'
 import { selectMeasurementSeries } from '@/lib/measurement-store'
 import { useWorkspaceStore } from '@/lib/workspace-store'
 import { workspaceToMeasurementStore } from '@/lib/workspace-measurement-store'
@@ -30,14 +31,23 @@ function toTenPointScore(value: number) {
   return Math.round((value / 10) * 10) / 10
 }
 
-function buildWorkspaceDailyData(workspace: PerformanceLabWorkspace, fallback: DailyData[]): DailyData[] {
+function buildWorkspaceDailyData(
+  workspace: PerformanceLabWorkspace,
+  fallback: DailyData[],
+  filter: DashboardMeasurementFilter = {},
+): DailyData[] {
   const store = workspaceToMeasurementStore(workspace)
   const seriesByKey = new Map<DailyMetricKey, Map<string, number>>()
   const dates = new Set<string>()
+  const query = {
+    athleteIds: filter.athleteId ? [filter.athleteId] : undefined,
+    from: filter.from,
+    to: filter.to,
+  }
 
   Object.entries(dailyWorkspaceMetricMap).forEach(([dailyKey, metricId]) => {
     if (!metricId) return
-    const points = selectMeasurementSeries(metricId, {}, { aggregation: 'mean', groupBy: 'date' }, store)
+    const points = selectMeasurementSeries(metricId, query, { aggregation: 'mean', groupBy: 'date' }, store)
       .filter((point) => point.value !== null)
     if (!points.length) return
 
@@ -671,9 +681,9 @@ function MonotonyCard({ data }: { data: DailyData[] }) {
 }
 
 /* ─── Main Daily Monitoring Component ─── */
-export default function DailyMonitoring() {
+export default function DailyMonitoring({ filter }: { filter?: DashboardMeasurementFilter }) {
   const { workspace } = useWorkspaceStore()
-  const workspaceDailyData = useMemo(() => buildWorkspaceDailyData(workspace, dailyData), [workspace])
+  const workspaceDailyData = useMemo(() => buildWorkspaceDailyData(workspace, dailyData, filter), [filter, workspace])
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
