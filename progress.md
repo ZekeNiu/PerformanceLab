@@ -719,3 +719,6 @@ Use this file as the session-by-session project journal.
 - Commit amend: final pre-push local commit became `7379a57` with message `Read dashboard athletes from workspace`.
 - Push: pushed commit `7379a57` to `origin/main`.
 - Follow-up log note: recording the successful push in this progress-only update, then pushing that log update to `origin/main` as a `[skip ci]` commit so it does not start another Pages deployment run.
+- Push: pushed follow-up progress-log commit `c2372f7` to `origin/main`.
+- GitHub Pages deployment verification: fetched `origin/gh-pages`; latest deployment commit is `36662a7` with message `deploy: 7379a5722ce9098b59cb95ffd62c3138840b5a8e`, confirming the PL-010 Dashboard athlete workspace commit deployed. The follow-up progress-log commit `c2372f7` used `[skip ci]` and did not need a deployment run.
+- Commit/push plan: record this deployment verification in a progress-only `[skip ci]` commit.
