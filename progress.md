@@ -942,6 +942,10 @@ Use this file as the session-by-session project journal.
 - Commit: created local commit `74d2882` with message `Implement dashboard filter config switching`.
 - Commit amend plan: amend the commit to include this commit log entry before pushing.
 - Commit amend: updated the local commit before push to include the commit log entry.
+- Push: pushed commit `1a5c2e8` to `origin/main`.
+- GitHub Pages deployment verification: fetched `origin/gh-pages`; after 5 polling attempts it updated to `555b4f0` with message `deploy: 1a5c2e88e71849a6ac68625e4e2a24310fc82afe`.
+- Live Pages verification: `https://zekeniu.github.io/PerformanceLab/?v=1a5c2e8` returned HTTP 200 and included the app root.
+- Commit/push plan: record this push and deployment verification in a follow-up progress-log commit so the branch history contains the final deployment result.
 - Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
 - Playwright setup note: first `Start-Process npm run preview` attempt did not keep the preview server alive on port 4178. Restarted preview through a hidden PowerShell process and confirmed `http://127.0.0.1:4178/`.
 - Playwright script note: the first cross-sectional smoke script used a Chinese regex literal through a PowerShell pipe and failed before reaching the app because the regex was shell-encoding corrupted. Replaced it with CSS/ASCII selectors.
