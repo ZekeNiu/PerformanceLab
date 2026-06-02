@@ -1005,3 +1005,6 @@ Use this file as the session-by-session project journal.
 - Commit plan: create a local commit with message `Add derived metric formula execution`, then push it to `origin/main` so GitHub Actions can deploy Pages.
 - Commit: created local commit `e58b322` with message `Add derived metric formula execution`.
 - Commit amend plan: amend the commit to include this commit log entry before pushing.
+- Commit amend: updated the local commit to `c13287c` with the same message before push.
+- Push: pushed commit `c13287c` to `origin/main`.
+- Commit/push plan: record this push log in a follow-up progress commit, then verify the final GitHub Pages deployment for the resulting `main` HEAD.
