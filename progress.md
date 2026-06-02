@@ -889,3 +889,8 @@ Use this file as the session-by-session project journal.
 - Commit plan: create a local commit with message `Complete workspace daily monitoring persistence`, then push it to `origin/main` so GitHub Actions can deploy Pages.
 - Commit: created local commit `8d1c8f2` with message `Complete workspace daily monitoring persistence`.
 - Commit amend plan: amend the commit to include this commit log entry before pushing.
+- Commit amend: updated the local commit to `2cc4416` with the same message before push.
+- Push: pushed commit `2cc4416` to `origin/main`.
+- GitHub Pages deployment verification: fetched `origin/gh-pages`; after 3 polling attempts it updated to `aa4cf0c` with message `deploy: 2cc441661ad9bc6e7761d92f4b08a80a59a41ff5`.
+- Live Pages verification: `https://zekeniu.github.io/PerformanceLab/?v=2cc4416` returned HTTP 200 and included the app root.
+- Commit/push plan: record this deployment verification in a normal progress-log commit so the branch HEAD does not become a `[skip ci]` commit.
