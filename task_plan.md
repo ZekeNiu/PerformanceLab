@@ -220,6 +220,21 @@ Build a professional sports performance dashboard for performance analysts and h
 - PL-011 status: Done.
 - Next recommended architecture work: proceed to PL-012 for derived metric formula registry execution.
 
+## 2026-06-02 PL-012 Derived Metric Formula Registry Task
+
+- Completed: Extended `DerivedMetricDefinition` with optional input specs, output dimensions, missing-data policy, and description metadata while keeping old workspace JSON compatible.
+- Completed: Expanded `src/lib/derived-metric-formulas.ts` from formula-only helpers into a shared executor that derives computed `Measurement[]` rows from raw measurements.
+- Completed: Formula registry execution now covers asymmetry, ratio, relative-to-bodyweight, difference, and mean formulas, with dependency matching by athlete, session, date, and trial index plus optional input dimension filters.
+- Completed: New workspaces seed default derived definitions for squat relative strength, bench relative strength, and BMI.
+- Completed: Workspace-backed measurement stores now include computed derived measurements without persisting duplicates over existing raw/imported target measurements.
+- Completed: Availability matrix evaluation now uses the same computed derived measurements so derived metrics are not incorrectly marked missing.
+- Completed: `squat_relative_strength`, `bench_relative_strength`, and `bmi` metric definitions now carry derived formula and dependency metadata.
+- Verification: `npm run lint` passes.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning and Browserslist data-age notice remain.
+- Verification: Playwright `/comparison` cross-sectional smoke passed on desktop and 390px mobile; the route rendered 20 metrics including derived squat and bench relative strength, with no console errors/warnings and no page-level horizontal overflow.
+- PL-012 status: Done.
+- Next recommended architecture work: proceed to PL-013 for Dashboard global filters and real metric/display config switching.
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.

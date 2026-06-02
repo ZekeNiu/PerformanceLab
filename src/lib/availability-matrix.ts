@@ -1,5 +1,6 @@
 import type { EntityId, Measurement, MetricDefinition } from './domain-model'
 import type { PerformanceLabWorkspace } from './workspace-file'
+import { computeDerivedMeasurements } from './derived-metric-formulas'
 
 export type MetricAvailabilityStatus = 'available' | 'missing' | 'partial' | 'incompatible'
 
@@ -132,6 +133,7 @@ function metricAssignedToAthlete(
 
 function evaluateSubjectMetric(
   workspace: PerformanceLabWorkspace,
+  measurements: Measurement[],
   subject: MetricAvailabilitySubject,
   metricId: string,
   sessionIds?: EntityId[],
@@ -152,7 +154,7 @@ function evaluateSubjectMetric(
     metricAssignedToAthlete(workspace, metricId, athleteId, sessionIds),
   )
   const measuredAthleteIds = assignedAthleteIds.filter((athleteId) =>
-    workspace.measurements.some((measurement) =>
+    measurements.some((measurement) =>
       measurementMatches(measurement, metricId, athleteId, sessionIds, from, to),
     ),
   )
@@ -219,10 +221,17 @@ export function buildMetricAvailabilityMatrix({
   from,
   to,
 }: BuildMetricAvailabilityMatrixOptions): MetricAvailabilityRow[] {
+  const derivedMeasurements = computeDerivedMeasurements({
+    definitions: workspace.derivedMetricDefinitions,
+    measurements: workspace.measurements,
+    metricDefinitions: workspace.metricDefinitions,
+  }).measurements
+  const measurements = [...workspace.measurements, ...derivedMeasurements]
+
   return metrics.map((metric) => {
     const subjectResults = subjects.map((subject) => ({
       subject,
-      result: evaluateSubjectMetric(workspace, subject, metric.id, sessionIds, from, to),
+      result: evaluateSubjectMetric(workspace, measurements, subject, metric.id, sessionIds, from, to),
     }))
     const status = rowStatus(subjectResults.map(({ result }) => result))
     const incompatibleSubjects = subjectResults

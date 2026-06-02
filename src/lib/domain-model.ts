@@ -67,6 +67,7 @@ export interface SessionBatteryAssignment {
 export type MetricDirection = 'higher' | 'lower' | 'range' | 'neutral'
 export type MetricKind = 'raw' | 'derived'
 export type DerivedMetricFormulaId = 'asymmetry' | 'ratio' | 'relative_to_bodyweight' | 'difference' | 'mean'
+export type DerivedMetricMissingDataPolicy = 'require_all_inputs' | 'use_available_inputs'
 
 export interface MetricDimensionDefinition {
   key: string
@@ -79,12 +80,23 @@ export interface DerivedMetricDefinition {
   metricId: string
   formulaId: DerivedMetricFormulaId
   inputMetricIds: string[]
+  inputMetrics?: DerivedMetricInputSpec[]
   parameters?: Record<string, string | number | boolean>
+  outputDimensions?: MeasurementDimensions
+  missingDataPolicy?: DerivedMetricMissingDataPolicy
+  description?: string
 }
 
 export type MeasurementDimensionKey = 'side' | 'joint' | 'movement' | 'speed' | 'position' | string
 export type MeasurementDimensions = Partial<Record<MeasurementDimensionKey, string>>
 export type MeasurementQualityFlag = 'missing' | 'partial' | 'incompatible' | 'outlier' | 'manual_review'
+
+export interface DerivedMetricInputSpec {
+  metricId: string
+  role?: string
+  required?: boolean
+  dimensions?: MeasurementDimensions
+}
 
 export interface MetricDefinition {
   id: string

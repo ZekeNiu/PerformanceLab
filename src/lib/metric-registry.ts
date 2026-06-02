@@ -99,11 +99,14 @@ export const METRIC_DEFINITIONS: MetricDefinition[] = [
   {
     id: 'squat_relative_strength',
     name: '深蹲相对力量',
+    kind: 'derived',
     categoryId: 'strength',
     categoryName: '力量',
     unit: 'kg/kg',
     direction: 'higher',
     aliases: ['深蹲相对力量', '相对力量', 'squat_relative_strength'],
+    formulaId: 'relative_to_bodyweight',
+    dependsOnMetricIds: ['squat_1rm', 'weight'],
     supportedContexts: ['periodic', 'comparison', 'import'],
   },
   {
@@ -119,11 +122,14 @@ export const METRIC_DEFINITIONS: MetricDefinition[] = [
   {
     id: 'bench_relative_strength',
     name: '卧推相对力量',
+    kind: 'derived',
     categoryId: 'strength',
     categoryName: '力量',
     unit: 'kg/kg',
     direction: 'higher',
     aliases: ['卧推相对力量', 'bench_relative_strength'],
+    formulaId: 'relative_to_bodyweight',
+    dependsOnMetricIds: ['bench_1rm', 'weight'],
     supportedContexts: ['periodic', 'comparison', 'import'],
   },
   {
@@ -450,11 +456,14 @@ export const METRIC_DEFINITIONS: MetricDefinition[] = [
   {
     id: 'bmi',
     name: 'BMI',
+    kind: 'derived',
     categoryId: 'body-composition',
     categoryName: '身体成分',
     unit: 'kg/m2',
     direction: 'range',
     aliases: ['BMI', 'bmi'],
+    formulaId: 'ratio',
+    dependsOnMetricIds: ['weight', 'height'],
     supportedContexts: ['periodic', 'correlation', 'import'],
   },
   {

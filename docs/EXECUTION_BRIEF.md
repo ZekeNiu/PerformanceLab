@@ -122,7 +122,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 - `src/pages/Correlation.tsx` 已从 metric registry 派生指标名称/类别，并已开始消费 `src/lib/performance-statistics.ts` 的相关性统计输出；数据仍来自 correlation demo generator。
 - `src/lib/measurement-store.ts` 已建立第一版共享 mock `Measurement[]` store 和 selector。Data Entry 手动录入和 Excel 导入确认已能生成 `Measurement[]` 并在 PL-010 中写入本地 JSON workspace；Data Entry 导入历史已从 workspace `importBatches` 恢复；Dashboard periodic testing 和 `/comparison` 已开始读取活动 workspace；Dashboard 顶部运动员选择器已优先读取 workspace `athletes`；Dashboard 顶部日期/运动员筛选已开始驱动 Dashboard daily monitoring 和 Dashboard periodic testing 的 measurement query；Dashboard daily monitoring 已从 workspace 测量值派生日常 HRV/RHR/睡眠/RPE、准备状态、能量、酸痛、信心、训练负荷、时长、ACWR 和训练单调性序列；Admin 定义库、运动员档案和测试批次已开始写入 workspace。
 - `src/lib/workspace-file.ts`、`src/lib/workspace-store.tsx`、`src/lib/workspace-measurement-store.ts` 和 `src/components/WorkspaceFileBar.tsx` 已建立第一版本地 `performancelab.workspace.json` 文件层和到 measurement selector 的读取 adapter。它支持 File System Access API 的创建、打开、保存、另存为，以及不支持浏览器的 JSON 导入/导出降级；Settings 的外观偏好、人体图、显示阈值、通知规则、系统统计和导出入口已接入活动 workspace；Admin 定义库新增/编辑/删除指标已写入 `metricDefinitions`、`testActionCategories`、`testActions`，运动员档案和测试批次已写入 `athletes`、`teams`、`testSessions`，Data Entry 指标选择、导入解析和导入历史会优先读取活动 workspace，Dashboard 顶部运动员选择器会优先读取 workspace 运动员，Dashboard daily monitoring 会优先读取 workspace 的现有日常监控测量值并响应顶部日期/运动员筛选，Dashboard periodic testing 会响应顶部日期/运动员筛选。已通过全新浏览器上下文 + 导入同一 JSON 的方式验证清缓存后核心数据可恢复。
-- `src/lib/domain-model.ts` 已扩展 `MetricDefinition`、`Measurement`、`TestAction`、`TestBattery`、`SessionBatteryAssignment`、`DerivedMetricDefinition` 等字段，为测试内容、批次、维度、质量标记和衍生指标做准备；`src/lib/derived-metric-formulas.ts` 已有公式 registry 雏形，但尚未接入 measurement query 和 UI。
+- `src/lib/domain-model.ts` 已扩展 `MetricDefinition`、`Measurement`、`TestAction`、`TestBattery`、`SessionBatteryAssignment`、`DerivedMetricDefinition` 等字段，为测试内容、批次、维度、质量标记和衍生指标做准备；`src/lib/derived-metric-formulas.ts` 已能按 registry 定义从 raw measurements 生成 computed `Measurement[]`，并通过 `src/lib/workspace-measurement-store.ts` 接入 workspace-backed measurement selector。
 - `src/lib/metric-surface-config.ts` 已建立第一版可序列化指标展示面配置模型，包含主数据组、最多 3 组额外对比数据组、时间/主体选择、聚合方式、横向参照群组和统计注释配置。
 - `src/lib/performance-statistics.ts` 已建立第一版专业统计边界，集中 summary comparison、TE、MDC、SWC、SNR、Cohen's d、summary-level p-value、Pearson/Spearman correlation、CI、样本量、缺失值策略和数据质量 metadata。Dashboard periodic comparison 和 `/correlation` 的主统计表已开始消费该边界。
 
@@ -138,7 +138,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 | PL-006 | P1 | Done | 统计模块专业化 | 已新增 `src/lib/performance-statistics.ts`，集中 summary comparison、TE、MDC、SWC、SNR、effect size、summary-level p-value 和 correlation 输出；结果包含 method、assumptions、sampleSize、missingDataPolicy、dataQuality。Dashboard periodic comparison 和 `/correlation` 主统计表已迁移到该边界；仍需后续用真实 paired/reliability 原始数据替换 summary-level 近似 | `src/lib/statistics.ts`, `src/lib/performance-statistics.ts`, `src/components/dashboard/PeriodicTesting.tsx`, `src/pages/Correlation.tsx` |
 | PL-010 | P0 | Done | 本地 JSON 工作区文件持久化 | 已建立 `performancelab.workspace.json` 文件层、全局工作区文件栏、创建/打开/保存/另存为/导入/导出入口；Data Entry 手动保存、Excel 导入确认、导入历史、Settings 外观偏好/人体图/显示阈值/通知规则/系统统计/导出入口已写入或读取 workspace；Dashboard periodic testing、`/comparison`、Dashboard 顶部运动员选择器和 Dashboard daily monitoring 的现有日常监控序列已通过 workspace adapter 或 workspace store 读取活动 JSON 数据；Dashboard 顶部日期/运动员筛选已驱动 Dashboard daily monitoring 和 Dashboard periodic testing 的 measurement query；Admin 定义库新增/编辑/删除指标会写入 workspace 的 `metricDefinitions`、`testActionCategories`、`testActions`，Admin 运动员档案和测试批次会写入 `athletes`、`teams`、`testSessions`，Data Entry 指标选择和导入解析会优先消费这些 workspace 定义；已通过全新浏览器上下文 + 导入同一 JSON 的方式验证清缓存后核心数据可恢复；已通过导入包含全量日常监控字段的 JSON 验证 Dashboard daily monitoring 可恢复 HRV、RHR、睡眠、RPE、准备状态、能量、酸痛、信心、训练负荷、时长、ACWR 和训练单调性 | `src/lib/workspace-file.ts`, `src/lib/workspace-store.tsx`, `src/lib/workspace-measurement-store.ts`, `src/lib/workspace-definition-config.ts`, `src/components/WorkspaceFileBar.tsx`, `src/components/data-entry/ImportHistory.tsx`, `src/components/dashboard/ControlCenter.tsx`, `src/components/dashboard/DailyMonitoring.tsx`, `src/components/dashboard/PeriodicTesting.tsx`, `src/pages/DataEntry.tsx`, `src/pages/Settings.tsx`, `src/pages/Admin.tsx` |
 | PL-011 | P0 | Done | 测试内容、测试批次与 availability matrix | 已新增 `src/lib/availability-matrix.ts`，让 `TestAction`、`TestBattery`、`SessionBatteryAssignment` 驱动按 session/athlete 的指标可用性；初始 workspace 的 test sessions 已分配默认 batteries，周期 mock measurements 已尽量写入 `testActionId`/`batteryId`；横向比较默认只渲染共同可用指标，并新增 availability matrix 展示全集和 `available`/`missing`/`partial`/`incompatible` 状态；当没有共同可用指标时雷达图显示空状态而不是渲染空 ECharts | `src/lib/availability-matrix.ts`, `src/lib/workspace-file.ts`, `src/lib/measurement-store.ts`, `src/components/dashboard/PeriodicTesting.tsx` |
-| PL-012 | P0 | Todo | 衍生指标公式 registry | 公式 registry 能从 raw measurements 计算 derived metrics，首版覆盖不对称性、比值、相对体重、差值、均值；衍生指标有依赖指标、维度标签、质量标记和缺失数据处理说明；UI 不要求用户手写公式即可展示常见衍生指标 | `src/lib/derived-metric-formulas.ts`, `src/lib/domain-model.ts`, measurement store/query adapter |
+| PL-012 | P0 | Done | 衍生指标公式 registry | 已扩展 `DerivedMetricDefinition` 元数据并新增公式执行层；formula registry 覆盖不对称性、比值、相对体重、差值和均值；默认 workspace seeds 包含深蹲相对力量、卧推相对力量和 BMI 定义；workspace measurement selector 和 availability matrix 会从 raw measurements 生成 `source: "computed"` 的 derived `Measurement[]`，并保留依赖指标、维度过滤、质量标记、缺失数据策略和 computation report；`/comparison` 已验证可展示常见衍生指标且不要求用户手写公式 | `src/lib/derived-metric-formulas.ts`, `src/lib/domain-model.ts`, `src/lib/workspace-measurement-store.ts`, `src/lib/availability-matrix.ts`, `src/lib/workspace-file.ts`, `src/lib/metric-registry.ts` |
 | PL-013 | P1 | Todo | Dashboard 全局筛选和卡片切换实装 | 顶部日期、运动员、测试批次筛选实际驱动 measurement query；所有可切换卡片改为真实 metric/display config，不再只是菜单高亮；雷达图少于 3 个可用维度时自动降级为柱状图、折线图或表格 | `src/components/dashboard/*`, `src/lib/metric-surface-config.ts`, `src/lib/metric-surface-measurements.ts` |
 | PL-014 | P1 | Todo | 日常监控 UI 重构 | 人体图隐藏绿色正常点；右侧改为损伤历史趋势图并按严重程度着色；人体图下方卡片重新组织为更专业、密度合理、与真实指标选择兼容的布局 | `src/components/dashboard/DailyMonitoring.tsx`, `src/components/dashboard/data.ts` |
 | PL-015 | P1 | Todo | 定期测试 UI 与异常预警重构 | 定期测试改为更专业的左图右表结构；异常值标红并显示原因；纵向比较支持基准组 + 最多 3 个对比时间组；横向参考群体补全并避免均值/最佳值语义混乱 | `src/components/dashboard/PeriodicTesting.tsx`, `src/lib/performance-statistics.ts`, `src/lib/metric-surface-measurements.ts` |
@@ -147,7 +147,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 | PL-008 | P2 | Todo | 移动端比较视图 QA | 390px、768px、1440px 下 Dashboard 比较视图和 Comparison 页面无页面级横向溢出，关键文本不重叠 | Dashboard, Comparison, Playwright smoke |
 | PL-009 | P2 | Todo | 路由级性能优化 | ECharts-heavy 页面按路由 lazy load；build 仍可通过；bundle 警告有明确处理或记录 | `src/App.tsx`, Vite build output |
 
-如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始；当前默认进入 `PL-012`。PL-011 已完成第一版测试内容、测试批次与 availability matrix 路径：初始 workspace 和 mock measurements 已带有可追踪的 battery/action 关系，横向比较默认只使用共同可用指标，并能在表格中标记共同可用、缺失、部分可用和不兼容。
+如果用户没有指定任务，下一轮建议从第一个状态不是 `Done` 的 P0/P1 任务开始；当前默认进入 `PL-013`。PL-012 已完成第一版衍生指标公式执行路径：workspace measurement selector 和 availability matrix 会从 raw measurements 生成 computed derived measurements，默认可展示深蹲相对力量、卧推相对力量等常见衍生指标，并保留依赖、维度、质量和缺失策略元数据。
 
 ## 高优先级问题详情
 
@@ -156,7 +156,7 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 问题：
 
 - `metric-registry.ts` 是 canonical registry。
-- `dashboard/data.ts` 仍有 daily monitoring fallback 字段及部分统计/helper mock 数据；当前 Dashboard daily monitoring 只从 workspace 派生 HRV、RHR、睡眠和 RPE-backed stress。
+- `dashboard/data.ts` 仍有 daily monitoring fallback 字段及部分统计/helper mock 数据；当前 Dashboard daily monitoring 已从 workspace 派生主要日常监控字段，但 fallback mock 和部分 legacy analysis demo 数据仍未完全收敛。
 - Data Entry 已不再消费 `mockData.ts` 中的 `m-*` 指标；手动指标选择和导入解析会优先使用活动 workspace 定义。`mockData.ts` 中的旧结构仍保留给尚未迁移的 mock 页面上下文。
 
 处理原则：
@@ -190,20 +190,20 @@ PerformanceLab 的长期方向应是：强调指标展示和统计学深度，�
 
 若用户没有指定其他任务，下一次应执行：
 
-`PL-012`: 衍生指标公式 registry。
+`PL-013`: Dashboard 全局筛选和卡片切换实装。
 
 开始前应先确认：
 
 - 是否已有未提交改动。
 - 是否存在近期文档更新改变了优先级。
-- `src/lib/derived-metric-formulas.ts` 当前只是公式 registry 雏形，还没有接入 measurement query。
-- 首版应覆盖不对称性、比值、相对体重、差值、均值，并明确依赖指标、维度标签、质量标记和缺失数据策略。
-- 不要要求用户手写公式；先用 registry 中的常见公式生成可解释的 derived metric。
-- 如果发现 UI 配置切换范围继续扩大，应把 Dashboard 卡片切换留给 PL-013，而不是在 PL-012 中扩展到完整卡片配置系统。
+- 是否存在 Dashboard 顶部筛选、测试批次筛选或卡片切换相关的未提交改动。
+- PL-013 应把现有可切换卡片菜单收敛到真实 metric/display config，而不是只做 UI 高亮。
+- 顶部日期、运动员和测试批次筛选应继续驱动 shared measurement query；不要新增第二套 Dashboard 本地筛选真相。
+- 雷达图少于 3 个可用维度时应降级到柱状图、折线图或表格，避免空/低维 ECharts 状态。
 
 完成后必须：
 
-- 更新本文档中 `PL-012` 状态。
+- 更新本文档中 `PL-013` 状态。
 - 更新 `progress.md` 记录具体改动和验证。
 - 如果发现数据模型不足，先记录到 `progress.md`；若该发现长期有效，补充到 `findings.md`；只有当它改变路线图、完成判据或默认下一步时，才同步更新本文档。
 - 如果改动代码，运行 `npm run build`。

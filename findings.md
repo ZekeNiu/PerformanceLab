@@ -147,3 +147,12 @@ Use this file for durable discoveries that should survive across conversations.
 - Cross-sectional comparison should not treat every measured metric as comparable. The first implemented rule is: charts and comparison stats default to metrics that are assigned by the selected session test content and have measurements for every selected comparison subject; the availability matrix still shows the full periodic metric set and marks missing, partial, or incompatible rows.
 - The first availability matrix evaluates selected session ids and selected subject athlete ids. It does not yet model more advanced “same preparation phase” semantics beyond the existing `TestSession.phase` field; that remains a future extension if phase-level comparison presets are added.
 - An empty set of common available metrics must not be passed into ECharts radar. `ComparisonRadar` now renders an empty state in that case because ECharts can throw on an empty radar indicator array.
+
+## 2026-06-02 Derived Metric Formula Findings
+
+- `src/lib/derived-metric-formulas.ts` is now the first execution boundary for turning registered derived metric definitions into computed `Measurement[]` rows.
+- Derived measurements are computed at query-adapter time through `workspaceToMeasurementStore`; they are not persisted back into the workspace measurement array by default, which avoids stale derived values when raw inputs change.
+- The first matching key for derived inputs is athlete, session, date, and trial index. Optional input dimension filters can distinguish cases such as left/right asymmetry, but more advanced pairing semantics may be needed later for multi-device or multi-movement tests.
+- Existing raw or imported target measurements win over computed output for the same metric/athlete/session/date/trial key. This prevents duplicate BMI-style values while still allowing missing derived metrics such as squat and bench relative strength to appear.
+- Default new workspaces now include derived definitions for squat relative strength, bench relative strength, and BMI. `/comparison` verified these computed relative strength metrics through the existing workspace measurement selector.
+- Any availability or compatibility check that decides whether a metric can be displayed should use the same raw-plus-derived measurement view as the selector path. Otherwise computed metrics can render in summaries while being marked missing by the availability matrix.

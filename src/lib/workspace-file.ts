@@ -1,4 +1,5 @@
 import { dataEntryActionCategories } from './data-entry-config'
+import { DEFAULT_DERIVED_METRIC_DEFINITIONS } from './derived-metric-formulas'
 import type {
   Athlete,
   DerivedMetricDefinition,
@@ -156,7 +157,7 @@ export function createInitialWorkspace(): PerformanceLabWorkspace {
       ...metric,
       kind: metric.kind ?? 'raw',
     })),
-    derivedMetricDefinitions: [],
+    derivedMetricDefinitions: cloneJson(DEFAULT_DERIVED_METRIC_DEFINITIONS),
     measurements: cloneJson(mockMeasurementStore.measurements),
     importBatches: [],
     settings: {},

@@ -953,3 +953,55 @@ Use this file as the session-by-session project journal.
 - GitHub Pages deployment verification: fetched `origin/gh-pages`; after 3 polling attempts it updated to `68875c0` with message `deploy: 8c14da260d0febf15f4d1387a412879bef1f242c`.
 - Live Pages verification: `https://zekeniu.github.io/PerformanceLab/?v=8c14da2` returned HTTP 200 and included the app root.
 - Commit/push plan: record this push and deployment verification in a normal progress-log commit so the branch history contains the final deployment result.
+
+## 2026-06-02 PL-012 Derived Metric Formula Registry
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: `PL-012`, derived metric formula registry execution.
+- Confirmed initial git status: `main...origin/main` with no local changes.
+- Read required project context files and inspected current formula/domain/workspace measurement boundaries.
+- Working decision: keep PL-012 focused on a pure formula execution layer plus measurement-query integration. Do not expand Dashboard card configurability or ask users to write formulas in UI during this pass.
+- Implementation plan: extend derived metric definitions with dependency/dimension/missing-data metadata, add a shared executor that derives `Measurement[]` from raw measurements, seed initial workspace with common derived metric definitions, and make workspace measurement selectors include computed derived measurements.
+- Verification plan: run `npm run lint`, `npm run build`, and a focused runtime smoke for derived metric calculation through the existing comparison/periodic measurement path.
+- Implemented `src/lib/derived-metric-formulas.ts` executor:
+  - Added default derived metric definitions for squat relative strength, bench relative strength, and BMI.
+  - Added dependency matching by athlete, session, date, and trial index.
+  - Added optional input dimension filters, output dimensions, missing-data policy metadata, deterministic computed measurement ids, computed source tagging, notes, and computation reports.
+  - Existing target measurements are not duplicated; derived output is skipped for the same target metric/athlete/session/date/trial key if a raw or imported measurement already exists.
+- Extended `src/lib/domain-model.ts` so derived metric definitions can declare input specs, missing-data policy, output dimensions, and description metadata while remaining backward-compatible with old workspace JSON files.
+- Updated `src/lib/workspace-measurement-store.ts` so active workspace measurement stores include computed derived measurements from `workspace.derivedMetricDefinitions`.
+- Updated `src/lib/workspace-file.ts` so new workspaces seed the default derived metric definitions.
+- Updated `src/lib/metric-registry.ts` so squat relative strength, bench relative strength, and BMI are marked as derived metrics with formula/dependency metadata.
+- Verification: `npm run lint` passes with no warnings.
+- Verification: `npm run build` passes with the existing Vite >500 kB chunk warning and non-blocking Browserslist data-age notice.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright `/comparison` cross-sectional smoke passed on desktop `1440x1000`:
+  - `data-surface-config-count` was `20`.
+  - The statistics table rendered 20 rows and included the derived squat relative strength and bench relative strength rows.
+  - Console errors, console warnings, and page errors were empty.
+  - Document width matched viewport width with no page-level horizontal overflow.
+  - Screenshot was saved to `%TEMP%\pl012-derived-comparison.png`, not the repository.
+- Playwright `/comparison` cross-sectional smoke passed on mobile `390x900`:
+  - `data-surface-config-count` was `20`.
+  - The statistics table rendered 20 rows.
+  - Console errors, console warnings, and page errors were empty.
+  - Document width matched viewport width with no page-level horizontal overflow.
+  - Screenshot was saved to `%TEMP%\pl012-derived-comparison-mobile.png`, not the repository.
+- Cleanup note: stopped the local Vite preview process on port 4179.
+- Documentation plan: mark `PL-012` as `Done` and set the default next task to `PL-013` because derived metric formula execution is now wired into workspace-backed measurement selection.
+- Follow-up consistency finding: the workspace measurement selector included computed derived measurements, but `availability-matrix.ts` still checked only raw `workspace.measurements`, causing derived relative strength rows to appear as missing in the matrix.
+- Fixed `availability-matrix.ts` so availability evaluation uses raw workspace measurements plus computed derived measurements from the same formula executor.
+- Verification after the availability fix: `npm run lint` passes with no warnings.
+- Verification after the availability fix: `npm run build` passes with the existing Vite >500 kB chunk warning and non-blocking Browserslist data-age notice.
+- Playwright `/comparison` cross-sectional smoke passed after the availability fix on desktop `1440x1000` and mobile `390x900`:
+  - `data-surface-config-count` was `20`.
+  - Availability matrix rendered 20 rows.
+  - Squat relative strength and bench relative strength were both marked commonly available with `3/3` assigned and `3/3` measured.
+  - Console errors, console warnings, and page errors were empty.
+  - Document width matched viewport width with no page-level horizontal overflow.
+  - Screenshots were saved to `%TEMP%\pl012-derived-desktop.png` and `%TEMP%\pl012-derived-mobile.png`, not the repository.
+- Cleanup note: stopped the local Vite preview process on port 4181.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files, `src/lib/availability-matrix.ts`, `src/lib/derived-metric-formulas.ts`, `src/lib/domain-model.ts`, `src/lib/metric-registry.ts`, `src/lib/workspace-file.ts`, and `src/lib/workspace-measurement-store.ts`.
+- Commit plan: create a local commit with message `Add derived metric formula execution`, then push it to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `e58b322` with message `Add derived metric formula execution`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing.
