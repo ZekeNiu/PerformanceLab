@@ -948,3 +948,8 @@ Use this file as the session-by-session project journal.
 - Commit plan: create a local commit with message `Add test availability matrix`, then push it to `origin/main` so GitHub Actions can deploy Pages.
 - Commit: created local commit `f1f1614` with message `Add test availability matrix`.
 - Commit amend plan: amend the commit to include this commit log entry before pushing.
+- Commit amend: updated the local commit to `8c14da2` with the same message before push.
+- Push: pushed commit `8c14da2` to `origin/main`.
+- GitHub Pages deployment verification: fetched `origin/gh-pages`; after 3 polling attempts it updated to `68875c0` with message `deploy: 8c14da260d0febf15f4d1387a412879bef1f242c`.
+- Live Pages verification: `https://zekeniu.github.io/PerformanceLab/?v=8c14da2` returned HTTP 200 and included the app root.
+- Commit/push plan: record this push and deployment verification in a normal progress-log commit so the branch history contains the final deployment result.
