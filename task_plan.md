@@ -235,6 +235,20 @@ Build a professional sports performance dashboard for performance analysts and h
 - PL-012 status: Done.
 - Next recommended architecture work: proceed to PL-013 for Dashboard global filters and real metric/display config switching.
 
+## 2026-06-02 PL-013 Dashboard Global Filters And Card Switching Task
+
+- Completed: Extended Dashboard filter state with workspace-backed test-session selection and passed selected sessions into the shared measurement query as `sessionIds`.
+- Completed: Added a Dashboard top-level test-session picker that reads active workspace `testSessions`; selecting a session aligns the date filter to that session date.
+- Completed: Periodic overview card now uses real `radar-chart`, `bar-chart`, and `table` display config and downgrades low-dimensional or empty radar states to bar/table output.
+- Completed: Periodic category cards now switch real metric ids and update both the chart and table from the selected metric config.
+- Completed: Daily HRV/RHR line cards now switch real daily metric keys; non-functional readiness/ACWR config menus were removed.
+- Completed: Added ASCII QA hooks for Dashboard tabs, comparison modes, global filters, session options, and card config values.
+- Verification: `npm run lint` passes.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning and Browserslist data-age notice remain.
+- Verification: Playwright Dashboard periodic smoke passed on desktop and 390px mobile with the default workspace: selected a test session, kept `data-surface-config-count=20`, switched overview display to `bar-chart`, exposed real category metric config ids, no console errors/warnings or page errors, and no page-level horizontal overflow.
+- PL-013 status: Done.
+- Next recommended architecture work: proceed to PL-014 for daily monitoring UI restructuring.
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.

@@ -15,6 +15,7 @@ import type {
   ComparisonDataGroupConfig,
   MetricDataGroupConfig,
   MetricSurfaceConfig,
+  MetricSurfaceVisualization,
 } from '@/lib/metric-surface-config'
 import { workspaceToMeasurementStore } from '@/lib/workspace-measurement-store'
 import type { PerformanceLabWorkspace } from '@/lib/workspace-file'
@@ -24,7 +25,6 @@ import type { DashboardMeasurementFilter } from './filter-types'
 import {
   LAYER_COLORS,
   cohensDLabel,
-  periodicCategories,
   ratingColors,
   significanceBadge,
 } from './data'
@@ -232,7 +232,13 @@ function dateInFilter(date: string, filter: DashboardMeasurementFilter = {}) {
   return true
 }
 
+function sessionInFilter(session: { id: string; date: string }, filter: DashboardMeasurementFilter = {}) {
+  if (filter.sessionIds?.length && !filter.sessionIds.includes(session.id)) return false
+  return dateInFilter(session.date, filter)
+}
+
 function filterTimeSelection(filter: DashboardMeasurementFilter = {}): MetricDataGroupConfig['time'] {
+  if (filter.sessionIds?.length) return { kind: 'session', sessionIds: filter.sessionIds }
   if (filter.from && filter.to && filter.from === filter.to) return { kind: 'single-date', date: filter.from }
   if (filter.from || filter.to) {
     return {
@@ -250,7 +256,7 @@ function buildPeriodicSurfaceData(
   filter: DashboardMeasurementFilter = {},
 ): PeriodicSurfaceData {
   const sortedSessions = [...store.sessions]
-    .filter((session) => dateInFilter(session.date, filter))
+    .filter((session) => sessionInFilter(session, filter))
     .sort((a, b) => a.date.localeCompare(b.date))
   const primaryAthlete =
     (filter.athleteId ? store.athletes.find((athlete) => athlete.id === filter.athleteId) : undefined) ??
@@ -372,6 +378,7 @@ function buildPeriodicSurfaceData(
       const sd = summary.sd ?? 0
       const score = anchorScore(value ?? 0, estimateTargetScore(metric, values), metricDirectionForScore(metric))
       const indicator: PeriodicIndicator = {
+        id: metric.id,
         name: metric.name,
         unit: metric.unit,
         mean: formatMetricNumber(mean, metric.unit === 's' ? 2 : 1),
@@ -431,11 +438,8 @@ function buildPeriodicSurfaceData(
     periodicMetrics,
     indicators,
     categories,
-    displayCategories: displayCategories.length ? displayCategories : periodicCategories,
-    radarScores: radarScores.length ? radarScores : periodicCategories.map((category) => ({
-      category: category.name,
-      score: Math.round(category.indicators.reduce((total, indicator) => total + indicator.score, 0) / category.indicators.length),
-    })),
+    displayCategories,
+    radarScores,
     defaultCrossLayers: referenceLayerOptions.slice(0, 1),
     athleteLayerOptions,
     referenceLayerOptions,
@@ -450,6 +454,13 @@ function buildPeriodicSurfaceData(
 }
 
 function RadarChartDisplay({ data }: { data: RadarCategoryScore[] }) {
+  const [requestedVisualization, setRequestedVisualization] = useState<MetricSurfaceVisualization>('radar-chart')
+  const effectiveVisualization: MetricSurfaceVisualization =
+    data.length >= 3 && requestedVisualization === 'radar-chart'
+      ? 'radar-chart'
+      : requestedVisualization === 'table' || data.length === 0
+        ? 'table'
+        : 'bar-chart'
   const option = useMemo(() => ({
     radar: {
       indicator: data.map((item) => ({
@@ -499,19 +510,104 @@ function RadarChartDisplay({ data }: { data: RadarCategoryScore[] }) {
     },
   }), [data])
 
+  const barOption = useMemo(() => ({
+    grid: { top: 16, right: 40, bottom: 24, left: 120 },
+    xAxis: {
+      type: 'value' as const,
+      max: 100,
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: 'rgba(42,51,72,0.3)' } },
+      axisLabel: { color: '#5A6579', fontSize: 10 },
+    },
+    yAxis: {
+      type: 'category' as const,
+      data: data.map((item) => item.category).reverse(),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: '#8B95A5', fontSize: 11, width: 110, overflow: 'truncate' as const },
+    },
+    tooltip: { trigger: 'axis' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 12 } },
+    series: [{
+      name: 'Current score',
+      type: 'bar',
+      data: data.map((item) => ({
+        value: item.score,
+        itemStyle: { color: '#00D4AA', borderRadius: [0, 4, 4, 0] },
+      })).reverse(),
+      barWidth: 18,
+      label: { show: true, position: 'right' as const, color: '#E8ECF1', fontSize: 11 },
+    }],
+    animationDuration: 800,
+  }), [data])
+
+  if (effectiveVisualization === 'table') {
+    return (
+      <DashboardCard
+        title="综合能力评估"
+        configOptions={[
+          { label: '雷达图', value: 'radar-chart' },
+          { label: '柱状图', value: 'bar-chart' },
+          { label: '表格', value: 'table' },
+        ]}
+        currentConfig={effectiveVisualization}
+        onConfigChange={(value) => setRequestedVisualization(value as MetricSurfaceVisualization)}
+        footer={<span>display={effectiveVisualization}; dimensions={data.length}</span>}
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+                <th className="py-1.5 pr-2 text-left font-medium">维度</th>
+                <th className="py-1.5 text-right font-medium">得分</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item) => (
+                <tr key={item.category} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}>
+                  <td className="py-1.5 pr-2" style={{ color: 'var(--text-primary)' }}>{item.category}</td>
+                  <td className="py-1.5 text-right font-mono" style={{ color: '#00D4AA' }}>{item.score}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!data.length && (
+            <div className="flex min-h-[140px] items-center justify-center rounded-lg border border-dashed px-4 text-center text-[13px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
+              当前全局筛选下没有可展示的周期测试指标。
+            </div>
+          )}
+        </div>
+      </DashboardCard>
+    )
+  }
+
   return (
     <DashboardCard
       title="综合能力评估"
-      configOptions={[{ label: 'Registry + measurement store', value: 'registry' }]}
-      currentConfig="registry"
+      configOptions={[
+        { label: '雷达图', value: 'radar-chart' },
+        { label: '柱状图', value: 'bar-chart' },
+        { label: '表格', value: 'table' },
+      ]}
+      currentConfig={effectiveVisualization}
+      onConfigChange={(value) => setRequestedVisualization(value as MetricSurfaceVisualization)}
+      footer={<span>display={effectiveVisualization}; dimensions={data.length}</span>}
     >
-      <ReactECharts option={option} style={{ height: 380 }} />
+      <ReactECharts
+        option={effectiveVisualization === 'bar-chart' ? barOption : option}
+        style={{ height: effectiveVisualization === 'bar-chart' ? Math.max(220, data.length * 42 + 60) : 380 }}
+      />
     </DashboardCard>
   )
 }
 
 function CategoryCard({ category }: { category: PeriodicCategory }) {
-  const avgScore = Math.round(category.indicators.reduce((sum, indicator) => sum + indicator.score, 0) / category.indicators.length)
+  const [selectedMetricId, setSelectedMetricId] = useState('all')
+  const visibleIndicators = useMemo(() => {
+    if (selectedMetricId === 'all') return category.indicators
+    const selected = category.indicators.filter((indicator) => (indicator.id ?? indicator.name) === selectedMetricId)
+    return selected.length ? selected : category.indicators
+  }, [category.indicators, selectedMetricId])
+  const avgScore = Math.round(visibleIndicators.reduce((sum, indicator) => sum + indicator.score, 0) / visibleIndicators.length)
   const option = useMemo(() => ({
     grid: { top: 8, right: 80, bottom: 16, left: 140 },
     xAxis: {
@@ -523,7 +619,7 @@ function CategoryCard({ category }: { category: PeriodicCategory }) {
     },
     yAxis: {
       type: 'category' as const,
-      data: category.indicators.map((indicator) => indicator.name).reverse(),
+      data: visibleIndicators.map((indicator) => indicator.name).reverse(),
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: { color: '#8B95A5', fontSize: 11, width: 130, overflow: 'truncate' as const },
@@ -531,7 +627,7 @@ function CategoryCard({ category }: { category: PeriodicCategory }) {
     tooltip: { trigger: 'axis' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 11 } },
     series: [{
       type: 'bar',
-      data: category.indicators.map((indicator) => ({
+      data: visibleIndicators.map((indicator) => ({
         value: indicator.score,
         itemStyle: {
           color: indicator.score >= 80 ? '#10B981' : indicator.score >= 60 ? '#00D4AA' : indicator.score >= 40 ? '#F59E0B' : '#EF4444',
@@ -551,16 +647,25 @@ function CategoryCard({ category }: { category: PeriodicCategory }) {
     }],
     animationDuration: 800,
     animationEasing: 'cubicOut' as const,
-  }), [category])
+  }), [visibleIndicators])
 
   return (
-    <DashboardCard title={`${category.name}测试`} footer={<span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>基于 {category.indicators.length} 项 registry 指标</span>}>
+    <DashboardCard
+      title={`${category.name}测试`}
+      configOptions={[
+        { label: `${category.name}全部指标`, value: 'all' },
+        ...category.indicators.map((indicator) => ({ label: indicator.name, value: indicator.id ?? indicator.name })),
+      ]}
+      currentConfig={selectedMetricId}
+      onConfigChange={setSelectedMetricId}
+      footer={<span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>基于 {visibleIndicators.length} 项 registry 指标</span>}
+    >
       <div className="mb-3 flex items-center gap-2">
         <span className="rounded-full px-2.5 py-0.5 text-[11px] font-medium" style={{ backgroundColor: 'rgba(0,212,170,0.15)', color: '#00D4AA' }}>
           均值 {avgScore}/100
         </span>
       </div>
-      <ReactECharts option={option} style={{ height: category.indicators.length * 40 + 40 }} />
+      <ReactECharts option={option} style={{ height: visibleIndicators.length * 40 + 40 }} />
       <div className="mt-4 overflow-x-auto">
         <table className="w-full text-[11px]">
           <thead>
@@ -576,8 +681,8 @@ function CategoryCard({ category }: { category: PeriodicCategory }) {
             </tr>
           </thead>
           <tbody>
-            {category.indicators.map((indicator) => (
-              <tr key={indicator.name} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}>
+            {visibleIndicators.map((indicator) => (
+              <tr key={indicator.id ?? indicator.name} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}>
                 <td className="py-1.5 pr-2" style={{ color: 'var(--text-primary)' }}>{indicator.name}</td>
                 <td className="py-1.5 pr-2 font-mono" style={{ color: 'var(--text-secondary)' }}>{indicator.unit}</td>
                 <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-primary)' }}>{indicator.mean}</td>
@@ -919,9 +1024,36 @@ function ComparisonRadar({
     }
   }, [aggregate, baseLabel, categories, indicators, layers])
 
+  const barOption = useMemo(() => {
+    const baseScores = categories.map((category) => {
+      const categoryIndicators = indicators.filter((indicator) => indicator.category === category)
+      if (!categoryIndicators.length) return 0
+      return Math.round(categoryIndicators.reduce((total, indicator) => {
+        const value = aggregate === 'mean' ? indicator.valueA : indicator.valueA + indicator.sdA
+        return total + anchorScore(value, indicator.targetScore, indicator.direction)
+      }, 0) / categoryIndicators.length)
+    })
+    const compareScores = layers[0]
+      ? buildCategoryScores(indicators, categories, aggregate, layers[0])
+      : buildCategoryScores(indicators, categories, aggregate)
+
+    return {
+      grid: { top: 30, right: 30, bottom: 24, left: 120 },
+      legend: { data: [baseLabel, layers[0]?.name ?? '对比期'], top: 0, textStyle: { color: '#8B95A5', fontSize: 11 } },
+      xAxis: { type: 'value' as const, max: 100, axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(42,51,72,0.3)' } }, axisLabel: { color: '#5A6579', fontSize: 10 } },
+      yAxis: { type: 'category' as const, data: categories.slice().reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#8B95A5', fontSize: 11, width: 110, overflow: 'truncate' as const } },
+      tooltip: { trigger: 'axis' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 12 } },
+      series: [
+        { name: baseLabel, type: 'bar', data: baseScores.slice().reverse().map((value) => ({ value, itemStyle: { color: '#00D4AA', borderRadius: [0, 4, 4, 0] } })), barWidth: 14 },
+        { name: layers[0]?.name ?? '对比期', type: 'bar', data: compareScores.slice().reverse().map((value) => ({ value, itemStyle: { color: layers[0]?.color ?? '#3B82F6', borderRadius: [0, 4, 4, 0] } })), barWidth: 14 },
+      ],
+      animationDuration: 800,
+    }
+  }, [aggregate, baseLabel, categories, indicators, layers])
+
   if (!categories.length || !indicators.length) {
     return (
-      <DashboardCard title={title} configOptions={[{ label: 'MetricSurfaceConfig', value: 'surface' }]} currentConfig="surface">
+      <DashboardCard title={title}>
         <div className="flex min-h-[180px] items-center justify-center rounded-lg border border-dashed px-4 text-center text-[13px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
           当前选择的测试内容和对比对象没有共同可用指标。请查看上方 availability matrix 中的缺失、部分可用或不兼容原因。
         </div>
@@ -929,8 +1061,16 @@ function ComparisonRadar({
     )
   }
 
+  if (categories.length < 3) {
+    return (
+      <DashboardCard title={title} footer={<span>radar downgraded because dimensions={categories.length}</span>}>
+        <ReactECharts option={barOption} style={{ height: Math.max(220, categories.length * 56 + 80) }} />
+      </DashboardCard>
+    )
+  }
+
   return (
-    <DashboardCard title={title} configOptions={[{ label: 'MetricSurfaceConfig', value: 'surface' }]} currentConfig="surface">
+    <DashboardCard title={title}>
       <ReactECharts option={option} style={{ height: 360 }} />
     </DashboardCard>
   )

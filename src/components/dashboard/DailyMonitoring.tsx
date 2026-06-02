@@ -9,6 +9,13 @@ import { workspaceToMeasurementStore } from '@/lib/workspace-measurement-store'
 import type { PerformanceLabWorkspace } from '@/lib/workspace-file'
 
 type DailyMetricKey = keyof Omit<DailyData, 'date'>
+type LineMetricKey = 'hrv' | 'rhr' | 'readiness'
+
+const lineMetricConfigs: Record<LineMetricKey, { label: string; color: string; unit: string }> = {
+  hrv: { label: 'HRV (心率变异性)', color: '#00D4AA', unit: 'ms' },
+  rhr: { label: 'RHR (静息心率)', color: '#3B82F6', unit: 'bpm' },
+  readiness: { label: '准备状态', color: '#10B981', unit: '/10' },
+}
 
 interface DailyWorkspaceMetricConfig {
   metricId: string
@@ -230,10 +237,7 @@ function InjuryBodyMap() {
 
 /* ─── Line chart card (HRV, RHR) ─── */
 function LineCard({
-  title,
   dataKey,
-  color,
-  unit,
   data,
 }: {
   title: string
@@ -242,8 +246,10 @@ function LineCard({
   unit: string
   data: DailyData[]
 }) {
+  const [activeKey, setActiveKey] = useState<LineMetricKey>(dataKey)
+  const activeConfig = lineMetricConfigs[activeKey]
   const option = useMemo(() => {
-    const values = data.map((d) => d[dataKey])
+    const values = data.map((d) => d[activeKey])
     const ema = calculateEMA(values, 7)
     const sd = standardDeviation(values)
     const emaMean = ema[ema.length - 1]
@@ -273,14 +279,14 @@ function LineCard({
           const deviation = val.value - emaMean
           const isAlert = Math.abs(deviation) > sd
           return `<div style="font-weight:600;margin-bottom:4px">${val.axisValue}</div>
-            <div>${val.seriesName}: <span style="font-family:JetBrains Mono;font-weight:500">${val.value} ${unit}</span></div>
+            <div>${val.seriesName}: <span style="font-family:JetBrains Mono;font-weight:500">${val.value} ${activeConfig.unit}</span></div>
             <div>EMA(7): <span style="font-family:JetBrains Mono">${Math.round(ema[val.dataIndex] * 10) / 10}</span></div>
             ${isAlert ? '<div style="color:#EF4444;margin-top:4px">超出 ±1σ 范围</div>' : ''}`
         },
       },
       series: [
         {
-          name: title.split(' ')[0],
+          name: activeConfig.label.split(' ')[0],
           type: 'line',
           data: values,
           smooth: true,
@@ -290,12 +296,12 @@ function LineCard({
           },
           itemStyle: {
             color: (p: { value: number }) =>
-              Math.abs(p.value - emaMean) > sd ? '#EF4444' : color,
+              Math.abs(p.value - emaMean) > sd ? '#EF4444' : activeConfig.color,
             shadowBlur: (p: { value: number }) =>
               Math.abs(p.value - emaMean) > sd ? 12 : 0,
             shadowColor: '#EF4444',
           },
-          lineStyle: { color, width: 2 },
+          lineStyle: { color: activeConfig.color, width: 2 },
         },
         {
           name: 'EMA(7)',
@@ -309,17 +315,18 @@ function LineCard({
       animationDuration: 800,
       animationEasing: 'cubicOut',
     }
-  }, [data, dataKey, title, color, unit])
+  }, [activeConfig.color, activeConfig.label, activeConfig.unit, activeKey, data])
 
   return (
     <DashboardCard
-      title={title}
+      title={activeConfig.label}
       configOptions={[
         { label: 'HRV (心率变异性)', value: 'hrv' },
         { label: 'RHR (静息心率)', value: 'rhr' },
         { label: '准备状态', value: 'readiness' },
       ]}
-      currentConfig={dataKey}
+      currentConfig={activeKey}
+      onConfigChange={(value) => setActiveKey(value as LineMetricKey)}
     >
       <ReactECharts option={option} style={{ height: 200 }} />
     </DashboardCard>
@@ -373,12 +380,6 @@ function ReadinessCard({ data }: { data: DailyData[] }) {
   return (
     <DashboardCard
       title="准备状态"
-      configOptions={[
-        { label: '整体准备状态', value: 'readiness' },
-        { label: 'HRV', value: 'hrv' },
-        { label: 'RHR', value: 'rhr' },
-      ]}
-      currentConfig="readiness"
     >
       <ReactECharts option={option} style={{ height: 200 }} />
     </DashboardCard>
@@ -451,12 +452,6 @@ function ACWRCard({ data }: { data: DailyData[] }) {
   return (
     <DashboardCard
       title="ACWR 训练负荷比"
-      configOptions={[
-        { label: 'ACWR 训练负荷比', value: 'acwr' },
-        { label: '训练负荷明细', value: 'load' },
-        { label: '训练单调性', value: 'monotony' },
-      ]}
-      currentConfig="acwr"
     >
       <div style={{ position: 'relative' }}>
         {!hasEnoughData && (

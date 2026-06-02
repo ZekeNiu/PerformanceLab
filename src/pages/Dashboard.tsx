@@ -45,6 +45,7 @@ export default function Dashboard() {
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            data-dashboard-tab={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className="relative px-5 py-2.5 text-[14px] font-medium transition-colors duration-200"
             style={{
@@ -69,6 +70,7 @@ export default function Dashboard() {
             {modeButtons.map((btn) => (
               <button
                 key={btn.key}
+                data-comparison-mode={btn.key}
                 onClick={() => setComparisonMode(btn.key)}
                 className="shrink-0 rounded-md px-3 py-1 text-[12px] font-medium transition-colors"
                 style={{

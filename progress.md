@@ -920,6 +920,28 @@ Use this file as the session-by-session project journal.
 - Updated `src/components/dashboard/data.ts` so `ComparisonLayer` can carry optional `athleteIds`.
 - Verification: `npm run lint` passes with no warnings.
 - Verification: `npm run build` passes with the existing Vite >500 kB chunk warning and non-blocking Browserslist data-age notice.
+- Added `aria-label` and `data-config-value` hooks to `DashboardCard` config buttons so rendered QA can target real card/display config without depending on localized menu text.
+- Follow-up cleanup: removed non-functional config menus from the readiness and ACWR daily cards; the HRV/RHR line cards and periodic cards now keep real config menus, while the readiness/ACWR menus will be re-added only when their display configs are actually implemented.
+- Playwright note: the first smoke script failed before browser interaction because a Chinese regex was corrupted through the PowerShell pipe; the second script reached the app but selected the date button instead of the session menu item because the `/2024-/` locator was not scoped to the open menu. The next script uses ASCII `data-config-value` hooks and scopes session selection to the absolute popup menu.
+- Added ASCII QA hooks for Dashboard tabs, comparison mode buttons, global filter buttons, and session options so rendered tests do not depend on Chinese text selectors in this PowerShell environment.
+- Final verification: `npm run lint` passes with no warnings.
+- Final verification: `npm run build` passes with the existing Vite >500 kB chunk warning and non-blocking Browserslist data-age notice.
+- Browser QA note: Browser plugin is not available in this session, so regular Playwright was used.
+- Playwright Dashboard periodic smoke passed on local preview `http://127.0.0.1:4182/`:
+  - Desktop `1440x1000` and mobile `390x900` both opened Dashboard, switched to periodic testing, selected a workspace test session through the new global session filter, and kept `data-surface-config-count=20`.
+  - The periodic overview card switched to `display=bar-chart` through `data-config-value="bar-chart"`.
+  - The first periodic category card exposed real metric config values including `all`, `cmj_height`, `cmj_power`, `cmj_force`, `flight_time`, and `eccentric_utilization_ratio`.
+  - Console errors, console warnings, and page errors were empty in both runs.
+  - Document width matched viewport width on desktop and mobile, with no page-level horizontal overflow.
+  - Screenshots were saved to `%TEMP%\pl013-dashboard-1440.png` and `%TEMP%\pl013-dashboard-390.png`, not the repository.
+- Cleanup note: stopped the local Vite preview process on port 4182.
+- Documentation update: marked `PL-013` as `Done` in `docs/EXECUTION_BRIEF.md`, set the default next task to `PL-014`, and synchronized `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md`.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files plus `src/pages/Dashboard.tsx`, `src/components/dashboard/ControlCenter.tsx`, `DailyMonitoring.tsx`, `DashboardCard.tsx`, `PeriodicTesting.tsx`, `data.ts`, and `filter-types.ts`.
+- Commit plan: create a local commit with message `Implement dashboard filter config switching`, then push it to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `74d2882` with message `Implement dashboard filter config switching`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing.
+- Commit amend: updated the local commit before push to include the commit log entry.
 - Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
 - Playwright setup note: first `Start-Process npm run preview` attempt did not keep the preview server alive on port 4178. Restarted preview through a hidden PowerShell process and confirmed `http://127.0.0.1:4178/`.
 - Playwright script note: the first cross-sectional smoke script used a Chinese regex literal through a PowerShell pipe and failed before reaching the app because the regex was shell-encoding corrupted. Replaced it with CSS/ASCII selectors.
@@ -1008,3 +1030,21 @@ Use this file as the session-by-session project journal.
 - Commit amend: updated the local commit to `c13287c` with the same message before push.
 - Push: pushed commit `c13287c` to `origin/main`.
 - Commit/push plan: record this push log in a follow-up progress commit, then verify the final GitHub Pages deployment for the resulting `main` HEAD.
+
+## 2026-06-02 PL-013 Dashboard Global Filters And Card Switching
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: `PL-013`, Dashboard global filters and real metric/display config switching.
+- Confirmed initial git status: `main...origin/main` with no local changes.
+- Read required project context files and selected a scoped implementation path: keep Dashboard-owned global filters as the single source of truth, continue routing date/athlete/test-session filters through workspace-backed measurement queries, and convert existing switchable periodic cards toward real metric/display configuration instead of menu-only highlighting.
+- Applied the karpathy-guidelines, React best-practices, and frontend-testing-debugging skills for a surgical React/data-surface change with rendered validation.
+- Implemented Dashboard filter/session changes:
+  - Extended Dashboard filters with `sessionId`/`sessionName` and converted the active test session into `DashboardMeasurementFilter.sessionIds`.
+  - Added a workspace-backed test-session picker to the Dashboard control center.
+  - Selecting a test session now sets the dashboard date to that session date and passes the session id into periodic measurement queries.
+- Implemented first real Dashboard card/display config changes:
+  - Periodic overview card now exposes real `radar-chart`/`bar-chart`/`table` display config and automatically downgrades from radar when fewer than 3 dimensions are available.
+  - Periodic category cards now expose real per-metric selectors and update both chart and table output from the selected metric id.
+  - Longitudinal/cross-sectional radar cards now downgrade to a bar chart when fewer than 3 dimensions are available.
+  - Daily HRV/RHR line cards now switch between HRV, RHR, and readiness data instead of only highlighting a menu item.
+- Verification: `npm run lint` passes with no warnings.
+- Verification: `npm run build` passes with the existing Vite >500 kB chunk warning and non-blocking Browserslist data-age notice.

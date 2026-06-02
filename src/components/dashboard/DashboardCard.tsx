@@ -56,6 +56,7 @@ export default function DashboardCard({
           <div className="relative">
             <button
               onClick={() => setShowConfig(!showConfig)}
+              aria-label={`Configure ${title}`}
               className="flex h-7 w-7 items-center justify-center rounded-md transition-colors"
               style={{ color: 'var(--text-muted)' }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
@@ -82,6 +83,7 @@ export default function DashboardCard({
                     {configOptions.map((opt) => (
                       <button
                         key={opt.value}
+                        data-config-value={opt.value}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] transition-colors"
                         style={{
                           color: currentConfig === opt.value ? 'var(--accent-cyan)' : 'var(--text-primary)',

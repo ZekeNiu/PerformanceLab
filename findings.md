@@ -156,3 +156,11 @@ Use this file for durable discoveries that should survive across conversations.
 - Existing raw or imported target measurements win over computed output for the same metric/athlete/session/date/trial key. This prevents duplicate BMI-style values while still allowing missing derived metrics such as squat and bench relative strength to appear.
 - Default new workspaces now include derived definitions for squat relative strength, bench relative strength, and BMI. `/comparison` verified these computed relative strength metrics through the existing workspace measurement selector.
 - Any availability or compatibility check that decides whether a metric can be displayed should use the same raw-plus-derived measurement view as the selector path. Otherwise computed metrics can render in summaries while being marked missing by the availability matrix.
+
+## 2026-06-02 Dashboard Filter And Card Config Findings
+
+- Dashboard global filters now include test-session selection. The picker reads workspace `testSessions`, writes `sessionId`/`sessionName`, aligns the date filter to the selected session date, and passes `sessionIds` into the shared measurement query.
+- `DashboardMeasurementFilter` can now carry `sessionIds`; Dashboard periodic testing consumes it through `MetricDataGroupConfig.time = { kind: "session" }` and through the availability matrix session id list.
+- Dashboard card config menus should only appear when they change real output. Non-functional menus were removed from readiness/ACWR daily cards; HRV/RHR line cards, periodic overview, and periodic category cards now update real data/display config when changed.
+- Radar charts should not render with fewer than 3 available dimensions. Periodic overview and comparison radar paths now downgrade low-dimensional states to bar/table output.
+- For browser QA in this PowerShell environment, Chinese Playwright text selectors can be corrupted through piped scripts. Prefer ASCII `data-*` hooks such as `data-dashboard-tab`, `data-dashboard-filter`, `data-session-option`, and `data-config-value` for stable rendered smoke tests.

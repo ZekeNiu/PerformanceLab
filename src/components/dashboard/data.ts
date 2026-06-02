@@ -35,6 +35,7 @@ export interface DailyData {
 }
 
 export interface PeriodicIndicator {
+  id?: string
   name: string
   unit: string
   mean: number
