@@ -187,7 +187,7 @@ Build a professional sports performance dashboard for performance analysts and h
 - Completed this continuation pass: Migrated Admin athlete profiles and test sessions to read/write active workspace `athletes`, `teams`, and `testSessions` instead of component-local `INITIAL_ATHLETES` / `INITIAL_SESSIONS`.
 - Completed this continuation pass: Migrated Data Entry import history to read and clear workspace `importBatches` instead of page-local state plus `mockImportHistory`.
 - Completed this continuation pass: Migrated the Dashboard top athlete selector to read active workspace `athletes` before falling back to the legacy dashboard mock athlete list.
-- Completed this continuation pass: Migrated Dashboard daily monitoring HRV/RHR/sleep/RPE-backed stress series to read active workspace measurements by date, while preserving existing fallback fields for not-yet-modeled daily metrics.
+- Completed this continuation pass: Migrated Dashboard daily monitoring HRV/RHR/sleep/RPE-backed stress series to read active workspace measurements by date.
 - Completed this continuation pass: Lifted Dashboard top date/athlete filters into a shared Dashboard filter state and wired those filters into Dashboard daily monitoring plus Dashboard-owned periodic testing measurement queries.
 - Completed this continuation pass: Verified simulated cache-clear recovery by importing the same workspace JSON in a fresh browser context and checking already-migrated core consumers.
 - Verification: `npm run build` passes. Existing Vite chunk-size warning remains.
@@ -198,10 +198,12 @@ Build a professional sports performance dashboard for performance analysts and h
 - Verification: Playwright Admin workspace smoke passed; after importing a temporary JSON workspace, Admin rendered workspace-provided athlete/session data, and creating a new test session updated the workspace-derived session list with no console errors/warnings or desktop page overflow.
 - Verification: Playwright Data Entry import-history smoke passed; after importing a temporary JSON workspace, Excel import history rendered workspace-provided batch metadata, and clearing history updated the workspace-derived empty state with no console errors/warnings or desktop page overflow.
 - Verification: Playwright Dashboard Control Center smoke passed; after importing a temporary JSON workspace, the top athlete picker rendered and selected a workspace-provided athlete with no console errors/warnings or desktop page overflow.
-- Verification: Playwright Dashboard daily monitoring smoke passed; after importing a temporary JSON workspace, the daily monitoring chart data length came from two workspace dates and the HRV tooltip displayed workspace values `91 ms` / `92 ms`, with no console errors/warnings or desktop/mobile page overflow.
+- Verification: Playwright Dashboard daily monitoring smoke passed; after importing a temporary JSON workspace, the daily monitoring chart data length came from workspace dates and the HRV tooltip displayed workspace values `91 ms` / `92 ms`, with no console errors/warnings or desktop/mobile page overflow.
 - Verification: Playwright cache-clear recovery smoke passed; two fresh browser contexts imported the same temporary JSON, and the second context recovered Dashboard athlete selection, Data Entry import history, Admin athlete profiles, and Admin test sessions with no console errors/warnings or desktop page overflow.
-- Still open before PL-010 can be marked Done: remaining daily-monitoring derived/fallback fields.
-- Next recommended architecture work: continue PL-010, then proceed to PL-011/PL-012 for availability matrix and derived metric computation.
+- Completed final PL-010 continuation pass: Added canonical daily monitoring metric definitions for readiness, energy, soreness, confidence, training load, duration, ACWR, and training monotony; seeded initial workspace measurements for those metrics; and wired Dashboard daily monitoring plus training-load summary blocks to the active workspace series.
+- Verification: Playwright Dashboard daily monitoring all-field smoke passed on desktop and 390px mobile after importing a temporary JSON workspace with all current `DailyData` fields; no console errors/warnings or page-level horizontal overflow.
+- PL-010 status: Done.
+- Next recommended architecture work: proceed to PL-011 for test content, test batch usage, and availability matrix rules.
 
 ## 2026-05-22 Active Task
 

@@ -38,14 +38,14 @@ git status --short --branch
 
 当前重要状态：
 - docs/EXECUTION_BRIEF.md 是后续架构工作的权威执行简报；如果用户没有指定任务，默认从其中第一个未完成的 P0/P1 任务开始；如果 P0/P1 都已完成，则进入第一个未完成的 P2 任务。
-- 当前默认下一步是 PL-010：继续完成本地 JSON 工作区文件持久化。核心方向是用户可见的 `performancelab.workspace.json` 作为第一阶段权威数据源；IndexedDB/localStorage 不作为核心数据存储。
+- 当前默认下一步是 PL-011：测试内容、测试批次与 availability matrix。核心方向是让 `TestAction`、`TestBattery`、`SessionBatteryAssignment` 真实驱动指标可用性，并让横向比较能识别共同可用、缺失、部分可用和不兼容指标。
 - PL-001 已完成：src/lib/measurement-store.ts 提供第一版共享 mock Measurement[] store 和 selector。
 - PL-002 已完成：src/lib/metric-surface-config.ts 和 docs/METRIC_SURFACE_CONFIG.md 定义第一版可序列化指标展示面配置模型。
 - PL-003 已完成：Dashboard periodic testing 已迁移到 registry + metric surface config + measurement selector；新增 src/lib/metric-surface-measurements.ts adapter。
 - PL-004 已完成：`/comparison` 页面已收敛为复用 `PeriodicTesting` 的路由壳，不再维护第二套页面本地指标/统计/图表真相。
 - PL-005 已完成：Data Entry 的 `IndicatorSelector` 已改为 registry-backed test battery config；手动录入保存和 Excel 暂存确认都会生成 domain-model `Measurement[]`。
 - PL-006 已完成：新增 src/lib/performance-statistics.ts，集中 summary comparison、TE、MDC、SWC、SNR、effect size、summary-level p-value 和 correlation 输出，并提供 method、assumptions、sampleSize、missingDataPolicy、dataQuality metadata；Dashboard periodic comparison 和 `/correlation` 主统计表已开始消费该边界。
-- PL-010 当前为 Doing：已建立本地 JSON workspace 文件层、全局文件栏、创建/打开/保存/另存为/导入/导出入口；Data Entry 手动保存、Excel 导入确认和导入历史、Settings 外观偏好/人体图/显示阈值/通知规则/系统统计/导出入口已写入或读取 workspace；Dashboard periodic testing、`/comparison`、Dashboard 顶部运动员选择器和 Dashboard daily monitoring 的 HRV/RHR/睡眠/RPE 日常序列已读取活动 JSON 数据；Dashboard 顶部日期/运动员筛选已开始驱动 Dashboard daily monitoring 和 Dashboard periodic testing 的 measurement query；Admin 定义库新增/编辑/删除指标、运动员档案和测试批次已写入 workspace，并且 Data Entry 指标选择和导入解析会优先读取这些定义；已通过全新浏览器上下文 + 导入同一 JSON 验证清缓存后核心数据可恢复。下一步需补剩余日常监控字段。
+- PL-010 已完成：已建立本地 JSON workspace 文件层、全局文件栏、创建/打开/保存/另存为/导入/导出入口；Data Entry 手动保存、Excel 导入确认和导入历史、Settings 外观偏好/人体图/显示阈值/通知规则/系统统计/导出入口已写入或读取 workspace；Dashboard periodic testing、`/comparison`、Dashboard 顶部运动员选择器和 Dashboard daily monitoring 的现有日常监控字段已读取活动 JSON 数据；Dashboard 顶部日期/运动员筛选已驱动 Dashboard daily monitoring 和 Dashboard periodic testing 的 measurement query；Admin 定义库新增/编辑/删除指标、运动员档案和测试批次已写入 workspace，并且 Data Entry 指标选择和导入解析会优先读取这些定义；已通过全新浏览器上下文 + 导入同一 JSON 验证清缓存后核心数据可恢复，也已通过导入全量日常监控字段 JSON 验证 Dashboard daily monitoring 可恢复这些字段。
 - 横向/纵向比较的推荐方向是同一指标展示面上的“主数据 + 最多 3 组额外对比数据”，同屏最多 4 组；目标、阈值、benchmark、SWC、MDC、置信区间等是统计注释或参考线，不占对比数据组名额。
 - 相关性分析建议保留独立探索工作流，但必须复用统一 metric registry 和 measurement store。
 - Excel/CSV 导入已从纯 mock 改为真实解析，入口在 src/lib/import-parser.ts 和 src/components/data-entry/UploadZone.tsx；npm run lint 当前已修到通过。

@@ -856,3 +856,36 @@ Use this file as the session-by-session project journal.
   - GitHub app helper `_fetch_commit_workflow_runs` was not a valid proof for push workflows because it only returns PR-triggered runs.
 - Working hypothesis: the deployment failure is not a build failure; it is that recent main pushes did not create the custom GitHub Actions deploy run. Because current HEAD is a `[skip ci]` progress commit, first recovery step is a normal non-skip commit to trigger a clean push event for the current branch head.
 - Commit/push plan: create and push a normal deployment-trigger commit with message `Trigger Pages deployment`.
+- Commit: created and pushed normal deployment-trigger commit `facb39e` with message `Trigger Pages deployment`.
+- Deployment verification: fetched `origin/gh-pages`; after 4 polling attempts it updated to `f42b372` with message `deploy: facb39ef6cafd44a3ea1bb9e0d01bb067b9e0c68`.
+- Live Pages verification: `https://zekeniu.github.io/PerformanceLab/?v=facb39e` returned HTTP 200 and included the app root.
+- Verification: `npm run build` passes with the existing Vite >500 kB chunk warning plus a non-blocking Browserslist data age notice.
+
+## 2026-06-02 PL-010 Daily Monitoring Remaining Fields Continuation
+
+- Continuing `PL-010` after resolving the GitHub Pages deployment trigger issue.
+- Default next task from `docs/EXECUTION_BRIEF.md` remains local JSON workspace persistence; the remaining PL-010 gap is daily monitoring fields that still fall back to mock data instead of workspace/selector data.
+- Working decision: keep this pass focused on mapping additional daily monitoring fields to canonical metric ids and workspace measurements. Derived formulas that need broader dependency handling should stay lightweight here and can be hardened later under PL-012.
+- Implementation plan: add canonical registry entries for the remaining daily monitoring metrics, seed new workspaces with deterministic daily measurements for those metrics, and expand `DailyMonitoring` so readiness, energy, soreness, confidence, load, sRPE, duration, ACWR, and monotony read from the active workspace through the shared measurement selector.
+- Implemented registry, seed, and Dashboard adapter changes. Next verification: run `npm run lint` and `npm run build`.
+- Verification: `npm run lint` passes with no warnings.
+- Verification: `npm run build` passes with the existing Vite >500 kB chunk warning plus the non-blocking Browserslist data age notice.
+- Browser QA plan: use regular Playwright because the Browser plugin is not available in this session; import a temporary workspace JSON containing all daily monitoring fields and verify the Dashboard daily monitoring route renders without console errors.
+- Playwright smoke on local preview passed for Dashboard daily monitoring all-field import: imported a two-day workspace JSON containing HRV, RHR, sleep, RPE, readiness, energy, soreness, confidence, training load, duration, ACWR, and training monotony; the route rendered 11 ECharts instances, showed the two-day ACWR baseline marker `2/28`, had no console errors/warnings or page errors, and had no desktop page-level horizontal overflow.
+- Follow-up implementation note: `TrainingLoadCard` still has hard-coded bottom metric blocks for monotony, strain, and EWM(7); update those blocks to derive from the active daily series before treating the daily monitoring fallback gap as closed.
+- Updated `TrainingLoadCard` bottom metric blocks so monotony, strain, and EWM(7) are derived from the active daily data series instead of fixed mock values. Next verification: rerun `npm run lint`, `npm run build`, and the daily all-field Playwright smoke.
+- Verification: `npm run lint` passes with no warnings after the training load card update.
+- Verification: `npm run build` passes after the training load card update with the existing Vite >500 kB chunk warning plus the non-blocking Browserslist data age notice.
+- Playwright smoke on local preview passed again after the training load card update:
+  - Desktop `1440x1000` imported a two-day workspace JSON containing all daily monitoring metrics; the route rendered 11 ECharts instances, showed `2/28`, and displayed derived training-load summary values `1.12`, `895`, and `783`.
+  - Mobile `390x900` imported the same workspace JSON; the route rendered 11 ECharts instances, showed `2/28` and `1.12`, and had no page-level horizontal overflow.
+  - Console errors, console warnings, and page errors were empty in both runs.
+  - Screenshots were saved to the system temp directory, not the repository.
+- Cleanup note: stopped the local Vite preview process on port 4177.
+- Documentation plan: mark `PL-010` as `Done` and set the default next task to `PL-011` because the execution brief's remaining PL-010 daily monitoring workspace-read gap is closed.
+- Documentation update: marked `PL-010` as `Done` in `docs/EXECUTION_BRIEF.md`, set the default next task to `PL-011`, and synchronized `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md`.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files, `src/components/dashboard/DailyMonitoring.tsx`, `src/lib/measurement-store.ts`, and `src/lib/metric-registry.ts`.
+- Commit plan: create a local commit with message `Complete workspace daily monitoring persistence`, then push it to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `8d1c8f2` with message `Complete workspace daily monitoring persistence`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing.

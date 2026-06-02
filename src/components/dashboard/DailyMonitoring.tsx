@@ -10,11 +10,25 @@ import type { PerformanceLabWorkspace } from '@/lib/workspace-file'
 
 type DailyMetricKey = keyof Omit<DailyData, 'date'>
 
-const dailyWorkspaceMetricMap: Partial<Record<DailyMetricKey, string>> = {
-  hrv: 'hrv_rmssd',
-  rhr: 'hr_resting',
-  sleep: 'sleep_score',
-  stress: 'rpe',
+interface DailyWorkspaceMetricConfig {
+  metricId: string
+  transform?: (value: number) => number
+}
+
+const dailyWorkspaceMetricMap: Partial<Record<DailyMetricKey, DailyWorkspaceMetricConfig>> = {
+  hrv: { metricId: 'hrv_rmssd' },
+  rhr: { metricId: 'hr_resting' },
+  sleep: { metricId: 'sleep_score', transform: toTenPointScale },
+  stress: { metricId: 'rpe', transform: toTenPointScale },
+  readiness: { metricId: 'readiness_score', transform: toTenPointScale },
+  energy: { metricId: 'energy_score', transform: toTenPointScale },
+  soreness: { metricId: 'soreness_score', transform: toTenPointScale },
+  confidence: { metricId: 'confidence_score', transform: toTenPointScale },
+  acwr: { metricId: 'acwr', transform: (value) => roundTo(value, 2) },
+  load: { metricId: 'training_load' },
+  sRPE: { metricId: 'rpe', transform: toTenPointScale },
+  duration: { metricId: 'session_duration_min' },
+  monotony: { metricId: 'training_monotony', transform: (value) => roundTo(value, 2) },
 }
 
 function mean(values: number[]) {
@@ -27,8 +41,13 @@ function standardDeviation(values: number[]) {
   return Math.sqrt(values.reduce((total, value) => total + (value - average) ** 2, 0) / values.length)
 }
 
-function toTenPointScore(value: number) {
-  return Math.round((value / 10) * 10) / 10
+function roundTo(value: number, decimals: number) {
+  const factor = 10 ** decimals
+  return Math.round(value * factor) / factor
+}
+
+function toTenPointScale(value: number) {
+  return roundTo(value > 10 ? value / 10 : value, 1)
 }
 
 function buildWorkspaceDailyData(
@@ -45,15 +64,16 @@ function buildWorkspaceDailyData(
     to: filter.to,
   }
 
-  Object.entries(dailyWorkspaceMetricMap).forEach(([dailyKey, metricId]) => {
-    if (!metricId) return
-    const points = selectMeasurementSeries(metricId, query, { aggregation: 'mean', groupBy: 'date' }, store)
+  Object.entries(dailyWorkspaceMetricMap).forEach(([dailyKey, config]) => {
+    if (!config) return
+    const points = selectMeasurementSeries(config.metricId, query, { aggregation: 'mean', groupBy: 'date' }, store)
       .filter((point) => point.value !== null)
     if (!points.length) return
 
     const valueByDate = new Map<string, number>()
     points.forEach((point) => {
-      const value = dailyKey === 'sleep' ? toTenPointScore(point.value ?? 0) : point.value ?? 0
+      const rawValue = point.value ?? 0
+      const value = config.transform ? config.transform(rawValue) : rawValue
       valueByDate.set(point.key, value)
       dates.add(point.key)
     })
@@ -73,6 +93,15 @@ function buildWorkspaceDailyData(
         rhr: seriesByKey.get('rhr')?.get(date) ?? baseline.rhr,
         sleep: seriesByKey.get('sleep')?.get(date) ?? baseline.sleep,
         stress: seriesByKey.get('stress')?.get(date) ?? baseline.stress,
+        readiness: seriesByKey.get('readiness')?.get(date) ?? baseline.readiness,
+        energy: seriesByKey.get('energy')?.get(date) ?? baseline.energy,
+        soreness: seriesByKey.get('soreness')?.get(date) ?? baseline.soreness,
+        confidence: seriesByKey.get('confidence')?.get(date) ?? baseline.confidence,
+        acwr: seriesByKey.get('acwr')?.get(date) ?? baseline.acwr,
+        load: seriesByKey.get('load')?.get(date) ?? baseline.load,
+        sRPE: seriesByKey.get('sRPE')?.get(date) ?? baseline.sRPE,
+        duration: seriesByKey.get('duration')?.get(date) ?? baseline.duration,
+        monotony: seriesByKey.get('monotony')?.get(date) ?? baseline.monotony,
       }
     })
 }
@@ -537,6 +566,21 @@ function SubjectiveCard({
 
 /* ─── Training Load Details Card ─── */
 function TrainingLoadCard({ data }: { data: DailyData[] }) {
+  const loadStats = useMemo(() => {
+    const latest = data[data.length - 1]
+    if (!latest) {
+      return { monotony: '--', strain: '--', ewm: '--', monotonyAlert: false }
+    }
+
+    const loadEma = calculateEMA(data.map((d) => d.load), 7)
+    return {
+      monotony: latest.monotony.toFixed(2),
+      strain: Math.round(latest.load * latest.monotony).toString(),
+      ewm: Math.round(loadEma[loadEma.length - 1]).toString(),
+      monotonyAlert: latest.monotony > 2,
+    }
+  }, [data])
+
   const option = useMemo(() => {
     return {
       grid: { top: 16, right: 16, bottom: 40, left: 40 },
@@ -607,9 +651,9 @@ function TrainingLoadCard({ data }: { data: DailyData[] }) {
     <DashboardCard title="训练负荷明细">
       <ReactECharts option={option} style={{ height: 180 }} />
       <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-        <MetricBlock label="训练单调性" value="1.42" alert />
-        <MetricBlock label="训练应变" value="847" />
-        <MetricBlock label="EWM(7)" value="65.3" />
+        <MetricBlock label="训练单调性" value={loadStats.monotony} alert={loadStats.monotonyAlert} />
+        <MetricBlock label="训练应变" value={loadStats.strain} />
+        <MetricBlock label="EWM(7)" value={loadStats.ewm} />
       </div>
     </DashboardCard>
   )

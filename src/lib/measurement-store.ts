@@ -111,6 +111,14 @@ const dailyMetricSeeds: Record<string, MetricSeed> = {
   spo2: { base: 96.4, athleteStep: 0.08, sessionStep: 0.02, trialStep: 0, wave: 0.5, decimals: 1 },
   sleep_score: { base: 74, athleteStep: 1.6, sessionStep: 0.35, trialStep: 0, wave: 6.8, decimals: 0 },
   rpe: { base: 4.8, athleteStep: 0.08, sessionStep: 0.05, trialStep: 0, wave: 1.1, decimals: 1 },
+  readiness_score: { base: 7.2, athleteStep: 0.16, sessionStep: 0.03, trialStep: 0, wave: 0.8, decimals: 1 },
+  energy_score: { base: 7.0, athleteStep: 0.14, sessionStep: 0.03, trialStep: 0, wave: 0.7, decimals: 1 },
+  soreness_score: { base: 3.2, athleteStep: -0.04, sessionStep: 0.02, trialStep: 0, wave: 0.9, decimals: 1 },
+  confidence_score: { base: 7.8, athleteStep: 0.12, sessionStep: 0.02, trialStep: 0, wave: 0.5, decimals: 1 },
+  training_load: { base: 320, athleteStep: 8, sessionStep: 4, trialStep: 0, wave: 42, decimals: 0 },
+  session_duration_min: { base: 72, athleteStep: 1.5, sessionStep: 0.8, trialStep: 0, wave: 9, decimals: 0 },
+  acwr: { base: 0.95, athleteStep: 0.01, sessionStep: 0.004, trialStep: 0, wave: 0.12, decimals: 2 },
+  training_monotony: { base: 1.3, athleteStep: 0.02, sessionStep: 0.006, trialStep: 0, wave: 0.16, decimals: 2 },
 }
 
 const performanceMetricSeeds: Record<string, MetricSeed> = {
