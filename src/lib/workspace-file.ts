@@ -116,13 +116,24 @@ function buildInitialTestBatteries(): TestBattery[] {
   })
 }
 
-function buildInitialSessionBatteryAssignments(): SessionBatteryAssignment[] {
+function buildInitialTestSessions(): TestSession[] {
+  const batteryIds = buildInitialTestBatteries().map((battery) => battery.id)
   return mockMeasurementStore.sessions.map((session) => ({
-    id: `assignment-${session.id}`,
-    sessionId: session.id,
-    batteryId: 'battery-cat-1',
-    teamId: session.teamId,
+    ...session,
+    batteryIds,
   }))
+}
+
+function buildInitialSessionBatteryAssignments(): SessionBatteryAssignment[] {
+  const batteryIds = buildInitialTestBatteries().map((battery) => battery.id)
+  return mockMeasurementStore.sessions.flatMap((session) =>
+    batteryIds.map((batteryId) => ({
+      id: `assignment-${session.id}-${batteryId}`,
+      sessionId: session.id,
+      batteryId,
+      teamId: session.teamId,
+    })),
+  )
 }
 
 export function createInitialWorkspace(): PerformanceLabWorkspace {
@@ -133,7 +144,7 @@ export function createInitialWorkspace(): PerformanceLabWorkspace {
     updatedAt: now,
     teams: cloneJson(mockMeasurementStore.teams),
     athletes: cloneJson(mockMeasurementStore.athletes),
-    testSessions: cloneJson(mockMeasurementStore.sessions),
+    testSessions: buildInitialTestSessions(),
     testBatteries: buildInitialTestBatteries(),
     sessionBatteryAssignments: buildInitialSessionBatteryAssignments(),
     testActionCategories: dataEntryActionCategories.map((category) => ({

@@ -894,3 +894,57 @@ Use this file as the session-by-session project journal.
 - GitHub Pages deployment verification: fetched `origin/gh-pages`; after 3 polling attempts it updated to `aa4cf0c` with message `deploy: 2cc441661ad9bc6e7761d92f4b08a80a59a41ff5`.
 - Live Pages verification: `https://zekeniu.github.io/PerformanceLab/?v=2cc4416` returned HTTP 200 and included the app root.
 - Commit/push plan: record this deployment verification in a normal progress-log commit so the branch HEAD does not become a `[skip ci]` commit.
+
+## 2026-06-02 PL-011 Availability Matrix Continuation
+
+- Started from the default next task in `docs/EXECUTION_BRIEF.md`: `PL-011`, test content, test batch usage, and availability matrix rules.
+- Confirmed initial git status: `main...origin/main` with no local changes.
+- Read the required project context files and applied the karpathy-guidelines, React best-practices, and frontend-testing-debugging skills for a scoped React/data-model change with rendered validation.
+- Initial inventory finding: `TestAction`, `TestBattery`, `SessionBatteryAssignment`, `Measurement.testActionId`, and `Measurement.batteryId` already exist in the domain model/workspace schema, but Dashboard periodic testing currently chooses metrics from raw measurement presence and does not use assigned test batteries to determine cross-sectional comparability.
+- Working decision: keep this pass focused on a first availability matrix boundary. Implement a shared availability helper, seed initial workspace/mock measurements with action/battery links where possible, and make cross-sectional comparison charts default to metrics that are commonly available across the selected primary subject and comparison data groups. Leave derived formula execution and full configurable card switching to PL-012/PL-013.
+- Added `src/lib/availability-matrix.ts`:
+  - Resolves session-assigned batteries from `TestSession.batteryIds` plus `SessionBatteryAssignment`.
+  - Resolves battery metrics from direct `TestBattery.metricIds` plus assigned `TestAction.metricIds`.
+  - Builds per-metric rows with `available`, `missing`, `partial`, and `incompatible` status.
+  - Counts assigned/measured athletes across selected comparison subjects.
+- Updated `src/lib/data-entry-config.ts` so default test content covers seeded periodic metrics more accurately: CMJ power is part of CMJ, T-test agility is a speed action, and lactate threshold is part of the lactate test.
+- Updated `src/lib/measurement-store.ts` so seeded periodic measurements include `testActionId` and `batteryId` where the default action config resolves the metric.
+- Updated `src/lib/workspace-file.ts` so new initial workspace test sessions carry all default battery ids and `sessionBatteryAssignments` cover all default batteries instead of only `battery-cat-1`.
+- Updated `src/components/dashboard/PeriodicTesting.tsx`:
+  - Periodic metrics now come from active workspace metric definitions instead of only module-level registry constants.
+  - Cross-sectional comparison uses the latest selected session as the default same-time comparison condition.
+  - Comparison layers now carry resolved athlete ids for availability evaluation.
+  - Cross-sectional charts/stat tables default to metrics marked `available` by the matrix.
+  - Added an availability matrix card that shows all periodic metrics and marks common available, missing, partial, and incompatible rows.
+  - Added an empty radar state when selected subjects have no common available metrics.
+- Updated `src/components/dashboard/data.ts` so `ComparisonLayer` can carry optional `athleteIds`.
+- Verification: `npm run lint` passes with no warnings.
+- Verification: `npm run build` passes with the existing Vite >500 kB chunk warning and non-blocking Browserslist data-age notice.
+- Browser QA note: Browser plugin is not available in this session, so Playwright was used directly.
+- Playwright setup note: first `Start-Process npm run preview` attempt did not keep the preview server alive on port 4178. Restarted preview through a hidden PowerShell process and confirmed `http://127.0.0.1:4178/`.
+- Playwright script note: the first cross-sectional smoke script used a Chinese regex literal through a PowerShell pipe and failed before reaching the app because the regex was shell-encoding corrupted. Replaced it with CSS/ASCII selectors.
+- Playwright default workspace smoke passed for `/comparison` cross-sectional mode:
+  - Desktop `1440x1000` and mobile `390x900` both rendered the availability matrix.
+  - Matrix exposed 18 common available rows in the default workspace, and `data-surface-config-count` was `18`.
+  - Add-comparison menu opened.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched `1440`; mobile document width matched `390`; no page-level horizontal overflow.
+  - Screenshots were saved to `%TEMP%\pl011-availability-1440.png` and `%TEMP%\pl011-availability-390.png`.
+- Playwright custom workspace smoke initially exposed a real runtime issue: when there were no common available metrics, the cross-sectional radar passed an empty radar indicator array into ECharts and ECharts threw `Cannot read properties of undefined (reading 'push')`.
+- Fixed the empty-common-metric case by adding a `ComparisonRadar` empty state instead of rendering ECharts with no categories/indicators.
+- Verification after the empty-state fix: `npm run lint` passes with no warnings.
+- Verification after the empty-state fix: `npm run build` passes with the existing Vite >500 kB chunk warning and non-blocking Browserslist data-age notice.
+- Playwright custom workspace smoke passed after the fix:
+  - Imported a temporary workspace JSON with one partial metric, one missing metric, and one incompatible metric.
+  - Matrix showed `Only partially available`, `Assigned but no measurement rows found`, and `Not assigned in the selected test content` once each.
+  - No common available metrics were passed to ECharts; rendered chart canvas count was `0`, using the empty state instead.
+  - Console errors, console warnings, and page errors were empty.
+  - Desktop document width matched viewport width with no page-level horizontal overflow.
+  - Screenshot was saved to `%TEMP%\pl011-availability-statuses.png`; temporary workspace JSON was saved under `%TEMP%` and not the repository.
+- Cleanup note: stopped the local Vite preview process on port 4178.
+- Documentation update: marked `PL-011` as `Done` in `docs/EXECUTION_BRIEF.md`, set the default next task to `PL-012`, and synchronized `docs/NEXT_CHAT_PROMPT.md`, `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `task_plan.md`, and `findings.md`.
+- Final verification: `git diff --check` passes; it only reported expected CRLF normalization warnings from Git.
+- Final pre-commit git status: modified docs/context files, `src/components/dashboard/PeriodicTesting.tsx`, `src/components/dashboard/data.ts`, `src/lib/data-entry-config.ts`, `src/lib/measurement-store.ts`, `src/lib/workspace-file.ts`, and new `src/lib/availability-matrix.ts`.
+- Commit plan: create a local commit with message `Add test availability matrix`, then push it to `origin/main` so GitHub Actions can deploy Pages.
+- Commit: created local commit `f1f1614` with message `Add test availability matrix`.
+- Commit amend plan: amend the commit to include this commit log entry before pushing.

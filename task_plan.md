@@ -205,6 +205,21 @@ Build a professional sports performance dashboard for performance analysts and h
 - PL-010 status: Done.
 - Next recommended architecture work: proceed to PL-011 for test content, test batch usage, and availability matrix rules.
 
+## 2026-06-02 PL-011 Availability Matrix Task
+
+- Completed: Added `src/lib/availability-matrix.ts` as the first shared availability matrix boundary.
+- Completed: Initial workspace test sessions now carry default test battery ids, and session-battery assignments cover the default workspace batteries instead of only one placeholder battery.
+- Completed: Periodic mock measurements now carry `testActionId` and `batteryId` where the default action configuration can resolve the metric.
+- Completed: Data Entry action config now covers CMJ power, T-test agility, and lactate threshold so seeded periodic measurements map back to declared test content.
+- Completed: Dashboard periodic cross-sectional comparison now builds availability rows from active workspace test content and selected comparison subjects, defaults charts/tables to common available metrics, and shows an availability matrix for common available, missing, partial, and incompatible metrics.
+- Completed: Added an empty radar state for cases where selected comparison subjects have no common available metrics.
+- Verification: `npm run lint` passes.
+- Verification: `npm run build` passes. Existing Vite chunk-size warning and Browserslist data-age notice remain.
+- Verification: Playwright `/comparison` cross-sectional smoke passed on desktop and 390px mobile with the default workspace: availability matrix rendered, add-comparison menu opened, no console errors/warnings or page errors, and no page-level horizontal overflow.
+- Verification: Playwright custom workspace smoke passed for partial, missing, and incompatible availability rows, including the no-common-metric empty chart state with no console errors/warnings or page errors.
+- PL-011 status: Done.
+- Next recommended architecture work: proceed to PL-012 for derived metric formula registry execution.
+
 ## 2026-05-22 Active Task
 
 - Completed: Settings defensive `localStorage` parsing for chart colors.

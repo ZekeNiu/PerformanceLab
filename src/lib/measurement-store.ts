@@ -1,4 +1,5 @@
 import { mockAthletes, mockTestSessions } from '@/data/mockData'
+import { dataEntryActionCategories } from './data-entry-config'
 import type { Athlete, EntityId, Measurement, Team, TestSession } from './domain-model'
 import { getMetricDefinition } from './metric-registry'
 
@@ -84,6 +85,26 @@ interface MetricSeed {
   decimals: number
 }
 
+interface MetricActionAssignment {
+  testActionId: string
+  batteryId: string
+}
+
+const metricActionAssignments = new Map<string, MetricActionAssignment>()
+
+dataEntryActionCategories.forEach((category) => {
+  category.actions.forEach((action) => {
+    action.metricIds.forEach((metricId) => {
+      if (!metricActionAssignments.has(metricId)) {
+        metricActionAssignments.set(metricId, {
+          testActionId: action.id,
+          batteryId: `battery-${category.id}`,
+        })
+      }
+    })
+  })
+})
+
 const periodicMetricSeeds: Record<string, MetricSeed> = {
   cmj_height: { base: 38.4, athleteStep: 0.92, sessionStep: 1.18, trialStep: 0.22, wave: 0.42, decimals: 1 },
   cmj_power: { base: 2820, athleteStep: 86, sessionStep: 95, trialStep: 18, wave: 34, decimals: 0 },
@@ -156,17 +177,22 @@ function buildPeriodicMeasurements(): Measurement[] {
   return mockMeasurementAthletes.flatMap((athlete, athleteIndex) =>
     mockMeasurementSessions.flatMap((session, sessionIndex) =>
       Object.entries(periodicMetricSeeds).flatMap(([metricId, seed]) =>
-        Array.from({ length: 3 }, (_, trialIndex) => ({
-          id: `meas-${metricId}-${athlete.id}-${session.id}-t${trialIndex + 1}`,
-          athleteId: athlete.id,
-          sessionId: session.id,
-          metricId,
-          measuredAt: session.date,
-          value: seededValue(seed, athleteIndex, sessionIndex, trialIndex),
-          unit: getMetricDefinition(metricId)?.unit,
-          trialIndex: trialIndex + 1,
-          source: 'manual' as const,
-        })),
+        Array.from({ length: 3 }, (_, trialIndex) => {
+          const assignment = metricActionAssignments.get(metricId)
+          return {
+            id: `meas-${metricId}-${athlete.id}-${session.id}-t${trialIndex + 1}`,
+            athleteId: athlete.id,
+            sessionId: session.id,
+            testActionId: assignment?.testActionId,
+            batteryId: assignment?.batteryId,
+            metricId,
+            measuredAt: session.date,
+            value: seededValue(seed, athleteIndex, sessionIndex, trialIndex),
+            unit: getMetricDefinition(metricId)?.unit,
+            trialIndex: trialIndex + 1,
+            source: 'manual' as const,
+          }
+        }),
       ),
     ),
   )

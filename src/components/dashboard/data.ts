@@ -236,6 +236,7 @@ export interface ComparisonLayer {
   name: string
   color: string
   type: 'individual' | 'group'
+  athleteIds?: string[]
   values: Record<string, { mean: number; sd: number; n: number }>
 }
 

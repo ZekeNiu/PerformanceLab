@@ -25,7 +25,7 @@ export const dataEntryActionCategories: DataEntryActionCategory[] = [
         name: '下蹲跳 CMJ',
         description: '反向跳跃测试下肢爆发力',
         equipment: '测力台',
-        metricIds: ['cmj_height', 'cmj_force', 'flight_time', 'eccentric_utilization_ratio'],
+        metricIds: ['cmj_height', 'cmj_power', 'cmj_force', 'flight_time', 'eccentric_utilization_ratio'],
       },
       {
         id: 'act-2',
@@ -88,6 +88,13 @@ export const dataEntryActionCategories: DataEntryActionCategory[] = [
         equipment: '电子计时门',
         metricIds: ['sprint_10m'],
       },
+      {
+        id: 'act-15',
+        name: 'T-test agility',
+        description: 'Change-of-direction agility test',
+        equipment: 'Timing gates',
+        metricIds: ['agility_t'],
+      },
     ],
   },
   {
@@ -146,7 +153,7 @@ export const dataEntryActionCategories: DataEntryActionCategory[] = [
         name: '血乳酸测试',
         description: '无氧阈值评估',
         equipment: '血乳酸仪',
-        metricIds: ['lactate_resting'],
+        metricIds: ['lactate_resting', 'lactate_threshold'],
       },
     ],
   },

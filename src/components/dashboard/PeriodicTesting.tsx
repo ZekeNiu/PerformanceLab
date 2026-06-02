@@ -3,7 +3,11 @@ import ReactECharts from 'echarts-for-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Calendar, GitCompare, Plus, Users, X } from 'lucide-react'
 import type { MetricDefinition } from '@/lib/domain-model'
-import { METRIC_DEFINITIONS } from '@/lib/metric-registry'
+import {
+  buildMetricAvailabilityMatrix,
+  type MetricAvailabilityRow,
+  type MetricAvailabilitySubject,
+} from '@/lib/availability-matrix'
 import type { MeasurementStore } from '@/lib/measurement-store'
 import { compareSummaries } from '@/lib/performance-statistics'
 import { selectMetricDataGroupSummary } from '@/lib/metric-surface-measurements'
@@ -13,6 +17,7 @@ import type {
   MetricSurfaceConfig,
 } from '@/lib/metric-surface-config'
 import { workspaceToMeasurementStore } from '@/lib/workspace-measurement-store'
+import type { PerformanceLabWorkspace } from '@/lib/workspace-file'
 import { useWorkspaceStore } from '@/lib/workspace-store'
 import DashboardCard from './DashboardCard'
 import type { DashboardMeasurementFilter } from './filter-types'
@@ -41,6 +46,7 @@ interface RadarCategoryScore {
 
 interface PeriodicSurfaceData {
   surfaceConfigs: MetricSurfaceConfig[]
+  periodicMetrics: MetricDefinition[]
   indicators: ComparisonIndicator[]
   categories: string[]
   displayCategories: PeriodicCategory[]
@@ -48,6 +54,8 @@ interface PeriodicSurfaceData {
   defaultCrossLayers: ComparisonLayer[]
   athleteLayerOptions: ComparisonLayer[]
   referenceLayerOptions: ComparisonLayer[]
+  primaryAvailabilitySubject: MetricAvailabilitySubject
+  crossSessionIds: string[]
   primaryLabel: string
   baselineLabel: string
   comparisonLabel: string
@@ -95,6 +103,55 @@ function metricValues(metricId: string, store: MeasurementStore) {
   return store.measurements
     .filter((measurement) => measurement.metricId === metricId)
     .map((measurement) => measurement.value)
+}
+
+function metricGroupAthleteIds(group: MetricDataGroupConfig, store: MeasurementStore): string[] {
+  if (group.subject.kind === 'athlete') return group.subject.athleteIds
+  if (group.subject.kind === 'custom-group') return group.subject.athleteIds
+
+  if (group.subject.kind === 'team') {
+    const allowedTeams = new Set(group.subject.teamIds)
+    return store.athletes
+      .filter((athlete) => athlete.teamId && allowedTeams.has(athlete.teamId))
+      .map((athlete) => athlete.id)
+  }
+
+  if (group.subject.kind === 'position') {
+    const allowedPositions = new Set(group.subject.positions)
+    const allowedTeams = new Set(group.subject.teamIds ?? [])
+    return store.athletes
+      .filter((athlete) => athlete.position && allowedPositions.has(athlete.position))
+      .filter((athlete) => !allowedTeams.size || (athlete.teamId && allowedTeams.has(athlete.teamId)))
+      .map((athlete) => athlete.id)
+  }
+
+  if (group.subject.kind === 'reference-group') {
+    const selector = group.subject.selector
+    let athletes = store.athletes
+
+    if (selector.athleteIds?.length) {
+      const allowed = new Set(selector.athleteIds)
+      athletes = athletes.filter((athlete) => allowed.has(athlete.id))
+    }
+
+    if (selector.scope === 'team' && selector.teamIds?.length) {
+      const allowedTeams = new Set(selector.teamIds)
+      athletes = athletes.filter((athlete) => athlete.teamId && allowedTeams.has(athlete.teamId))
+    }
+
+    if (selector.positions?.length) {
+      const allowedPositions = new Set(selector.positions)
+      athletes = athletes.filter((athlete) => athlete.position && allowedPositions.has(athlete.position))
+    }
+
+    if (selector.status) {
+      athletes = athletes.filter((athlete) => athlete.status === selector.status)
+    }
+
+    return athletes.map((athlete) => athlete.id)
+  }
+
+  return []
 }
 
 function buildDataGroup(
@@ -159,6 +216,7 @@ function buildComparisonLayer(
     name,
     color,
     type,
+    athleteIds: metricGroupAthleteIds(group, store),
     values: Object.fromEntries(
       metrics.map((metric) => {
         const summary = selectMetricDataGroupSummary(metric.id, group, store)
@@ -186,7 +244,11 @@ function filterTimeSelection(filter: DashboardMeasurementFilter = {}): MetricDat
   return { kind: 'all' }
 }
 
-function buildPeriodicSurfaceData(store: MeasurementStore, filter: DashboardMeasurementFilter = {}): PeriodicSurfaceData {
+function buildPeriodicSurfaceData(
+  workspace: PerformanceLabWorkspace,
+  store: MeasurementStore,
+  filter: DashboardMeasurementFilter = {},
+): PeriodicSurfaceData {
   const sortedSessions = [...store.sessions]
     .filter((session) => dateInFilter(session.date, filter))
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -197,6 +259,10 @@ function buildPeriodicSurfaceData(store: MeasurementStore, filter: DashboardMeas
   const primaryTeamId = primaryAthlete?.teamId ?? store.teams[0]?.id
   const baselineSession = sortedSessions[0]
   const comparisonSession = sortedSessions.at(-1) ?? baselineSession
+  const crossTime = comparisonSession
+    ? { kind: 'session' as const, sessionIds: [comparisonSession.id] }
+    : filterTimeSelection(filter)
+  const crossSessionIds = comparisonSession ? [comparisonSession.id] : sortedSessions.map((session) => session.id)
 
   const primaryAthleteGroup = buildDataGroup(
     'primary-athlete-all',
@@ -249,17 +315,17 @@ function buildPeriodicSurfaceData(store: MeasurementStore, filter: DashboardMeas
         status: 'active',
       },
     },
-    { time: filterTimeSelection(filter) },
+    { time: crossTime },
   )
 
   const teamBestGroup = buildDataGroup(
     'team-best',
     '队内最佳',
     primaryTeamId ? { kind: 'team', teamIds: [primaryTeamId] } : teamDisplayGroup.subject,
-    { aggregation: 'best', time: filterTimeSelection(filter) },
+    { aggregation: 'best', time: crossTime },
   )
 
-  const periodicMetrics = METRIC_DEFINITIONS.filter((metric) =>
+  const periodicMetrics = workspace.metricDefinitions.filter((metric) =>
     metric.supportedContexts.includes('periodic') && metricValues(metric.id, store).length > 0,
   )
 
@@ -349,14 +415,20 @@ function buildPeriodicSurfaceData(store: MeasurementStore, filter: DashboardMeas
         athlete.name,
         LAYER_COLORS[index % LAYER_COLORS.length],
         'individual',
-        buildDataGroup(`athlete-${athlete.id}`, athlete.name, { kind: 'athlete', athleteIds: [athlete.id] }),
+        buildDataGroup(`athlete-${athlete.id}`, athlete.name, { kind: 'athlete', athleteIds: [athlete.id] }, { time: crossTime }),
         periodicMetrics,
         store,
       ),
     )
+  const primaryAvailabilitySubject: MetricAvailabilitySubject = {
+    id: 'primary',
+    label: primaryAthleteGroup.label,
+    athleteIds: metricGroupAthleteIds(primaryAthleteGroup, store),
+  }
 
   return {
     surfaceConfigs,
+    periodicMetrics,
     indicators,
     categories,
     displayCategories: displayCategories.length ? displayCategories : periodicCategories,
@@ -367,6 +439,8 @@ function buildPeriodicSurfaceData(store: MeasurementStore, filter: DashboardMeas
     defaultCrossLayers: referenceLayerOptions.slice(0, 1),
     athleteLayerOptions,
     referenceLayerOptions,
+    primaryAvailabilitySubject,
+    crossSessionIds,
     primaryLabel: primaryAthleteGroup.label,
     baselineLabel: baselineGroup.label,
     comparisonLabel: comparisonGroup.label,
@@ -686,6 +760,75 @@ function CrossSectionalControlBar({
   )
 }
 
+const availabilityStatusMeta: Record<MetricAvailabilityRow['status'], { label: string; color: string }> = {
+  available: { label: '共同可用', color: '#10B981' },
+  missing: { label: '缺失', color: '#EF4444' },
+  partial: { label: '部分可用', color: '#F59E0B' },
+  incompatible: { label: '不兼容', color: '#8B95A5' },
+}
+
+function AvailabilityMatrixPanel({ rows }: { rows: MetricAvailabilityRow[] }) {
+  const counts = rows.reduce<Record<MetricAvailabilityRow['status'], number>>(
+    (total, row) => {
+      total[row.status] += 1
+      return total
+    },
+    { available: 0, missing: 0, partial: 0, incompatible: 0 },
+  )
+
+  return (
+    <DashboardCard
+      title="测试内容可用性矩阵"
+      footer={<span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>横向比较图表默认只使用共同可用指标</span>}
+    >
+      <div className="mb-3 flex flex-wrap gap-2">
+        {Object.entries(availabilityStatusMeta).map(([status, meta]) => (
+          <span
+            key={status}
+            className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+            style={{ backgroundColor: `${meta.color}20`, color: meta.color }}
+          >
+            {meta.label} {counts[status as MetricAvailabilityRow['status']]}
+          </span>
+        ))}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px]">
+          <thead>
+            <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+              <th className="py-1.5 pr-2 text-left font-medium">指标</th>
+              <th className="py-1.5 pr-2 text-left font-medium">类别</th>
+              <th className="py-1.5 pr-2 text-center font-medium">状态</th>
+              <th className="py-1.5 pr-2 text-right font-medium">已分配</th>
+              <th className="py-1.5 pr-2 text-right font-medium">有数据</th>
+              <th className="py-1.5 text-left font-medium">规则说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const meta = availabilityStatusMeta[row.status]
+              return (
+                <tr key={row.metricId} style={{ borderBottom: '1px solid rgba(42,51,72,0.3)' }}>
+                  <td className="py-1.5 pr-2" style={{ color: 'var(--text-primary)' }}>{row.metricName}</td>
+                  <td className="py-1.5 pr-2" style={{ color: 'var(--text-secondary)' }}>{row.categoryName}</td>
+                  <td className="py-1.5 pr-2 text-center">
+                    <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${meta.color}20`, color: meta.color }}>
+                      {meta.label}
+                    </span>
+                  </td>
+                  <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{row.assignedAthleteCount}/{row.totalAthleteCount}</td>
+                  <td className="py-1.5 pr-2 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{row.measuredAthleteCount}/{row.totalAthleteCount}</td>
+                  <td className="max-w-[320px] py-1.5 text-left" style={{ color: 'var(--text-muted)' }}>{row.reason}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </DashboardCard>
+  )
+}
+
 function buildCategoryScores(indicators: ComparisonIndicator[], categories: string[], aggregate: AggregateMode, layer?: ComparisonLayer) {
   return categories.map((category) => {
     const categoryIndicators = indicators.filter((indicator) => indicator.category === category)
@@ -775,6 +918,16 @@ function ComparisonRadar({
       tooltip: { trigger: 'item' as const, backgroundColor: '#1C2130', borderColor: '#2A3348', textStyle: { color: '#E8ECF1', fontSize: 12 } },
     }
   }, [aggregate, baseLabel, categories, indicators, layers])
+
+  if (!categories.length || !indicators.length) {
+    return (
+      <DashboardCard title={title} configOptions={[{ label: 'MetricSurfaceConfig', value: 'surface' }]} currentConfig="surface">
+        <div className="flex min-h-[180px] items-center justify-center rounded-lg border border-dashed px-4 text-center text-[13px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
+          当前选择的测试内容和对比对象没有共同可用指标。请查看上方 availability matrix 中的缺失、部分可用或不兼容原因。
+        </div>
+      </DashboardCard>
+    )
+  }
 
   return (
     <DashboardCard title={title} configOptions={[{ label: 'MetricSurfaceConfig', value: 'surface' }]} currentConfig="surface">
@@ -1039,8 +1192,8 @@ export default function PeriodicTesting({ mode = 'display', filter }: Props) {
   const { workspace } = useWorkspaceStore()
   const workspaceMeasurementStore = useMemo(() => workspaceToMeasurementStore(workspace), [workspace])
   const periodicSurfaceData = useMemo(
-    () => buildPeriodicSurfaceData(workspaceMeasurementStore, filter),
-    [filter, workspaceMeasurementStore],
+    () => buildPeriodicSurfaceData(workspace, workspaceMeasurementStore, filter),
+    [filter, workspace, workspaceMeasurementStore],
   )
   const [longDateMode, setLongDateMode] = useState<DateMode>('range')
   const [longAggregate, setLongAggregate] = useState<AggregateMode>('mean')
@@ -1058,6 +1211,34 @@ export default function PeriodicTesting({ mode = 'display', filter }: Props) {
     })
     return selectedLayers.length ? selectedLayers : periodicSurfaceData.defaultCrossLayers
   }, [crossLayerOptions, periodicSurfaceData.defaultCrossLayers, selectedLayerIds])
+  const crossAvailabilityRows = useMemo(() => buildMetricAvailabilityMatrix({
+    workspace,
+    metrics: periodicSurfaceData.periodicMetrics,
+    subjects: [
+      periodicSurfaceData.primaryAvailabilitySubject,
+      ...layers.map((layer) => ({
+        id: layer.id,
+        label: layer.name,
+        athleteIds: layer.athleteIds ?? [],
+      })),
+    ],
+    sessionIds: periodicSurfaceData.crossSessionIds,
+  }), [layers, periodicSurfaceData.crossSessionIds, periodicSurfaceData.periodicMetrics, periodicSurfaceData.primaryAvailabilitySubject, workspace])
+  const crossAvailableMetricIds = useMemo(
+    () => new Set(crossAvailabilityRows.filter((row) => row.status === 'available').map((row) => row.metricId)),
+    [crossAvailabilityRows],
+  )
+  const crossIndicators = useMemo(
+    () => periodicSurfaceData.indicators.filter((indicator) => crossAvailableMetricIds.has(indicator.id)),
+    [crossAvailableMetricIds, periodicSurfaceData.indicators],
+  )
+  const crossCategories = useMemo(
+    () => Object.keys(crossIndicators.reduce<Record<string, true>>((groups, indicator) => {
+      groups[indicator.category] = true
+      return groups
+    }, {})),
+    [crossIndicators],
+  )
 
   const surfaceConfigCount = periodicSurfaceData.surfaceConfigs.length
 
@@ -1124,20 +1305,21 @@ export default function PeriodicTesting({ mode = 'display', filter }: Props) {
         referenceLayerOptions={periodicSurfaceData.referenceLayerOptions}
       />
       <div className="grid grid-cols-1 gap-6">
+        <AvailabilityMatrixPanel rows={crossAvailabilityRows} />
         <ComparisonRadar
           title="横向能力对比（目标锚定）"
           baseLabel={periodicSurfaceData.primaryLabel}
-          indicators={periodicSurfaceData.indicators}
-          categories={periodicSurfaceData.categories}
+          indicators={crossIndicators}
+          categories={crossCategories}
           aggregate={crossAggregate}
           layers={layers}
         />
-        {periodicSurfaceData.categories.map((category) => (
+        {crossCategories.map((category) => (
           <CrossSectionalCategorySection
             key={category}
             category={category}
             aggregate={crossAggregate}
-            indicators={periodicSurfaceData.indicators}
+            indicators={crossIndicators}
             layers={layers}
             baseLabel={periodicSurfaceData.primaryLabel}
           />

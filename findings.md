@@ -140,3 +140,10 @@ Use this file for durable discoveries that should survive across conversations.
 - Settings notification rendering currently groups known rule ids (`severe`, `caution`, `recovery`, and `acwr-danger`). Persisted custom notification ids can be stored in workspace JSON, but they will need a future UI grouping model before they appear as first-class user-defined rules.
 - Derived metric formulas should be registered centrally and then consumed by measurement queries. The registry alone is not enough; it must handle dependencies, dimensions, missing data, and quality flags before derived metrics appear as production-grade values.
 - The JSON import fallback has been verified as a cache-clear recovery path in fresh browser contexts for the already-migrated workspace consumers: Dashboard athlete selection, Data Entry import history, Admin athlete profiles, and Admin test sessions. This does not replace a future manual check of the direct File System Access API reopen flow in a desktop browser.
+
+## 2026-06-02 Availability Matrix Findings
+
+- `src/lib/availability-matrix.ts` is now the first shared boundary for turning workspace `TestAction`, `TestBattery`, `SessionBatteryAssignment`, and measurement rows into metric availability statuses.
+- Cross-sectional comparison should not treat every measured metric as comparable. The first implemented rule is: charts and comparison stats default to metrics that are assigned by the selected session test content and have measurements for every selected comparison subject; the availability matrix still shows the full periodic metric set and marks missing, partial, or incompatible rows.
+- The first availability matrix evaluates selected session ids and selected subject athlete ids. It does not yet model more advanced “same preparation phase” semantics beyond the existing `TestSession.phase` field; that remains a future extension if phase-level comparison presets are added.
+- An empty set of common available metrics must not be passed into ECharts radar. `ComparisonRadar` now renders an empty state in that case because ECharts can throw on an empty radar indicator array.
