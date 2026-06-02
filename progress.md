@@ -841,3 +841,18 @@ Use this file as the session-by-session project journal.
 - GitHub Pages deployment retry check: fetched `origin/gh-pages` for nearly 5 minutes, but it still pointed at the previous deploy commit `36662a7` with message `deploy: 7379a5722ce9098b59cb95ffd62c3138840b5a8e`; the final fetch attempt also hit a transient TLS EOF from GitHub.
 - Deployment remains unverified for `01dbb7d` / `99eb107`. Local build, lint, Dashboard Playwright smoke, and `/comparison` Playwright smoke passed; the remaining issue is remote GitHub Actions/Pages triggering or visibility.
 - Commit/push plan: record this deployment result in a progress-only `[skip ci]` commit so it does not create another deployment retry loop.
+
+## 2026-06-02 GitHub Pages Deployment Recovery
+
+- Started with user request to resolve the unverified GitHub Pages deployment before continuing the default `docs/EXECUTION_BRIEF.md` task.
+- Confirmed initial git status: `main...origin/main` with no local changes.
+- The listed `github:gh-fix-ci` skill path from startup context was stale; located the current skill under `C:\Users\ZekeNiu\.codex\plugins\cache\openai-curated\github\fef63ecf\skills\gh-fix-ci\SKILL.md`.
+- `gh` CLI is not installed locally, so direct GitHub Actions inspection used unauthenticated GitHub REST API until rate-limited.
+- Deployment diagnosis:
+  - `.github/workflows/deploy-pages.yml` is unchanged between last successful deploy commit `7379a57` and current `main`.
+  - Workflow `Deploy to GitHub Pages` is active in GitHub API.
+  - Last custom deploy workflow run is `26427339217` for commit `7379a57`, completed successfully.
+  - Later commits such as `b27a266`, `c555e7e`, `01dbb7d`, and `99eb107` have no `github-actions` check suite; they only show a queued `github-pages` check suite.
+  - GitHub app helper `_fetch_commit_workflow_runs` was not a valid proof for push workflows because it only returns PR-triggered runs.
+- Working hypothesis: the deployment failure is not a build failure; it is that recent main pushes did not create the custom GitHub Actions deploy run. Because current HEAD is a `[skip ci]` progress commit, first recovery step is a normal non-skip commit to trigger a clean push event for the current branch head.
+- Commit/push plan: create and push a normal deployment-trigger commit with message `Trigger Pages deployment`.
